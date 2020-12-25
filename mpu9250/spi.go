@@ -7,10 +7,10 @@ package mpu9250
 import (
 	"fmt"
 
-	"periph.io/x/periph/conn/gpio"
-	"periph.io/x/periph/conn/physic"
-	"periph.io/x/periph/conn/spi"
-	"periph.io/x/periph/conn/spi/spireg"
+	"periph.io/x/conn/gpio"
+	"periph.io/x/conn/physic"
+	"periph.io/x/conn/spi"
+	"periph.io/x/conn/spi/spireg"
 )
 
 // DebugF the debug function type.

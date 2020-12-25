@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"log"
 
-	"periph.io/x/periph/conn/gpio"
-	"periph.io/x/periph/conn/gpio/gpioreg"
-	"periph.io/x/periph/conn/i2c/i2creg"
-	"periph.io/x/periph/devices/cap1xxx"
+	"periph.io/x/conn/gpio"
+	"periph.io/x/conn/gpio/gpioreg"
+	"periph.io/x/conn/i2c/i2creg"
+	"periph.io/x/devices/cap1xxx"
 )
 
 func Example() {

@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"periph.io/x/periph/conn/i2c/i2ctest"
+	"periph.io/x/conn/i2c/i2ctest"
 )
 
 func TestNew(t *testing.T) {

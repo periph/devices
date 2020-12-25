@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"periph.io/x/periph/conn/gpio"
-	"periph.io/x/periph/conn/gpio/gpiotest"
+	"periph.io/x/conn/gpio"
+	"periph.io/x/conn/gpio/gpiotest"
 )
 
 func TestNew(t *testing.T) {

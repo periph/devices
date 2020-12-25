@@ -11,11 +11,11 @@ import (
 	"image/color"
 	"image/draw"
 
-	"periph.io/x/periph/conn"
-	"periph.io/x/periph/conn/display"
-	"periph.io/x/periph/conn/gpio/gpiostream"
-	"periph.io/x/periph/conn/physic"
-	"periph.io/x/periph/conn/spi"
+	"periph.io/x/conn"
+	"periph.io/x/conn/display"
+	"periph.io/x/conn/gpio/gpiostream"
+	"periph.io/x/conn/physic"
+	"periph.io/x/conn/spi"
 )
 
 // DefaultOpts is the recommended default options.

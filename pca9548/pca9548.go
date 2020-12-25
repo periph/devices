@@ -9,10 +9,10 @@ import (
 	"strconv"
 	"sync"
 
-	"periph.io/x/periph/conn"
-	"periph.io/x/periph/conn/i2c"
-	"periph.io/x/periph/conn/i2c/i2creg"
-	"periph.io/x/periph/conn/physic"
+	"periph.io/x/conn"
+	"periph.io/x/conn/i2c"
+	"periph.io/x/conn/i2c/i2creg"
+	"periph.io/x/conn/physic"
 )
 
 // DefaultOpts is the recommended default options.

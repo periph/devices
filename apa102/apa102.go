@@ -11,9 +11,9 @@ import (
 	"image/color"
 	"image/draw"
 
-	"periph.io/x/periph/conn/display"
-	"periph.io/x/periph/conn/physic"
-	"periph.io/x/periph/conn/spi"
+	"periph.io/x/conn/display"
+	"periph.io/x/conn/physic"
+	"periph.io/x/conn/spi"
 )
 
 // ToRGB converts a slice of color.NRGBA to a byte stream of RGB pixels.

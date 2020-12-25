@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"periph.io/x/periph/conn/physic"
+	"periph.io/x/conn/physic"
 )
 
 func TestDuration(t *testing.T) {

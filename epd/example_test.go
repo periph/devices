@@ -8,12 +8,12 @@ import (
 	"image"
 	"log"
 
-	"periph.io/x/periph/experimental/devices/epd"
+	"periph.io/x/devices/epd"
 
-	"periph.io/x/periph/conn/spi/spireg"
+	"periph.io/x/conn/spi/spireg"
 
-	"periph.io/x/periph/devices/ssd1306/image1bit"
-	"periph.io/x/periph/host"
+	"periph.io/x/devices/ssd1306/image1bit"
+	"periph.io/x/host"
 )
 
 func Example() {

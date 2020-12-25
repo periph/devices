@@ -8,7 +8,7 @@ import (
 	"encoding/binary"
 	"time"
 
-	"periph.io/x/periph/conn/physic"
+	"periph.io/x/conn/physic"
 )
 
 // sense180 reads the device's registers for bmp180.

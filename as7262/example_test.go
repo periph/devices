@@ -9,11 +9,11 @@ import (
 	"log"
 	"time"
 
-	"periph.io/x/periph/conn/physic"
+	"periph.io/x/conn/physic"
 
-	"periph.io/x/periph/conn/i2c/i2creg"
-	"periph.io/x/periph/experimental/devices/as7262"
-	"periph.io/x/periph/host"
+	"periph.io/x/conn/i2c/i2creg"
+	"periph.io/x/devices/as7262"
+	"periph.io/x/host"
 )
 
 func Example() {

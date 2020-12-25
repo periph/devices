@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"periph.io/x/periph/conn/gpio/gpioreg"
-	"periph.io/x/periph/conn/i2c"
-	"periph.io/x/periph/conn/spi"
+	"periph.io/x/conn/gpio/gpioreg"
+	"periph.io/x/conn/i2c"
+	"periph.io/x/conn/spi"
 )
 
 // Dev his a handle for a configured MCP23xxx device.

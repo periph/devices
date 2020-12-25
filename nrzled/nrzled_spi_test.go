@@ -13,10 +13,10 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"periph.io/x/periph/conn/conntest"
-	"periph.io/x/periph/conn/physic"
-	"periph.io/x/periph/conn/spi"
-	"periph.io/x/periph/conn/spi/spitest"
+	"periph.io/x/conn/conntest"
+	"periph.io/x/conn/physic"
+	"periph.io/x/conn/spi"
+	"periph.io/x/conn/spi/spitest"
 )
 
 // toRGB converts a slice of color.NRGBA to a byte stream of RGB pixels.

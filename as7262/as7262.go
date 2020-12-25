@@ -13,10 +13,10 @@ import (
 	"sync"
 	"time"
 
-	"periph.io/x/periph/conn"
-	"periph.io/x/periph/conn/gpio"
-	"periph.io/x/periph/conn/i2c"
-	"periph.io/x/periph/conn/physic"
+	"periph.io/x/conn"
+	"periph.io/x/conn/gpio"
+	"periph.io/x/conn/i2c"
+	"periph.io/x/conn/physic"
 )
 
 // Opts holds the configuration options.

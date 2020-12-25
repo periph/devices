@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"log"
 
-	"periph.io/x/periph/conn/i2c/i2creg"
-	"periph.io/x/periph/experimental/devices/ina219"
-	"periph.io/x/periph/host"
+	"periph.io/x/conn/i2c/i2creg"
+	"periph.io/x/devices/ina219"
+	"periph.io/x/host"
 )
 
 func Example() {

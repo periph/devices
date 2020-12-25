@@ -41,10 +41,10 @@ import (
 	"strconv"
 	"time"
 
-	"periph.io/x/periph/conn"
-	"periph.io/x/periph/conn/gpio"
-	"periph.io/x/periph/conn/i2c"
-	"periph.io/x/periph/conn/mmr"
+	"periph.io/x/conn"
+	"periph.io/x/conn/gpio"
+	"periph.io/x/conn/i2c"
+	"periph.io/x/conn/mmr"
 )
 
 // TouchStatus is the status of an input sensor.

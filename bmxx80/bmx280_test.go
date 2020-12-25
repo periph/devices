@@ -13,11 +13,11 @@ import (
 	"testing"
 	"time"
 
-	"periph.io/x/periph/conn/conntest"
-	"periph.io/x/periph/conn/i2c/i2ctest"
-	"periph.io/x/periph/conn/physic"
-	"periph.io/x/periph/conn/spi"
-	"periph.io/x/periph/conn/spi/spitest"
+	"periph.io/x/conn/conntest"
+	"periph.io/x/conn/i2c/i2ctest"
+	"periph.io/x/conn/physic"
+	"periph.io/x/conn/spi"
+	"periph.io/x/conn/spi/spitest"
 )
 
 // Real data extracted from a device.

@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"time"
 
-	"periph.io/x/periph/conn/gpio"
-	"periph.io/x/periph/conn/i2c"
-	"periph.io/x/periph/conn/physic"
+	"periph.io/x/conn/gpio"
+	"periph.io/x/conn/i2c"
+	"periph.io/x/conn/physic"
 )
 
 // I2CAddr i2c default address.

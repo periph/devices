@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"log"
 
-	"periph.io/x/periph/conn/i2c/i2creg"
-	"periph.io/x/periph/conn/physic"
-	"periph.io/x/periph/experimental/devices/mcp9808"
-	"periph.io/x/periph/host"
+	"periph.io/x/conn/i2c/i2creg"
+	"periph.io/x/conn/physic"
+	"periph.io/x/devices/mcp9808"
+	"periph.io/x/host"
 )
 
 func ExampleDev_SenseTemp() {

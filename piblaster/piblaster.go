@@ -21,7 +21,7 @@ import (
 	"io"
 	"os"
 
-	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/conn/gpio"
 )
 
 // SetPWM enables and sets the PWM duty on a GPIO output pin via piblaster.

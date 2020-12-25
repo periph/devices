@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"periph.io/x/periph/conn/i2c"
-	"periph.io/x/periph/conn/physic"
+	"periph.io/x/conn/i2c"
+	"periph.io/x/conn/physic"
 )
 
 // I2CAddr is the default I2C address for the TLV493D component.
