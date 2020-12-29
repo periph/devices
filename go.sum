@@ -1,4 +1,4 @@
 periph.io/x/conn v0.0.0-20201229155756-6ef5117d7267 h1:hE3SnWytl/gaEF70qlWN5YREopMsvsJB4vLkWXZKZQg=
 periph.io/x/conn v0.0.0-20201229155756-6ef5117d7267/go.mod h1:vZTobURVlmlSmjJ8DuzqbsJRp3uKBP7zNVLM1/4FsI0=
-periph.io/x/host v0.0.0-20201229161342-00539351b74e h1:D4cymq0WyEpZNwRsZCE+xHQMWhjZsIpM1RV7Q12pA5A=
-periph.io/x/host v0.0.0-20201229161342-00539351b74e/go.mod h1:atYip78qSi22Ngxlq4zWCMYTXvA1uJEqRvCPKsTKeI8=
+periph.io/x/host v0.0.0-20201229164216-fc8f19009953 h1:6vXqvRUA2JXu7GGyrvF2Dtxku9UtvP8T/plngenvTXM=
+periph.io/x/host v0.0.0-20201229164216-fc8f19009953/go.mod h1:atYip78qSi22Ngxlq4zWCMYTXvA1uJEqRvCPKsTKeI8=
