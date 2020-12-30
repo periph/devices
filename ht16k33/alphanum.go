@@ -5,7 +5,7 @@
 package ht16k33
 
 import (
-	"periph.io/x/conn/i2c"
+	"periph.io/x/conn/v3/i2c"
 )
 
 var digitValues = map[rune]uint16{

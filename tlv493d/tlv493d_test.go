@@ -7,8 +7,8 @@ package tlv493d
 import (
 	"testing"
 
-	"periph.io/x/conn/i2c/i2ctest"
-	"periph.io/x/conn/physic"
+	"periph.io/x/conn/v3/i2c/i2ctest"
+	"periph.io/x/conn/v3/physic"
 )
 
 func TestDev_String(t *testing.T) {

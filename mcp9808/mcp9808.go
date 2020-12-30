@@ -10,10 +10,10 @@ import (
 	"sync"
 	"time"
 
-	"periph.io/x/conn"
-	"periph.io/x/conn/i2c"
-	"periph.io/x/conn/mmr"
-	"periph.io/x/conn/physic"
+	"periph.io/x/conn/v3"
+	"periph.io/x/conn/v3/i2c"
+	"periph.io/x/conn/v3/mmr"
+	"periph.io/x/conn/v3/physic"
 )
 
 // Opts holds the configuration options.

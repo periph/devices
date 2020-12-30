@@ -12,14 +12,14 @@ import (
 	"flag"
 	"fmt"
 
-	"periph.io/x/conn/i2c"
-	"periph.io/x/conn/i2c/i2creg"
-	"periph.io/x/conn/i2c/i2ctest"
-	"periph.io/x/conn/physic"
-	"periph.io/x/conn/spi"
-	"periph.io/x/conn/spi/spireg"
-	"periph.io/x/conn/spi/spitest"
-	"periph.io/x/devices/bmxx80"
+	"periph.io/x/conn/v3/i2c"
+	"periph.io/x/conn/v3/i2c/i2creg"
+	"periph.io/x/conn/v3/i2c/i2ctest"
+	"periph.io/x/conn/v3/physic"
+	"periph.io/x/conn/v3/spi"
+	"periph.io/x/conn/v3/spi/spireg"
+	"periph.io/x/conn/v3/spi/spitest"
+	"periph.io/x/devices/v3/bmxx80"
 )
 
 // SmokeTest is imported by periph-smoketest.

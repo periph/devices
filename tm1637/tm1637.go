@@ -10,9 +10,9 @@ import (
 	"runtime"
 	"time"
 
-	"periph.io/x/conn"
-	"periph.io/x/conn/gpio"
-	"periph.io/x/host/cpu"
+	"periph.io/x/conn/v3"
+	"periph.io/x/conn/v3/gpio"
+	"periph.io/x/host/v3/cpu"
 )
 
 // Clock converts time to a slice of bytes as segments.

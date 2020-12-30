@@ -11,9 +11,9 @@ import (
 	"image/color"
 	"testing"
 
-	"periph.io/x/conn/physic"
-	"periph.io/x/conn/spi"
-	"periph.io/x/conn/spi/spitest"
+	"periph.io/x/conn/v3/physic"
+	"periph.io/x/conn/v3/spi"
+	"periph.io/x/conn/v3/spi/spitest"
 )
 
 func TestNewFailsWhenConnectionToSpiFails(t *testing.T) {

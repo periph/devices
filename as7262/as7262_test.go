@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"periph.io/x/conn/gpio"
-	"periph.io/x/conn/gpio/gpiotest"
-	"periph.io/x/conn/i2c"
-	"periph.io/x/conn/i2c/i2ctest"
-	"periph.io/x/conn/physic"
+	"periph.io/x/conn/v3/gpio"
+	"periph.io/x/conn/v3/gpio/gpiotest"
+	"periph.io/x/conn/v3/i2c"
+	"periph.io/x/conn/v3/i2c/i2ctest"
+	"periph.io/x/conn/v3/physic"
 )
 
 var defaultSensorTimeOut = time.Millisecond * 200

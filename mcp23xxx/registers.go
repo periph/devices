@@ -5,8 +5,8 @@
 package mcp23xxx
 
 import (
-	"periph.io/x/conn/i2c"
-	"periph.io/x/conn/spi"
+	"periph.io/x/conn/v3/i2c"
+	"periph.io/x/conn/v3/spi"
 )
 
 type registerAccess interface {

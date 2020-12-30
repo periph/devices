@@ -5,13 +5,13 @@
 package rainbowhat
 
 import (
-	"periph.io/x/conn/gpio"
-	"periph.io/x/conn/i2c/i2creg"
-	"periph.io/x/conn/spi/spireg"
-	"periph.io/x/devices/apa102"
-	"periph.io/x/devices/bmxx80"
-	"periph.io/x/devices/ht16k33"
-	"periph.io/x/host/rpi"
+	"periph.io/x/conn/v3/gpio"
+	"periph.io/x/conn/v3/i2c/i2creg"
+	"periph.io/x/conn/v3/spi/spireg"
+	"periph.io/x/devices/v3/apa102"
+	"periph.io/x/devices/v3/bmxx80"
+	"periph.io/x/devices/v3/ht16k33"
+	"periph.io/x/host/v3/rpi"
 )
 
 // Dev represents a Rainbow HAT  (https://shop.pimoroni.com/products/rainbow-hat-for-android-things)

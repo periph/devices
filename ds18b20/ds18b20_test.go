@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"periph.io/x/conn/onewire"
-	"periph.io/x/conn/onewire/onewiretest"
-	"periph.io/x/conn/physic"
+	"periph.io/x/conn/v3/onewire"
+	"periph.io/x/conn/v3/onewire/onewiretest"
+	"periph.io/x/conn/v3/physic"
 )
 
 func TestNew_fail_resolution(t *testing.T) {

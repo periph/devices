@@ -8,9 +8,9 @@ import (
 	"errors"
 	"time"
 
-	"periph.io/x/conn"
-	"periph.io/x/conn/onewire"
-	"periph.io/x/conn/physic"
+	"periph.io/x/conn/v3"
+	"periph.io/x/conn/v3/onewire"
+	"periph.io/x/conn/v3/physic"
 )
 
 // ConvertAll performs a conversion on all DS18B20 devices on the bus.

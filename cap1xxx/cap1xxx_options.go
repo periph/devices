@@ -7,7 +7,7 @@ package cap1xxx
 import (
 	"errors"
 
-	"periph.io/x/conn/gpio"
+	"periph.io/x/conn/v3/gpio"
 )
 
 // SamplingTime determines the time to make a single sample.

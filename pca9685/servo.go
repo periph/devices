@@ -5,8 +5,8 @@
 package pca9685
 
 import (
-	"periph.io/x/conn/gpio"
-	"periph.io/x/conn/physic"
+	"periph.io/x/conn/v3/gpio"
+	"periph.io/x/conn/v3/physic"
 )
 
 // ServoGroup a group of servos connected to a pca9685 module

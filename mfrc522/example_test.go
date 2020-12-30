@@ -10,11 +10,11 @@ import (
 	"reflect"
 	"time"
 
-	"periph.io/x/conn/spi/spireg"
-	"periph.io/x/devices/mfrc522"
-	"periph.io/x/devices/mfrc522/commands"
-	"periph.io/x/host"
-	"periph.io/x/host/rpi"
+	"periph.io/x/conn/v3/spi/spireg"
+	"periph.io/x/devices/v3/mfrc522"
+	"periph.io/x/devices/v3/mfrc522/commands"
+	"periph.io/x/host/v3"
+	"periph.io/x/host/v3/rpi"
 )
 
 func Example() {
@@ -23,7 +23,7 @@ func Example() {
 		log.Fatal(err)
 	}
 
-	// Using SPI as an example. See package "periph.io/x/conn/spi/spireg" for more details.
+	// Using SPI as an example. See package "periph.io/x/conn/v3/spi/spireg" for more details.
 	p, err := spireg.Open("")
 	if err != nil {
 		log.Fatal(err)
@@ -109,7 +109,7 @@ func ExampleDev_ReadUID() {
 		log.Fatal(err)
 	}
 
-	// Using SPI as an example. See package "periph.io/x/conn/spi/spireg" for more details.
+	// Using SPI as an example. See package "periph.io/x/conn/v3/spi/spireg" for more details.
 	p, err := spireg.Open("")
 	if err != nil {
 		log.Fatal(err)

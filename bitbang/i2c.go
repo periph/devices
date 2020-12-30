@@ -15,10 +15,10 @@ import (
 	"sync"
 	"time"
 
-	"periph.io/x/conn/gpio"
-	"periph.io/x/conn/i2c"
-	"periph.io/x/conn/physic"
-	"periph.io/x/host/cpu"
+	"periph.io/x/conn/v3/gpio"
+	"periph.io/x/conn/v3/i2c"
+	"periph.io/x/conn/v3/physic"
+	"periph.io/x/host/v3/cpu"
 )
 
 // SkipAddr can be used to skip the address from being sent.

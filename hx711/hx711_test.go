@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"periph.io/x/conn/analog"
-	"periph.io/x/conn/gpio"
-	"periph.io/x/conn/gpio/gpiotest"
-	"periph.io/x/conn/pin"
+	"periph.io/x/conn/v3/analog"
+	"periph.io/x/conn/v3/gpio"
+	"periph.io/x/conn/v3/gpio/gpiotest"
+	"periph.io/x/conn/v3/pin"
 )
 
 func TestNew(t *testing.T) {
