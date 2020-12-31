@@ -1,4 +1,4 @@
-periph.io/x/conn/v3 v3.0.0-20201230174115-729c1fe5c4ae h1:wTeZT1kBDn3ddkpa9+bE3SXOlkD5JH7u0Cm2lqwHdkk=
-periph.io/x/conn/v3 v3.0.0-20201230174115-729c1fe5c4ae/go.mod h1:3OD27w9YVa5DS97VsUxsPGzD9Qrm5Ny7cF5b6xMMIWg=
-periph.io/x/host/v3 v3.0.0-20201230195025-17c4f529ff59 h1:yxGQoWZR/xGEf9EwEehv1D01kQY6NlORxS/xPEGeTrM=
-periph.io/x/host/v3 v3.0.0-20201230195025-17c4f529ff59/go.mod h1:3L/rTbv/CkEFDP0SUtgqzYIJCWF7H0AjctUlYtbEm8g=
+periph.io/x/conn/v3 v3.6.7 h1:hem/gzoUI0tnvdJOJAk+XLBhqBGX9sHkwShBXRGGy0k=
+periph.io/x/conn/v3 v3.6.7/go.mod h1:3OD27w9YVa5DS97VsUxsPGzD9Qrm5Ny7cF5b6xMMIWg=
+periph.io/x/host/v3 v3.6.7 h1:hUVkGKJ235XocQIRiITxSmP8TT8f27oiN7R2dJkomIE=
+periph.io/x/host/v3 v3.6.7/go.mod h1:wO+N7Q6qU1Pp9EXBfyV9t7kPAlvZxYoJl4ptK62qhSY=
