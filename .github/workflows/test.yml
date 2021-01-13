@@ -53,7 +53,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/go
-        key: "${{runner.os}}-gopkg-${{hashFiles('go.sum', '.github/workflows/*.yml')}}"
+        key: "${{runner.os}}-gopkg-${{hashFiles('go.sum', '.github/workflows/*.yml')}}-v2"
 
       # Fetch the tools before checking out, so they don't modify go.mod/go.sum.
     - name: 'go get necessary tools'
