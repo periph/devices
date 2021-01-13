@@ -1,4 +1,4 @@
-package waveshare213v2
+package waveshare2in13v2
 
 import (
 	"fmt"
@@ -17,7 +17,7 @@ import (
 	"periph.io/x/host/v3/rpi"
 )
 
-// Dev defines the handler which is used to access the display
+// Dev defines the handler which is used to access the display.
 type Dev struct {
 	c conn.Conn
 
@@ -166,7 +166,7 @@ func NewHat(p spi.Port, opts *Opts) (*Dev, error) {
 	return New(p, dc, cs, rst, busy, opts)
 }
 
-//Init will initialize the display with the partial-update or full-update mode.
+// Init will initialize the display with the partial-update or full-update mode.
 func (d *Dev) Init(partialUpdate PartialUpdate) error {
 
 	eh := errorHandler{d: *d}
@@ -391,12 +391,12 @@ func (d *Dev) DrawPartial(dstRect image.Rectangle, src image.Image, srcPts image
 	return d.turnOnDisplay()
 }
 
-// Halt clears the display
+// Halt clears the display.
 func (d *Dev) Halt() error {
 	return d.Clear(0xFF)
 }
 
-// String returns a string containing configuration information
+// String returns a string containing configuration information.
 func (d *Dev) String() string {
 	return fmt.Sprintf("epd.Dev{%s, %s, Height: %s, Width: %s}", d.c, d.dc, strconv.Itoa(d.opts.Height), strconv.Itoa(d.opts.Width))
 }
