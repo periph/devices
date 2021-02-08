@@ -86,8 +86,8 @@ func (s State) String() string {
 
 // Reset resets the registers to the default values.
 func (d *Dev) reset() error {
-	for channel := 1; channel <= len(d.state); channel++ {
-		d.Off(uint8(channel))
+	for channel := range d.state {
+		d.Off(channel)
 	}
 	return nil
 }
