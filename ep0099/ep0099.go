@@ -1,4 +1,4 @@
-// Copyright 2018 The Periph Authors. All rights reserved.
+// Copyright 2021 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -10,14 +10,14 @@ import (
 	"periph.io/x/conn/v3/i2c"
 )
 
-var InvalidAddressError = errors.New("Invalid EP-0099 address")
-var InvalidChannelError = errors.New("Invalid EP-0099 channel")
+var errInvalidAddress = errors.New("Invalid EP-0099 address")
+var errInvalidChannel = errors.New("Invalid EP-0099 channel")
 
 type State byte
 
 const (
 	StateOff State = 0x00
-	StateOn  State = 0x01
+	StateOn  State = 0xFF
 )
 
 type Dev struct {
@@ -107,12 +107,12 @@ func isValidAddress(address uint16) error {
 		}
 	}
 
-	return InvalidAddressError
+	return errInvalidAddress
 }
 
 func (d *Dev) isValidChannel(channel uint8) error {
 	if _, exists := d.state[channel]; !exists {
-		return InvalidChannelError
+		return errInvalidChannel
 	}
 	return nil
 }

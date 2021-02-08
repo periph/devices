@@ -1,4 +1,4 @@
-// Copyright 2018 The Periph Authors. All rights reserved.
+// Copyright 2021 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -36,7 +36,7 @@ func TestNewReturnsInvalidAddress(t *testing.T) {
 	bus := initTestBus()
 
 	_, err := New(bus, 0x00)
-	if !errors.Is(err, InvalidAddressError) {
+	if !errors.Is(err, errInvalidAddress) {
 		t.Fatal("New should return address validation error, got: ", err)
 	}
 }
@@ -81,7 +81,7 @@ func TestOn(t *testing.T) {
 		t.Fatal("Should not return error, got ", err)
 	}
 
-	checkBusWrites(t, bus, 0, []byte{3, byte(StateOn)})
+	checkBusHasWrite(t, bus, []byte{3, byte(StateOn)})
 	checkChannelState(t, dev, 3, StateOn)
 }
 
@@ -97,7 +97,7 @@ func TestOff(t *testing.T) {
 		t.Fatal("Should not return error, got ", err)
 	}
 
-	checkBusWrites(t, bus, 0, []byte{4, byte(StateOff)})
+	checkBusHasWrite(t, bus, []byte{4, byte(StateOff)})
 	checkChannelState(t, dev, 4, StateOff)
 }
 
@@ -105,11 +105,11 @@ func TestReturnErrorForInvalidChannel(t *testing.T) {
 	bus := initTestBus()
 	dev, _ := New(bus, testDefaultValidAddress)
 
-	if err := dev.On(98); err != InvalidChannelError {
+	if err := dev.On(98); err != errInvalidChannel {
 		t.Fatal("On should return invalid channel error, got ", err)
 	}
 
-	if err := dev.Off(98); err != InvalidChannelError {
+	if err := dev.Off(98); err != errInvalidChannel {
 		t.Fatal("Off should return invalid channel error, got ", err)
 	}
 }
@@ -132,22 +132,25 @@ func checkChannelState(t *testing.T, dev *Dev, channel uint8, state State) {
 	}
 }
 
-func checkBusWrites(t *testing.T, bus *i2ctest.Record, index int, data []byte) {
-	if !bytes.Equal(bus.Ops[index].W, data) {
-		t.Fatal("Expected data ", data, " to be written, got ", bus.Ops[index].W)
+func checkBusHasWrite(t *testing.T, bus *i2ctest.Record, data []byte) {
+	for _, op := range bus.Ops {
+		if bytes.Equal(op.W, data) {
+			return
+		}
 	}
+	t.Fatal("Expected data ", data, " to be written but it never did")
 }
 
 func checkDevReset(t *testing.T, dev *Dev, bus *i2ctest.Record) {
-	checkBusWrites(t, bus, 0, []byte{1, byte(StateOff)})
+	checkBusHasWrite(t, bus, []byte{1, byte(StateOff)})
 	checkChannelState(t, dev, 1, StateOff)
 
-	checkBusWrites(t, bus, 1, []byte{2, byte(StateOff)})
+	checkBusHasWrite(t, bus, []byte{2, byte(StateOff)})
 	checkChannelState(t, dev, 2, StateOff)
 
-	checkBusWrites(t, bus, 2, []byte{3, byte(StateOff)})
+	checkBusHasWrite(t, bus, []byte{3, byte(StateOff)})
 	checkChannelState(t, dev, 3, StateOff)
 
-	checkBusWrites(t, bus, 3, []byte{4, byte(StateOff)})
+	checkBusHasWrite(t, bus, []byte{4, byte(StateOff)})
 	checkChannelState(t, dev, 4, StateOff)
 }
