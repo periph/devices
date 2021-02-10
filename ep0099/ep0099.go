@@ -22,7 +22,7 @@ const (
 
 type Dev struct {
 	i2c   i2c.Dev
-	state map[uint8]State
+	state [4]State
 }
 
 func New(bus i2c.Bus, address uint16) (*Dev, error) {
@@ -32,7 +32,7 @@ func New(bus i2c.Bus, address uint16) (*Dev, error) {
 
 	d := &Dev{
 		i2c:   i2c.Dev{Bus: bus, Addr: address},
-		state: buildChannelsList(),
+		state: [4]State{StateOff, StateOff, StateOff, StateOff},
 	}
 
 	if err := d.reset(); err != nil {
@@ -47,30 +47,30 @@ func (d *Dev) Halt() error {
 }
 
 func (d *Dev) On(channel uint8) error {
-	if err := d.isValidChannel(channel); err != nil {
-		return err
+	if !d.isValidChannel(channel) {
+		return errInvalidChannel
 	}
 
 	_, err := d.i2c.Write([]byte{channel, byte(StateOn)})
-	d.state[channel] = StateOn
+	d.state[channel-1] = StateOn
 	return err
 }
 
 func (d *Dev) Off(channel uint8) error {
-	if err := d.isValidChannel(channel); err != nil {
-		return err
+	if !d.isValidChannel(channel) {
+		return errInvalidChannel
 	}
 
 	_, err := d.i2c.Write([]byte{channel, byte(StateOff)})
-	d.state[channel] = StateOff
+	d.state[channel-1] = StateOff
 	return err
 }
 
 func (d *Dev) State(channel uint8) (State, error) {
-	if err := d.isValidChannel(channel); err != nil {
-		return 0, err
+	if !d.isValidChannel(channel) {
+		return 0, errInvalidChannel
 	}
-	return d.state[channel], nil
+	return d.state[channel-1], nil
 }
 
 func (d *Dev) AvailableChannels() []uint8 {
@@ -84,9 +84,8 @@ func (s State) String() string {
 	return "on"
 }
 
-// Reset resets the registers to the default values.
 func (d *Dev) reset() error {
-	for channel := range d.state {
+	for _, channel := range d.AvailableChannels() {
 		err := d.Off(channel)
 		if err != nil {
 			return err
@@ -99,34 +98,14 @@ func (d *Dev) reset() error {
 // Up to 4 HATs can be stacked and each one need a different address to
 // work.
 func isValidAddress(address uint16) error {
-	validAddresses := [...]uint16{0x10, 0x11, 0x12, 0x13}
-
-	for _, addr := range validAddresses {
-		if address == addr {
-			return nil
-		}
+	switch address {
+	case 0x10, 0x11, 0x12, 0x13:
+		return nil
+	default:
+		return errInvalidAddress
 	}
-
-	return errInvalidAddress
 }
 
-func (d *Dev) isValidChannel(channel uint8) error {
-	if _, exists := d.state[channel]; !exists {
-		return errInvalidChannel
-	}
-	return nil
-}
-
-// EP-0099 offers 4 channels per board
-func buildChannelsList() map[uint8]State {
-	// Using a map instead of list since indexes of channels are not zero-based
-	// values. That would cause loops to have to correct channel ids while
-	// looping through items or reading/setting values.
-	// With maps, keys correspond to actual channels on the board.
-	return map[uint8]State{
-		1: StateOff,
-		2: StateOff,
-		3: StateOff,
-		4: StateOff,
-	}
+func (d *Dev) isValidChannel(channel uint8) bool {
+	return channel >= 1 && channel <= 4
 }

@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"reflect"
 	"testing"
 
 	"periph.io/x/conn/v3/i2c/i2ctest"
@@ -46,24 +47,16 @@ func TestAvailableChannels(t *testing.T) {
 	expected := []uint8{0x01, 0x02, 0x03, 0x04}
 
 	dev, _ := New(bus, testDefaultValidAddress)
-	channels := dev.AvailableChannels()
+	list := dev.AvailableChannels()
 
-	if len(channels) != len(expected) {
-		t.Fatal("Available channels len should be ", len(expected), ", got ", len(channels))
-	}
-
-	for i := 0; i < len(expected); i++ {
-		if channels[i] != expected[i] {
-			t.Fatal("Available channels should be ", expected, " got ", channels)
-		}
+	if !reflect.DeepEqual(expected, list) {
+		t.Fatal("Available channels should be ", expected, " got ", list)
 	}
 }
 
 func TestHalt(t *testing.T) {
 	bus := initTestBus()
 	dev, _ := New(bus, testDefaultValidAddress)
-
-	resetTestBusOps(bus)
 
 	dev.Halt()
 	checkDevReset(t, dev, bus)
@@ -72,8 +65,6 @@ func TestHalt(t *testing.T) {
 func TestOn(t *testing.T) {
 	bus := initTestBus()
 	dev, _ := New(bus, testDefaultValidAddress)
-
-	resetTestBusOps(bus)
 
 	err := dev.On(3)
 
@@ -88,8 +79,6 @@ func TestOn(t *testing.T) {
 func TestOff(t *testing.T) {
 	bus := initTestBus()
 	dev, _ := New(bus, testDefaultValidAddress)
-
-	resetTestBusOps(bus)
 
 	err := dev.Off(4)
 
@@ -112,6 +101,20 @@ func TestReturnErrorForInvalidChannel(t *testing.T) {
 	if err := dev.Off(98); err != errInvalidChannel {
 		t.Fatal("Off should return invalid channel error, got ", err)
 	}
+
+	if err := dev.Off(98); err != errInvalidChannel {
+		t.Fatal("Off should return invalid channel error, got ", err)
+	}
+}
+
+func TestStateToString(t *testing.T) {
+	if s := fmt.Sprintf("%s", StateOn); s != "on" {
+		t.Fatal("StateOn as string should be 'on', got ", s)
+	}
+
+	if s := fmt.Sprintf("%s", StateOff); s != "off" {
+		t.Fatal("StateOn as string should be 'off', got ", s)
+	}
 }
 
 func initTestBus() *i2ctest.Record {
@@ -119,10 +122,6 @@ func initTestBus() *i2ctest.Record {
 		Bus: nil,
 		Ops: []i2ctest.IO{},
 	}
-}
-
-func resetTestBusOps(bus *i2ctest.Record) {
-	bus.Ops = []i2ctest.IO{}
 }
 
 func checkChannelState(t *testing.T, dev *Dev, channel uint8, state State) {
