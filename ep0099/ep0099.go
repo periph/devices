@@ -31,8 +31,7 @@ func New(bus i2c.Bus, address uint16) (*Dev, error) {
 	}
 
 	d := &Dev{
-		i2c:   i2c.Dev{Bus: bus, Addr: address},
-		state: [4]State{StateOff, StateOff, StateOff, StateOff},
+		i2c: i2c.Dev{Bus: bus, Addr: address},
 	}
 
 	if err := d.reset(); err != nil {
