@@ -46,7 +46,7 @@ func (d *Dev) Halt() error {
 }
 
 func (d *Dev) On(channel uint8) error {
-	if !d.isValidChannel(channel) {
+	if !isValidChannel(channel) {
 		return errInvalidChannel
 	}
 
@@ -56,7 +56,7 @@ func (d *Dev) On(channel uint8) error {
 }
 
 func (d *Dev) Off(channel uint8) error {
-	if !d.isValidChannel(channel) {
+	if !isValidChannel(channel) {
 		return errInvalidChannel
 	}
 
@@ -66,7 +66,7 @@ func (d *Dev) Off(channel uint8) error {
 }
 
 func (d *Dev) State(channel uint8) (State, error) {
-	if !d.isValidChannel(channel) {
+	if !isValidChannel(channel) {
 		return 0, errInvalidChannel
 	}
 	return d.state[channel-1], nil
@@ -105,6 +105,6 @@ func isValidAddress(address uint16) error {
 	}
 }
 
-func (d *Dev) isValidChannel(channel uint8) bool {
+func isValidChannel(channel uint8) bool {
 	return channel >= 1 && channel <= 4
 }
