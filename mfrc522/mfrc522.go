@@ -388,6 +388,8 @@ func (r *Dev) selectCard(timeout time.Duration) ([]byte, error) {
 	if err := r.LowLevel.Init(); err != nil {
 		return nil, err
 	}
+	defer r.LowLevel.ClearInterrupt()
+
 	if _, err := r.request(); err != nil {
 		return nil, err
 	}

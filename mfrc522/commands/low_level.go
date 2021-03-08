@@ -226,6 +226,11 @@ func (r *LowLevel) WaitForEdge(timeout time.Duration) error {
 	}
 }
 
+// ClearInterrupt removes any pending host interrupts
+func (r *LowLevel) ClearInterrupt() {
+	r.irqPin.WaitForEdge(0)
+}
+
 // Auth authenticate the card fof the sector/block using the provided data.
 //
 // 	mode - the authentication mode.
