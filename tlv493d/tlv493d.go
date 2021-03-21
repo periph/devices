@@ -426,15 +426,14 @@ func (d *Dev) StopContinousRead() {
 }
 
 // CalibrateTemperatureOffsetCompensation computes the temperature offset compensation based upon a reading from the sensor compared to the actual temperature.
+//
 // The returned value must be stored and passed in Opts.TemperatureOffsetCompensation in future uses of TLV493D driver.
-// See TLV493D user manual, "3.2 Calculation of the temperature" for more information
+// See TLV493D user manual, "3.2 Calculation of the temperature" for more information.
 func CalibrateTemperatureOffsetCompensation(temperatureOffsetCompensation int, measuredTemperature physic.Temperature, actualTemperature physic.Temperature) int {
 	// Compute measurement based upon reference documentation
 	rawTemp := int((measuredTemperature-referenceTemperature)/temperatureScaling) + temperatureOffsetCompensation
 	// Compute the new offset by matching the raw measurement between the measure and the actual value
-	newOffset := rawTemp - int((actualTemperature-referenceTemperature)/temperatureScaling)
-
-	return newOffset
+	return rawTemp - int((actualTemperature-referenceTemperature)/temperatureScaling)
 }
 
 func bestModeForFrequency(frequency physic.Frequency) (Mode, error) {
