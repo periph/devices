@@ -326,6 +326,17 @@ func TestTLV493D_Configuration(t *testing.T) {
 	}
 }
 
+func Test_TLV493D_TemperatureCalibration(t *testing.T) {
+	measure := 25*physic.Celsius + physic.ZeroCelsius
+	actual := 19*physic.Celsius + physic.ZeroCelsius
+	offset := CalibrateTemperatureOffsetCompensation(DefaultTemperatureOffsetCompensation, measure, actual)
+	expectedOffset := 345
+
+	if offset != expectedOffset {
+		t.Fatalf("Temperature offset: Found %d, expected %d", offset, expectedOffset)
+	}
+}
+
 func assertSample(t *testing.T, expected Sample, actual Sample) {
 	if actual.Bx != expected.Bx {
 		t.Fatalf("Bx: Found %d, expected %d", actual.Bx, expected.Bx)

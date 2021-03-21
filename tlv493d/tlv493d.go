@@ -30,6 +30,9 @@ const (
 	HighPrecisionWithTemperature Precision = 0
 	// LowPrecision reads only 8-bits for each axis. Temperature is not read.
 	LowPrecision Precision = 1
+	// DefaultTemperatureOffsetCompensation is the temperature offset compensation used by default, following the documentation advices.
+	// For accurate results, please calibrate it using CalibrateTemperatureOffsetCompensation method.
+	DefaultTemperatureOffsetCompensation = 340
 )
 
 const (
@@ -137,7 +140,7 @@ var DefaultOpts = Opts{
 	EnableTemperatureMeasurement:  true,
 	InterruptPadEnabled:           false,
 	ParityTestEnabled:             true,
-	TemperatureOffsetCompensation: 340, // As per the documentation, can be calibrated for better precision
+	TemperatureOffsetCompensation: DefaultTemperatureOffsetCompensation, // As per the documentation, can be calibrated for better precision
 }
 
 // Sample contains the metrics measured by the sensor
@@ -420,6 +423,18 @@ func (d *Dev) StopContinousRead() {
 	d.stop <- struct{}{}
 	d.stop = nil
 	d.continuousReadWG.Wait()
+}
+
+// CalibrateTemperatureOffsetCompensation computes the temperature offset compensation based upon a reading from the sensor compared to the actual temperature.
+// The returned value must be stored and passed in Opts.TemperatureOffsetCompensation in future uses of TLV493D driver.
+// See TLV493D user manual, "3.2 Calculation of the temperature" for more information
+func CalibrateTemperatureOffsetCompensation(temperatureOffsetCompensation int, measuredTemperature physic.Temperature, actualTemperature physic.Temperature) int {
+	// Compute measurement based upon reference documentation
+	rawTemp := int((measuredTemperature-referenceTemperature)/temperatureScaling) + temperatureOffsetCompensation
+	// Compute the new offset by matching the raw measurement between the measure and the actual value
+	newOffset := rawTemp - int((actualTemperature-referenceTemperature)/temperatureScaling)
+
+	return newOffset
 }
 
 func bestModeForFrequency(frequency physic.Frequency) (Mode, error) {
