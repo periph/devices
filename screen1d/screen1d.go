@@ -26,6 +26,8 @@ import (
 type Opts struct {
 	X       int
 	Palette *ansi256.Palette
+
+	_ struct{}
 }
 
 // Dev is a 1D LED strip emulator that outputs to the console.
