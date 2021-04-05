@@ -9,6 +9,9 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"periph.io/x/conn/v3/gpio/gpioreg"
+	"periph.io/x/conn/v3/i2c/i2creg"
+	"periph.io/x/conn/v3/spi/spireg"
 	"time"
 
 	"periph.io/x/conn/v3"
@@ -111,6 +114,44 @@ type Opts struct {
 	BorderColor Color
 }
 
+// DetectOpts tries to read the device opts from EEPROM, it is recommended to use I2C bus "1"
+func DetectOpts(i2cBus string) (*Opts, error) {
+	// Read data from EEPROM
+	data, err := readEep(i2cBus)
+	if err != nil {
+		return nil, fmt.Errorf("failed to detect Inky board: %v", err)
+	}
+
+	options := new(Opts)
+
+	switch data[6] {
+	case 1, 4, 5:
+		options.Model = PHAT
+	case 10, 11, 12:
+		options.Model = PHAT2
+	case 2, 3, 6, 7, 8:
+		options.Model = WHAT
+	default:
+		return nil, fmt.Errorf("failed to get ops: display type not supported")
+	}
+
+	switch data[4] {
+	case 1:
+		options.ModelColor = Black
+		options.BorderColor = Black
+	case 2:
+		options.ModelColor = Red
+		options.BorderColor = Red
+	case 3:
+		options.ModelColor = Yellow
+		options.BorderColor = Yellow
+	default:
+		return nil, fmt.Errorf("failed to get ops: color not supported")
+	}
+
+	return options, nil
+}
+
 var borderColor = map[Color]byte{
 	Black:  0x00,
 	Red:    0x73,
@@ -161,6 +202,25 @@ func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, o *Opts
 	}
 
 	return d, nil
+}
+
+// NewDetected tries to open a handle to an Inky pHat or wHAT automatically detected from EEPROM
+func NewDetected() (*Dev, error) {
+	opts, err := DetectOpts("1")
+	if err != nil {
+		return nil, err
+	}
+
+	spiPort, err := spireg.Open("SPI0.0")
+	if err != nil {
+		return nil, err
+	}
+
+	dcPin := gpioreg.ByName("22")
+	resetPin := gpioreg.ByName("27")
+	busyPin := gpioreg.ByName("17")
+
+	return New(spiPort, dcPin, resetPin, busyPin, opts)
 }
 
 // Dev is a handle to an Inky.
@@ -426,6 +486,25 @@ func pack(bits []bool) ([]byte, error) {
 		}
 	}
 	return ret, nil
+}
+
+func readEep(i2cBus string) ([]byte, error) {
+	bus, err := i2creg.Open(i2cBus)
+	if err != nil {
+		return nil, err
+	}
+	defer bus.Close()
+
+	// Inky uses SMBus, specify read registry with data
+	write := []byte{0x00, 0x00}
+
+	data := make([]byte, 29)
+
+	if err := bus.Tx(0x50, write, data); err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }
 
 var _ display.Drawer = &Dev{}
