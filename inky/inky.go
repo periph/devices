@@ -69,12 +69,15 @@ type Model int
 const (
 	PHAT Model = iota
 	WHAT
+	PHAT2
 )
 
 func (m *Model) String() string {
 	switch *m {
 	case PHAT:
 		return "PHAT"
+	case PHAT2:
+		return "PHAT2"
 	case WHAT:
 		return "WHAT"
 	default:
@@ -87,6 +90,8 @@ func (m *Model) Set(s string) error {
 	switch s {
 	case "PHAT":
 		*m = PHAT
+	case "PHAT2":
+		*m = PHAT2
 	case "WHAT":
 		*m = WHAT
 	default:
@@ -147,6 +152,9 @@ func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, o *Opts
 	switch o.Model {
 	case PHAT:
 		d.bounds = image.Rect(0, 0, 104, 212)
+		d.flipVertically = true
+	case PHAT2:
+		d.bounds = image.Rect(0, 0, 122, 250)
 		d.flipVertically = true
 	case WHAT:
 		d.bounds = image.Rect(0, 0, 400, 300)
