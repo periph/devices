@@ -9,14 +9,13 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"periph.io/x/conn/v3/gpio/gpioreg"
-	"periph.io/x/conn/v3/i2c/i2creg"
-	"periph.io/x/conn/v3/spi/spireg"
 	"time"
 
 	"periph.io/x/conn/v3"
 	"periph.io/x/conn/v3/display"
 	"periph.io/x/conn/v3/gpio"
+	"periph.io/x/conn/v3/gpio/gpioreg"
+	"periph.io/x/conn/v3/i2c"
 	"periph.io/x/conn/v3/physic"
 	"periph.io/x/conn/v3/spi"
 )
@@ -114,10 +113,10 @@ type Opts struct {
 	BorderColor Color
 }
 
-// DetectOpts tries to read the device opts from EEPROM, it is recommended to use I2C bus "1"
-func DetectOpts(i2cBus string) (*Opts, error) {
+// DetectOpts tries to read the device opts from EEPROM, it is recommended to use I2C bus '1'.
+func DetectOpts(bus i2c.Bus) (*Opts, error) {
 	// Read data from EEPROM
-	data, err := readEep(i2cBus)
+	data, err := readEep(bus)
 	if err != nil {
 		return nil, fmt.Errorf("failed to detect Inky board: %v", err)
 	}
@@ -204,14 +203,10 @@ func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, o *Opts
 	return d, nil
 }
 
-// NewDetected tries to open a handle to an Inky pHat or wHAT automatically detected from EEPROM
-func NewDetected() (*Dev, error) {
-	opts, err := DetectOpts("1")
-	if err != nil {
-		return nil, err
-	}
-
-	spiPort, err := spireg.Open("SPI0.0")
+// NewDetected tries to open a handle to an Inky pHat or wHAT automatically detected from EEPROM.
+// For a Raspberry Pi running linux the SPI port will usually be 'SPI0.0' and I2C bus '1'.
+func NewDetected(port spi.Port, bus i2c.Bus) (*Dev, error) {
+	opts, err := DetectOpts(bus)
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +215,7 @@ func NewDetected() (*Dev, error) {
 	resetPin := gpioreg.ByName("27")
 	busyPin := gpioreg.ByName("17")
 
-	return New(spiPort, dcPin, resetPin, busyPin, opts)
+	return New(port, dcPin, resetPin, busyPin, opts)
 }
 
 // Dev is a handle to an Inky.
@@ -488,13 +483,7 @@ func pack(bits []bool) ([]byte, error) {
 	return ret, nil
 }
 
-func readEep(i2cBus string) ([]byte, error) {
-	bus, err := i2creg.Open(i2cBus)
-	if err != nil {
-		return nil, err
-	}
-	defer bus.Close()
-
+func readEep(bus i2c.Bus) ([]byte, error) {
 	// Inky uses SMBus, specify read registry with data
 	write := []byte{0x00, 0x00}
 
