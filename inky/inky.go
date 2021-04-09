@@ -14,7 +14,6 @@ import (
 	"periph.io/x/conn/v3"
 	"periph.io/x/conn/v3/display"
 	"periph.io/x/conn/v3/gpio"
-	"periph.io/x/conn/v3/gpio/gpioreg"
 	"periph.io/x/conn/v3/i2c"
 	"periph.io/x/conn/v3/physic"
 	"periph.io/x/conn/v3/spi"
@@ -113,7 +112,7 @@ type Opts struct {
 	BorderColor Color
 }
 
-// DetectOpts tries to read the device opts from EEPROM, it is recommended to use I2C bus '1'.
+// DetectOpts tries to read the device opts from EEPROM.
 func DetectOpts(bus i2c.Bus) (*Opts, error) {
 	// Read data from EEPROM
 	data, err := readEep(bus)
@@ -201,21 +200,6 @@ func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, o *Opts
 	}
 
 	return d, nil
-}
-
-// NewDetected tries to open a handle to an Inky pHat or wHAT automatically detected from EEPROM.
-// For a Raspberry Pi running linux the SPI port will usually be 'SPI0.0' and I2C bus '1'.
-func NewDetected(port spi.Port, bus i2c.Bus) (*Dev, error) {
-	opts, err := DetectOpts(bus)
-	if err != nil {
-		return nil, err
-	}
-
-	dcPin := gpioreg.ByName("22")
-	resetPin := gpioreg.ByName("27")
-	busyPin := gpioreg.ByName("17")
-
-	return New(port, dcPin, resetPin, busyPin, opts)
 }
 
 // Dev is a handle to an Inky.
