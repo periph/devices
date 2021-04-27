@@ -8,9 +8,9 @@ import (
 	"errors"
 	"time"
 
-	"periph.io/x/conn/v3"
-	"periph.io/x/conn/v3/onewire"
-	"periph.io/x/conn/v3/physic"
+	"periph.io/x/periph/conn"
+	"periph.io/x/periph/conn/onewire"
+	"periph.io/x/periph/conn/physic"
 )
 
 // ConvertAll performs a conversion on all DS18B20 devices on the bus.
@@ -30,6 +30,17 @@ func ConvertAll(o onewire.Bus, maxResolutionBits int) error {
 		return err
 	}
 	conversionSleep(maxResolutionBits)
+	return nil
+}
+
+// StartAll starts a conversion on all DS18B20 devices on the bus.
+// Simmilar to ConvertAll but returns without waiting for converion to finish.
+// To be used in conjunction with LastTemp() function. Convertion timing must be 
+// handled by other means.
+func StartAll(o onewire.Bus) error {
+	if err := o.Tx([]byte{0xcc, 0x44}, nil, onewire.StrongPullup); err != nil {
+		return err
+	}
 	return nil
 }
 
