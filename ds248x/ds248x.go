@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"periph.io/x/conn/v3"
-	"periph.io/x/conn/v3/i2c"
-	"periph.io/x/conn/v3/onewire"
+	"periph.io/x/periph/conn"
+	"periph.io/x/periph/conn/i2c"
+	"periph.io/x/periph/conn/onewire"
 )
 
 // PupOhm controls the strength of the passive pull-up resistor
@@ -84,7 +84,7 @@ func New(i i2c.Bus, addr uint16, opts *Opts) (*Dev, error) {
 type Dev struct {
 	sync.Mutex               // lock for the bus while a transaction is in progress
 	i2c        conn.Conn     // i2c device handle for the ds248x
-	isDS2483   bool          // true: ds2483, false: ds2482-100
+	isDS248x   int           // 0: ds2482-100 1: ds2482-800 2: ds2483,
 	confReg    byte          // value written to configuration register
 	tReset     time.Duration // time to perform a 1-wire reset
 	tSlot      time.Duration // time to perform a 1-bit 1-wire read/write
@@ -92,10 +92,16 @@ type Dev struct {
 }
 
 func (d *Dev) String() string {
-	if d.isDS2483 {
+	switch d.isDS248x {
+	case isDS2482x100:
+		return fmt.Sprintf("DS2482-100{%s}", d.i2c)
+	case isDS2482x800:
+		return fmt.Sprintf("DS2482-800{%s}", d.i2c)
+	case isDS2483:
 		return fmt.Sprintf("DS2483{%s}", d.i2c)
+	default:
+		return fmt.Sprintf("Undefined{%s}", d.i2c)
 	}
-	return fmt.Sprintf("DS2482-100{%s}", d.i2c)
 }
 
 // Halt implements conn.Resource.
@@ -152,6 +158,30 @@ func (d *Dev) Tx(w, r []byte, power onewire.Pullup) error {
 // returned with the error.
 func (d *Dev) Search(alarmOnly bool) ([]onewire.Address, error) {
 	return onewire.Search(d, alarmOnly)
+}
+
+func (d *Dev) ChannelSelect(ch int) (err error) {
+	switch d.isDS248x {
+	case isDS2482x100:
+		
+	case isDS2482x800:
+		if ch < 0 {
+			ch = 0
+		}
+		if ch > 7 {
+			ch = 7
+		}
+		csc := []byte{cscIO0w, cscIO1w, cscIO2w, cscIO3w, cscIO4w, cscIO5w, cscIO6w, cscIO7w,}
+		buf := []byte{cmdChannelSelect,	csc[ch],}
+		if err = d.i2c.Tx(buf, nil); err != nil {
+			return fmt.Errorf("ds2482-800: error while selecting channel: %s", err)
+		}
+	case isDS2483:
+		
+	default:
+		
+	}
+	return 
 }
 
 // SearchTriplet performs a single bit search triplet command on the bus, waits
@@ -276,10 +306,23 @@ func (d *Dev) makeDev(opts *Opts) error {
 	// Set the read ptr to the port configuration register to determine whether we have a
 	// ds2483 vs ds2482-100. This will fail on devices that do not have a port config
 	// register, such as the ds2482-100.
-	d.isDS2483 = d.i2c.Tx([]byte{cmdSetReadPtr, regPCR}, nil) == nil
+	if d.i2c.Tx([]byte{cmdSetReadPtr, regPCR}, nil) == nil {
+		d.isDS248x = isDS2483
+	}
 
-	// Set the options for the ds2483.
-	if d.isDS2483 {
+	if d.i2c.Tx([]byte{cmdSetReadPtr, regCSR}, nil) == nil {
+		d.isDS248x = isDS2482x800
+	}
+
+	switch d.isDS248x {
+	case isDS2482x100:
+
+	case isDS2482x800:
+		buf := []byte{cmdChannelSelect,	cscIO0w,}
+		if err := d.i2c.Tx(buf, nil); err != nil {
+			return fmt.Errorf("ds2482-800: error while selecting channel: %s", err)
+		}
+	case isDS2483:
 		buf := []byte{cmdAdjPort,
 			byte(0x00 + ((opts.ResetLow/time.Microsecond - 430) / 20 & 0x0f)),
 			byte(0x20 + ((opts.PresenceDetect/time.Microsecond - 55) / 2 & 0x0f)),
@@ -290,6 +333,8 @@ func (d *Dev) makeDev(opts *Opts) error {
 		if err := d.i2c.Tx(buf, nil); err != nil {
 			return fmt.Errorf("ds248x: error while setting port config values: %s", err)
 		}
+	default:
+
 	}
 
 	return nil
@@ -315,18 +360,42 @@ var sleep = time.Sleep
 var _ conn.Resource = &Dev{}
 
 const (
-	cmdReset       = 0xf0 // reset ds248x
-	cmdSetReadPtr  = 0xe1 // set the read pointer
-	cmdWriteConfig = 0xd2 // write the device configuration
-	cmdAdjPort     = 0xc3 // adjust 1-wire port
-	cmd1WReset     = 0xb4 // reset the 1-wire bus
-	cmd1WBit       = 0x87 // perform a single-bit transaction on the 1-wire bus
-	cmd1WWrite     = 0xa5 // perform a byte write on the 1-wire bus
-	cmd1WRead      = 0x96 // perform a byte read on the 1-wire bus
-	cmd1WTriplet   = 0x78 // perform a triplet operation (2 bit reads, a bit write)
+	cmdReset         = 0xf0 // reset ds248x
+	cmdSetReadPtr    = 0xe1 // set the read pointer
+	cmdWriteConfig   = 0xd2 // write the device configuration
+	cmdAdjPort       = 0xc3 // adjust 1-wire port (ds2483)
+	cmdChannelSelect = 0xc3 // channel select (ds2482-800)
+	cmd1WReset       = 0xb4 // reset the 1-wire bus
+	cmd1WBit         = 0x87 // perform a single-bit transaction on the 1-wire bus
+	cmd1WWrite       = 0xa5 // perform a byte write on the 1-wire bus
+	cmd1WRead        = 0x96 // perform a byte read on the 1-wire bus
+	cmd1WTriplet     = 0x78 // perform a triplet operation (2 bit reads, a bit write)
+
+	// ds2482-800 channel selection codes to be written and read back
+	cscIO0w = 0xF0
+	cscIO0r = 0xB8
+	cscIO1w = 0xE1
+	cscIO1r = 0xB1
+	cscIO2w = 0xD2
+	cscIO2r = 0xAA
+	cscIO3w = 0xC3
+	cscIO3r = 0xA3
+	cscIO4w = 0xB4
+	cscIO4r = 0x9C
+	cscIO5w = 0xA5
+	cscIO5r = 0x95
+	cscIO6w = 0x96
+	cscIO6r = 0x8E
+	cscIO7w = 0x87
+	cscIO7r = 0x87
 
 	regDCR    = 0xc3 // read ptr for device configuration register
 	regStatus = 0xf0 // read ptr for status register
 	regRDR    = 0xe1 // read ptr for read-data register
 	regPCR    = 0xb4 // read ptr for port configuration register
+	regCSR    = 0xd2 // read ptr for channel selection register
+
+	isDS2482x100 = 0
+	isDS2482x800 = 1
+	isDS2483     = 2
 )
