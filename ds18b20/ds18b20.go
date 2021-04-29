@@ -34,8 +34,8 @@ func ConvertAll(o onewire.Bus, maxResolutionBits int) error {
 }
 
 // StartAll starts a conversion on all DS18B20 devices on the bus.
-// Similar to ConvertAll but returns without waiting for converion to finish.
-// To be used in conjunction with LastTemp() function. Conversion timing must be 
+// Simmilar to ConvertAll but returns without waiting for converion to finish.
+// To be used in conjunction with LastTemp() function. Convertion timing must be
 // handled by other means.
 func StartAll(o onewire.Bus) error {
 	if err := o.Tx([]byte{0xcc, 0x44}, nil, onewire.StrongPullup); err != nil {
