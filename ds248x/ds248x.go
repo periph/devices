@@ -163,7 +163,7 @@ func (d *Dev) Search(alarmOnly bool) ([]onewire.Address, error) {
 func (d *Dev) ChannelSelect(ch int) (err error) {
 	switch d.isDS248x {
 	case isDS2482x100:
-		
+
 	case isDS2482x800:
 		if ch < 0 {
 			ch = 0
@@ -171,17 +171,17 @@ func (d *Dev) ChannelSelect(ch int) (err error) {
 		if ch > 7 {
 			ch = 7
 		}
-		csc := []byte{cscIO0w, cscIO1w, cscIO2w, cscIO3w, cscIO4w, cscIO5w, cscIO6w, cscIO7w,}
-		buf := []byte{cmdChannelSelect,	csc[ch],}
+		csc := []byte{cscIO0w, cscIO1w, cscIO2w, cscIO3w, cscIO4w, cscIO5w, cscIO6w, cscIO7w}
+		buf := []byte{cmdChannelSelect, csc[ch]}
 		if err = d.i2c.Tx(buf, nil); err != nil {
 			return fmt.Errorf("ds2482-800: error while selecting channel: %s", err)
 		}
 	case isDS2483:
-		
+
 	default:
-		
+
 	}
-	return 
+	return
 }
 
 // SearchTriplet performs a single bit search triplet command on the bus, waits
@@ -318,7 +318,7 @@ func (d *Dev) makeDev(opts *Opts) error {
 	case isDS2482x100:
 
 	case isDS2482x800:
-		buf := []byte{cmdChannelSelect,	cscIO0w,}
+		buf := []byte{cmdChannelSelect, cscIO0w}
 		if err := d.i2c.Tx(buf, nil); err != nil {
 			return fmt.Errorf("ds2482-800: error while selecting channel: %s", err)
 		}
