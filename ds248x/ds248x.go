@@ -161,7 +161,13 @@ func (d *Dev) Search(alarmOnly bool) ([]onewire.Address, error) {
 	return onewire.Search(d, alarmOnly)
 }
 
-// ChannelSelect ...
+// ChannelSelect function is for selecting one of eight 1-w channels on DS2482-800. 
+// On other chips it does nothing. Function silently limits channel selection between
+// 0 and 7. It is expected that application keeps track of
+// with 1-w device is connected to with channel.
+//
+// Communication error is returned if present.
+//
 func (d *Dev) ChannelSelect(ch int) (err error) {
 	switch d.isDS248x {
 	case isDS2482x100:
@@ -186,8 +192,12 @@ func (d *Dev) ChannelSelect(ch int) (err error) {
 	return
 }
 
-// SelectedChannel ...
+// SelectedChannel function is to read with 1-w channel selected on DS2482-800. 
+// On other chips it always returns 0. It is expected that application keeps track of
+// with 1-w device is connected to with channel.
+//
 // On error returns 255.
+//
 func (d *Dev) SelectedChannel() (ch int) {
 	ch = 0
 	switch d.isDS248x {
@@ -421,4 +431,5 @@ const (
 	isDS2482x800 = 1
 	isDS2483     = 2
 )
+
 
