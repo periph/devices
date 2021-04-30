@@ -18,7 +18,9 @@ func TestNew(t *testing.T) {
 			{Addr: 0x18, W: []byte{0xe1, 0xf0}, R: []byte{0x18}},
 			{Addr: 0x18, W: []byte{0xd2, 0xe1}, R: []byte{0x1}},
 			{Addr: 0x18, W: []byte{0xe1, 0xb4}},
-			{Addr: 0x18, W: []byte{0xc3, 0x6, 0x26, 0x46, 0x66, 0x86}},
+			// {Addr: 0x18, W: []byte{0xe1, 0xd2}}, // (DS2482-800)
+			// {Addr: 0x18, W: []byte{0xc3, 0xf0}}, // (DS2482-800)
+			{Addr: 0x18, W: []byte{0xc3, 0x6, 0x26, 0x46, 0x66, 0x86}}, // (DS2483)
 		},
 	}
 	d, err := New(&bus, 0x18, &DefaultOpts)
@@ -29,24 +31,6 @@ func TestNew(t *testing.T) {
 		t.Fatal(s)
 	}
 	if err := d.Halt(); err != nil {
-		t.Fatal(err)
-	}
-	if err := bus.Close(); err != nil {
-		t.Fatal(err)
-	}
-}
-
-func TestNew_opts(t *testing.T) {
-	bus := i2ctest.Playback{
-		Ops: []i2ctest.IO{
-			{Addr: 0x18, W: []byte{0xf0}},
-			{Addr: 0x18, W: []byte{0xe1, 0xf0}, R: []byte{0x18}},
-			{Addr: 0x18, W: []byte{0xd2, 0xe1}, R: []byte{0x1}},
-			{Addr: 0x18, W: []byte{0xe1, 0xb4}},
-			{Addr: 0x18, W: []byte{0xc3, 0x6, 0x26, 0x46, 0x66, 0x86}},
-		},
-	}
-	if _, err := New(&bus, 0x18, &DefaultOpts); err != nil {
 		t.Fatal(err)
 	}
 	if err := bus.Close(); err != nil {
