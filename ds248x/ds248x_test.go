@@ -11,6 +11,7 @@ import (
 	"periph.io/x/conn/v3/i2c/i2ctest"
 )
 
+// TestNew ...
 func TestNew(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
