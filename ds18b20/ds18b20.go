@@ -195,3 +195,4 @@ var sleep = time.Sleep
 
 var _ conn.Resource = &Dev{}
 var _ physic.SenseEnv = &Dev{}
+
