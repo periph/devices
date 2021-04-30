@@ -403,33 +403,33 @@ const (
 	cmd1WRead        = 0x96 // perform a byte read on the 1-wire bus
 	cmd1WTriplet     = 0x78 // perform a triplet operation (2 bit reads, a bit write)
 
-	// ds2482-800 channel selection codes to be written and read back
-	cscIO0w = 0xF0
-	cscIO0r = 0xB8
-	cscIO1w = 0xE1
-	cscIO1r = 0xB1
-	cscIO2w = 0xD2
-	cscIO2r = 0xAA
-	cscIO3w = 0xC3
-	cscIO3r = 0xA3
-	cscIO4w = 0xB4
-	cscIO4r = 0x9C
-	cscIO5w = 0xA5
-	cscIO5r = 0x95
-	cscIO6w = 0x96
-	cscIO6r = 0x8E
-	cscIO7w = 0x87
-	cscIO7r = 0x87
-
 	regDCR    = 0xc3 // read ptr for device configuration register
 	regStatus = 0xf0 // read ptr for status register
 	regRDR    = 0xe1 // read ptr for read-data register
 	regPCR    = 0xb4 // read ptr for port configuration register
 	regCSR    = 0xd2 // read ptr for channel selection register
 
-	isDS2482x100 = 0
-	isDS2482x800 = 1
-	isDS2483     = 2
+	// ds2482-800 channel selection codes to be written and read back
+	cscIO0w = 0xF0 // channel 0 writing
+	cscIO0r = 0xB8 // channel 0 reading
+	cscIO1w = 0xE1 // channel 1 writing
+	cscIO1r = 0xB1 // channel 1 reading
+	cscIO2w = 0xD2 // channel 2 writing
+	cscIO2r = 0xAA // channel 2 reading
+	cscIO3w = 0xC3 // channel 3 writing
+	cscIO3r = 0xA3 // channel 3 reading
+	cscIO4w = 0xB4 // channel 4 writing
+	cscIO4r = 0x9C // channel 4 reading
+	cscIO5w = 0xA5 // channel 5 writing
+	cscIO5r = 0x95 // channel 5 reading
+	cscIO6w = 0x96 // channel 6 writing
+	cscIO6r = 0x8E // channel 6 reading
+	cscIO7w = 0x87 // channel 7 writing
+	cscIO7r = 0x87 // channel 7 reading
+
+	isDS2482x100 = 0 // DS2482-100 selected
+	isDS2482x800 = 1 // DS2482-800 selected
+	isDS2483     = 2 // DS2483 selected
 )
 
 
