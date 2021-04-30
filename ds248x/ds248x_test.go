@@ -11,7 +11,8 @@ import (
 	"periph.io/x/conn/v3/i2c/i2ctest"
 )
 
-// TestNew ...
+// TestNew sadly is testing only for DS2483.
+//
 func TestNew(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
