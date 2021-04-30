@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"sync"
 	"time"
+	"bytes"
 
 	"periph.io/x/conn/v3"
 	"periph.io/x/conn/v3/i2c"
@@ -160,6 +161,7 @@ func (d *Dev) Search(alarmOnly bool) ([]onewire.Address, error) {
 	return onewire.Search(d, alarmOnly)
 }
 
+// ChannelSelect ...
 func (d *Dev) ChannelSelect(ch int) (err error) {
 	switch d.isDS248x {
 	case isDS2482x100:
@@ -175,6 +177,35 @@ func (d *Dev) ChannelSelect(ch int) (err error) {
 		buf := []byte{cmdChannelSelect, csc[ch]}
 		if err = d.i2c.Tx(buf, nil); err != nil {
 			return fmt.Errorf("ds2482-800: error while selecting channel: %s", err)
+		}
+	case isDS2483:
+
+	default:
+
+	}
+	return
+}
+
+// SelectedChannel ...
+// On error returns 255.
+func (d *Dev) SelectedChannel() (ch int) {
+	ch = 0
+	switch d.isDS248x {
+	case isDS2482x100:
+
+	case isDS2482x800:
+		var sch [1]byte
+		if err := d.i2c.Tx([]byte{cmdSetReadPtr, regCSR}, sch[:]); err != nil {
+			ch = 255
+			return 
+		}
+		csc := []byte{cscIO0r, cscIO1r, cscIO2r, cscIO3r, cscIO4r, cscIO5r, cscIO6r, cscIO7r}
+		ch = bytes.Index(csc, []byte{sch[0]})
+		if ch < 0 {
+			ch = 255
+		}
+		if ch > 7 {
+			ch = 255
 		}
 	case isDS2483:
 
@@ -308,21 +339,6 @@ func (d *Dev) makeDev(opts *Opts) error {
 	// register, such as the ds2482-100.
 	if d.i2c.Tx([]byte{cmdSetReadPtr, regPCR}, nil) == nil {
 		d.isDS248x = isDS2483
-	}
-
-	if d.i2c.Tx([]byte{cmdSetReadPtr, regCSR}, nil) == nil {
-		d.isDS248x = isDS2482x800
-	}
-
-	switch d.isDS248x {
-	case isDS2482x100:
-
-	case isDS2482x800:
-		buf := []byte{cmdChannelSelect, cscIO0w}
-		if err := d.i2c.Tx(buf, nil); err != nil {
-			return fmt.Errorf("ds2482-800: error while selecting channel: %s", err)
-		}
-	case isDS2483:
 		buf := []byte{cmdAdjPort,
 			byte(0x00 + ((opts.ResetLow/time.Microsecond - 430) / 20 & 0x0f)),
 			byte(0x20 + ((opts.PresenceDetect/time.Microsecond - 55) / 2 & 0x0f)),
@@ -333,14 +349,20 @@ func (d *Dev) makeDev(opts *Opts) error {
 		if err := d.i2c.Tx(buf, nil); err != nil {
 			return fmt.Errorf("ds248x: error while setting port config values: %s", err)
 		}
-	default:
 
+	} else {
+		if d.i2c.Tx([]byte{cmdSetReadPtr, regCSR}, nil) == nil {
+			d.isDS248x = isDS2482x800
+			buf := []byte{cmdChannelSelect, cscIO0w}
+			if err := d.i2c.Tx(buf, nil); err != nil {
+				return fmt.Errorf("ds2482-800: error while selecting channel: %s", err)
+			}
+		} else {
+			d.isDS248x = isDS2482x100
+		}
 	}
-
 	return nil
 }
-
-//
 
 // shortedBusError implements error and onewire.ShortedBusError.
 type shortedBusError string
@@ -399,3 +421,4 @@ const (
 	isDS2482x800 = 1
 	isDS2483     = 2
 )
+
