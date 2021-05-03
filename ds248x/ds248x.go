@@ -5,15 +5,24 @@
 package ds248x
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"sync"
 	"time"
-	"bytes"
 
 	"periph.io/x/conn/v3"
 	"periph.io/x/conn/v3/i2c"
 	"periph.io/x/conn/v3/onewire"
+)
+
+// DS248xType for chip connected to the system identification (ds2482-100, ds2482-800, ds2483).
+type DS248xType uint8
+
+const (
+	isDS2482x100 = 0 // DS2482-100 selected
+	isDS2482x800 = 1 // DS2482-800 selected
+	isDS2483     = 2 // DS2483 selected
 )
 
 // PupOhm controls the strength of the passive pull-up resistor
@@ -85,7 +94,7 @@ func New(i i2c.Bus, addr uint16, opts *Opts) (*Dev, error) {
 type Dev struct {
 	sync.Mutex               // lock for the bus while a transaction is in progress
 	i2c        conn.Conn     // i2c device handle for the ds248x
-	isDS248x   int           // 0: ds2482-100 1: ds2482-800 2: ds2483,
+	isDS248x   DS248xType    // 0: ds2482-100 1: ds2482-800 2: ds2483,
 	confReg    byte          // value written to configuration register
 	tReset     time.Duration // time to perform a 1-wire reset
 	tSlot      time.Duration // time to perform a 1-bit 1-wire read/write
@@ -161,68 +170,71 @@ func (d *Dev) Search(alarmOnly bool) ([]onewire.Address, error) {
 	return onewire.Search(d, alarmOnly)
 }
 
-// ChannelSelect function is for selecting one of eight 1-w channels on DS2482-800. 
-// On other chips it does nothing. Function silently limits channel selection between
+// ChannelSelect function is for selecting one of eight 1-w channels on DS2482-800.
+// On other chips it does nothing. Channel selection values are between
 // 0 and 7. It is expected that application keeps track of
 // with 1-w device is connected to with channel.
-//
 // Communication error is returned if present.
-//
-func (d *Dev) ChannelSelect(ch int) (err error) {
+func (d *Dev) ChannelSelect(ch int) error {
+	var err error = nil
 	switch d.isDS248x {
 	case isDS2482x100:
-
+		// if ch != 0 {
+		// 	err = errors.New("channel != 0")
+		// 	return fmt.Errorf("ds2482-100: error while selecting channel: %s", err)
+		// }
 	case isDS2482x800:
 		if ch < 0 {
-			ch = 0
+			err = errors.New("channel < 0")
+			return fmt.Errorf("ds2482-800: error while selecting channel: %s", err)
 		}
 		if ch > 7 {
-			ch = 7
+			err = errors.New("channel > 7")
+			return fmt.Errorf("ds2482-800: error while selecting channel: %s", err)
 		}
-		csc := []byte{cscIO0w, cscIO1w, cscIO2w, cscIO3w, cscIO4w, cscIO5w, cscIO6w, cscIO7w}
-		buf := []byte{cmdChannelSelect, csc[ch]}
+		buf := []byte{cmdChannelSelect, cscw[ch]}
 		if err = d.i2c.Tx(buf, nil); err != nil {
 			return fmt.Errorf("ds2482-800: error while selecting channel: %s", err)
 		}
 	case isDS2483:
-
+		// if ch != 0 {
+		// 	err = errors.New("channel != 0")
+		// 	return fmt.Errorf("ds2483: error while selecting channel: %s", err)
+		// }
 	default:
-
+		// err = errors.New("wrong chip")
+		// return fmt.Errorf("ds248x: error while selecting channel: %s", err)
 	}
-	return
+	return err
 }
 
-// SelectedChannel function is to read with 1-w channel selected on DS2482-800. 
+// SelectedChannel function is to read with 1-w channel selected on DS2482-800.
 // On other chips it always returns 0. It is expected that application keeps track of
 // with 1-w device is connected to with channel.
-//
 // On error returns 255.
-//
-func (d *Dev) SelectedChannel() (ch int) {
-	ch = 0
+func (d *Dev) SelectedChannel() int {
+	ch := 0
 	switch d.isDS248x {
 	case isDS2482x100:
 
 	case isDS2482x800:
 		var sch [1]byte
 		if err := d.i2c.Tx([]byte{cmdSetReadPtr, regCSR}, sch[:]); err != nil {
-			ch = 255
-			return 
+			return 255
 		}
-		csc := []byte{cscIO0r, cscIO1r, cscIO2r, cscIO3r, cscIO4r, cscIO5r, cscIO6r, cscIO7r}
-		ch = bytes.Index(csc, []byte{sch[0]})
+		ch = bytes.Index(cscr, []byte{sch[0]})
 		if ch < 0 {
-			ch = 255
+			return 255
 		}
 		if ch > 7 {
-			ch = 255
+			return 255
 		}
 	case isDS2483:
 
 	default:
 
 	}
-	return
+	return ch
 }
 
 // SearchTriplet performs a single bit search triplet command on the bus, waits
@@ -426,10 +438,7 @@ const (
 	cscIO6r = 0x8E // channel 6 reading
 	cscIO7w = 0x87 // channel 7 writing
 	cscIO7r = 0x87 // channel 7 reading
-
-	isDS2482x100 = 0 // DS2482-100 selected
-	isDS2482x800 = 1 // DS2482-800 selected
-	isDS2483     = 2 // DS2483 selected
 )
 
-
+var cscw = []byte{cscIO0w, cscIO1w, cscIO2w, cscIO3w, cscIO4w, cscIO5w, cscIO6w, cscIO7w}
+var cscr = []byte{cscIO0r, cscIO1r, cscIO2r, cscIO3r, cscIO4r, cscIO5r, cscIO6r, cscIO7r}
