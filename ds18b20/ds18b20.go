@@ -38,10 +38,7 @@ func ConvertAll(o onewire.Bus, maxResolutionBits int) error {
 // To be used in conjunction with LastTemp() function. Conversion timing must be
 // handled by other means.
 func StartAll(o onewire.Bus) error {
-	if err := o.Tx([]byte{0xcc, 0x44}, nil, onewire.StrongPullup); err != nil {
-		return err
-	}
-	return nil
+	return o.Tx([]byte{0xcc, 0x44}, nil, onewire.StrongPullup)
 }
 
 // New returns an object that communicates over 1-wire to the DS18B20 sensor
@@ -195,4 +192,3 @@ var sleep = time.Sleep
 
 var _ conn.Resource = &Dev{}
 var _ physic.SenseEnv = &Dev{}
-
