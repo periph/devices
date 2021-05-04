@@ -20,9 +20,9 @@ import (
 type DS248xType uint8
 
 const (
-	isDS2482x100 = 0 // DS2482-100 selected
-	isDS2482x800 = 1 // DS2482-800 selected
-	isDS2483     = 2 // DS2483 selected
+	isDS2482x100 DS248xType = iota // DS2482-100 selected
+	isDS2482x800                   // DS2482-800 selected
+	isDS2483                       // DS2483 selected
 )
 
 // PupOhm controls the strength of the passive pull-up resistor
@@ -179,17 +179,11 @@ func (d *Dev) ChannelSelect(ch int) error {
 	var err error = nil
 	switch d.isDS248x {
 	case isDS2482x100:
-		// if ch != 0 {
-		// 	err = errors.New("channel != 0")
-		// 	return fmt.Errorf("ds2482-100: error while selecting channel: %s", err)
-		// }
+		err = errors.New("unsupported (ds2482-100 has only channel 0)")
+		return fmt.Errorf("ds2482-100: error while selecting channel: %s", err)
 	case isDS2482x800:
-		if ch < 0 {
-			err = errors.New("channel < 0")
-			return fmt.Errorf("ds2482-800: error while selecting channel: %s", err)
-		}
-		if ch > 7 {
-			err = errors.New("channel > 7")
+		if ch < 0 || ch > 7 {
+			err = errors.New("channel out of range 0...7")
 			return fmt.Errorf("ds2482-800: error while selecting channel: %s", err)
 		}
 		buf := []byte{cmdChannelSelect, cscw[ch]}
@@ -197,13 +191,11 @@ func (d *Dev) ChannelSelect(ch int) error {
 			return fmt.Errorf("ds2482-800: error while selecting channel: %s", err)
 		}
 	case isDS2483:
-		// if ch != 0 {
-		// 	err = errors.New("channel != 0")
-		// 	return fmt.Errorf("ds2483: error while selecting channel: %s", err)
-		// }
+		err = errors.New("unsupported (ds2483 has only channel 0)")
+		return fmt.Errorf("ds2483: error while selecting channel: %s", err)
 	default:
-		// err = errors.New("wrong chip")
-		// return fmt.Errorf("ds248x: error while selecting channel: %s", err)
+		err = errors.New("wrong chip")
+		return fmt.Errorf("ds248x: error while selecting channel: %s", err)
 	}
 	return err
 }
@@ -357,8 +349,8 @@ func (d *Dev) makeDev(opts *Opts) error {
 	}
 
 	// Set the read ptr to the port configuration register to determine whether we have a
-	// ds2483 vs ds2482-100. This will fail on devices that do not have a port config
-	// register, such as the ds2482-100.
+	// ds2483 vs ds2482-100 or ds2482-800. This will fail on devices that do not have a port 
+	// configuration register, such as the ds2482-100 or ds2482-800.
 	if d.i2c.Tx([]byte{cmdSetReadPtr, regPCR}, nil) == nil {
 		d.isDS248x = isDS2483
 		buf := []byte{cmdAdjPort,
@@ -371,8 +363,10 @@ func (d *Dev) makeDev(opts *Opts) error {
 		if err := d.i2c.Tx(buf, nil); err != nil {
 			return fmt.Errorf("ds248x: error while setting port config values: %s", err)
 		}
-
 	} else {
+		// Set the read ptr to the channel selection register to determine whether we have a
+		// ds2482-800 vs ds2482-100. This will fail on devices that do not have a channel 
+		// selection register, such as the ds2482-100.
 		if d.i2c.Tx([]byte{cmdSetReadPtr, regCSR}, nil) == nil {
 			d.isDS248x = isDS2482x800
 			buf := []byte{cmdChannelSelect, cscIO0w}
@@ -440,5 +434,5 @@ const (
 	cscIO7r = 0x87 // channel 7 reading
 )
 
-var cscw = []byte{cscIO0w, cscIO1w, cscIO2w, cscIO3w, cscIO4w, cscIO5w, cscIO6w, cscIO7w}
+var cscw = [...]byte{cscIO0w, cscIO1w, cscIO2w, cscIO3w, cscIO4w, cscIO5w, cscIO6w, cscIO7w}
 var cscr = []byte{cscIO0r, cscIO1r, cscIO2r, cscIO3r, cscIO4r, cscIO5r, cscIO6r, cscIO7r}
