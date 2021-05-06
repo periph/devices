@@ -17,10 +17,10 @@ import (
 )
 
 // DS248xType for chip connected to the system identification (ds2482-100, ds2482-800, ds2483).
-type DS248xType uint8
+type ds248xType uint8
 
 const (
-	isDS2482x100 DS248xType = iota // DS2482-100 selected
+	isDS2482x100 ds248xType = iota // DS2482-100 selected
 	isDS2482x800                   // DS2482-800 selected
 	isDS2483                       // DS2483 selected
 )
@@ -94,7 +94,7 @@ func New(i i2c.Bus, addr uint16, opts *Opts) (*Dev, error) {
 type Dev struct {
 	sync.Mutex               // lock for the bus while a transaction is in progress
 	i2c        conn.Conn     // i2c device handle for the ds248x
-	isDS248x   DS248xType    // 0: ds2482-100 1: ds2482-800 2: ds2483,
+	isDS248x   ds248xType    // 0: ds2482-100 1: ds2482-800 2: ds2483,
 	confReg    byte          // value written to configuration register
 	tReset     time.Duration // time to perform a 1-wire reset
 	tSlot      time.Duration // time to perform a 1-bit 1-wire read/write
@@ -179,8 +179,8 @@ func (d *Dev) ChannelSelect(ch int) error {
 	var err error = nil
 	switch d.isDS248x {
 	case isDS2482x100:
-		// err = errors.New("unsupported (ds2482-100 has only channel 0)")
-		// return fmt.Errorf("ds2482-100: error while selecting channel: %s", err)
+		err = errors.New("unsupported (ds2482-100 has only channel 0)")
+		return fmt.Errorf("ds2482-100: error while selecting channel: %s", err)
 	case isDS2482x800:
 		if ch < 0 || ch > 7 {
 			err = errors.New("channel out of range 0...7")
@@ -191,8 +191,8 @@ func (d *Dev) ChannelSelect(ch int) error {
 			return fmt.Errorf("ds2482-800: error while selecting channel: %s", err)
 		}
 	case isDS2483:
-		// err = errors.New("unsupported (ds2483 has only channel 0)")
-		// return fmt.Errorf("ds2483: error while selecting channel: %s", err)
+		err = errors.New("unsupported (ds2483 has only channel 0)")
+		return fmt.Errorf("ds2483: error while selecting channel: %s", err)
 	default:
 		err = errors.New("wrong chip")
 		return fmt.Errorf("ds248x: error while selecting channel: %s", err)
@@ -215,10 +215,7 @@ func (d *Dev) SelectedChannel() int {
 			return 255
 		}
 		ch = bytes.Index(cscr[:], sch[:])
-		if ch < 0 {
-			return 255
-		}
-		if ch > 7 {
+		if ch < 0 || ch > 7 {
 			return 255
 		}
 	case isDS2483:
