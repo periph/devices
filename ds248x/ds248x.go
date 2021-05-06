@@ -176,28 +176,24 @@ func (d *Dev) Search(alarmOnly bool) ([]onewire.Address, error) {
 // with 1-w device is connected to with channel.
 // Communication error is returned if present.
 func (d *Dev) ChannelSelect(ch int) error {
-	var err error = nil
 	switch d.isDS248x {
-	case isDS2482x100:
-		err = errors.New("unsupported (ds2482-100 has only channel 0)")
-		return fmt.Errorf("ds2482-100: error while selecting channel: %s", err)
 	case isDS2482x800:
 		if ch < 0 || ch > 7 {
-			err = errors.New("channel out of range 0...7")
-			return fmt.Errorf("ds2482-800: error while selecting channel: %s", err)
+			return fmt.Errorf("%s: error while selecting channel: %s", d.String(), errors.New("channel out of range 0...7"))
 		}
 		buf := []byte{cmdChannelSelect, cscw[ch]}
-		if err = d.i2c.Tx(buf, nil); err != nil {
-			return fmt.Errorf("ds2482-800: error while selecting channel: %s", err)
+		if err := d.i2c.Tx(buf, nil); err != nil {
+			return fmt.Errorf("%s: error while selecting channel: %s", d.String(), err)
 		}
-	case isDS2483:
-		err = errors.New("unsupported (ds2483 has only channel 0)")
-		return fmt.Errorf("ds2483: error while selecting channel: %s", err)
+		return nil
+	case isDS2482x100, isDS2483:
+		if ch != 0 {
+			return fmt.Errorf("%s: error while selecting channel: %s", d.String(), errors.New("invalid channel"))
+		}
+		return nil
 	default:
-		err = errors.New("wrong chip")
-		return fmt.Errorf("ds248x: error while selecting channel: %s", err)
+		return fmt.Errorf("ds248x: error while selecting channel: %s", errors.New("wrong chip"))
 	}
-	return err
 }
 
 // SelectedChannel function is to read with 1-w channel selected on DS2482-800.
@@ -205,25 +201,22 @@ func (d *Dev) ChannelSelect(ch int) error {
 // with 1-w device is connected to with channel.
 // On error returns 255.
 func (d *Dev) SelectedChannel() int {
-	ch := 0
 	switch d.isDS248x {
-	case isDS2482x100:
-
 	case isDS2482x800:
 		var sch [1]byte
 		if err := d.i2c.Tx([]byte{cmdSetReadPtr, regCSR}, sch[:]); err != nil {
 			return 255
 		}
-		ch = bytes.Index(cscr[:], sch[:])
+		ch := bytes.Index(cscr[:], sch[:])
 		if ch < 0 || ch > 7 {
 			return 255
 		}
-	case isDS2483:
-
+		return ch
+	case isDS2482x100, isDS2483:
+		return 0
 	default:
-
+		return 255
 	}
-	return ch
 }
 
 // SearchTriplet performs a single bit search triplet command on the bus, waits
