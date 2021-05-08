@@ -279,6 +279,17 @@ func (d *Dev) SetContrast(level byte) error {
 	return d.sendCommand([]byte{0x81, level})
 }
 
+// SetDisplayStartLine causes the display to start from startLine, effectively
+// scrolling the screen to that position.
+//
+// startLine must be between 0 and 63.
+func (d *Dev) SetDisplayStartLine(startLine byte) error {
+	if startLine > 63 {
+		return fmt.Errorf("ssd1306: invalid startLine %d", startLine)
+	}
+	return d.sendCommand([]byte{_SETSTARTLINE | startLine})
+}
+
 // Halt turns off the display.
 //
 // Sending any other command afterward reenables the display.
