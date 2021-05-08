@@ -377,6 +377,37 @@ func TestI2C_SetContrast(t *testing.T) {
 	}
 }
 
+func TestI2C_SetDisplayStartLine(t *testing.T) {
+	bus := i2ctest.Playback{
+		Ops: []i2ctest.IO{
+			{Addr: 0x3c, W: initCmdI2C()},
+			{Addr: 0x3c, W: []byte{0x0, 0x40}},
+			{Addr: 0x3c, W: []byte{0x0, 0x45}},
+			{Addr: 0x3c, W: []byte{0x0, 0x60}},
+			{Addr: 0x3c, W: []byte{0x0, 0x7F}},
+		},
+	}
+	dev, err := NewI2C(&bus, &DefaultOpts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := dev.SetDisplayStartLine(0); err != nil {
+		t.Fatal(err)
+	}
+	if err := dev.SetDisplayStartLine(5); err != nil {
+		t.Fatal(err)
+	}
+	if err := dev.SetDisplayStartLine(32); err != nil {
+		t.Fatal(err)
+	}
+	if err := dev.SetDisplayStartLine(63); err != nil {
+		t.Fatal(err)
+	}
+	if err := bus.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestI2C_Invert_Halt_resume(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
