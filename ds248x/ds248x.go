@@ -179,20 +179,20 @@ func (d *Dev) ChannelSelect(ch int) error {
 	switch d.isDS248x {
 	case isDS2482x800:
 		if ch < 0 || ch > 7 {
-			return fmt.Errorf("%s: error while selecting channel: %s", d.String(), errors.New("channel out of range 0...7"))
+			return fmt.Errorf("%s: channel out of range 0...7", d.String())
 		}
 		buf := []byte{cmdChannelSelect, cscw[ch]}
 		if err := d.i2c.Tx(buf, nil); err != nil {
-			return fmt.Errorf("%s: error while selecting channel: %s", d.String(), err)
+			return fmt.Errorf("%s: error: %s", d.String(), err)
 		}
 		return nil
 	case isDS2482x100, isDS2483:
 		if ch != 0 {
-			return fmt.Errorf("%s: error while selecting channel: %s", d.String(), errors.New("invalid channel"))
+			return fmt.Errorf("%s: invalid channel", d.String())
 		}
 		return nil
 	default:
-		return fmt.Errorf("ds248x: error while selecting channel: %s", errors.New("wrong chip"))
+		return fmt.Errorf("ds248x: wrong chip")
 	}
 }
 
