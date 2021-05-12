@@ -199,23 +199,23 @@ func (d *Dev) ChannelSelect(ch int) error {
 // SelectedChannel function is to read with 1-w channel selected on DS2482-800.
 // On other chips it always returns 0. It is expected that application keeps track of
 // with 1-w device is connected to with channel.
-// On error returns 255.
+// On error returns -1.
 func (d *Dev) SelectedChannel() int {
 	switch d.isDS248x {
 	case isDS2482x800:
 		var sch [1]byte
 		if err := d.i2c.Tx([]byte{cmdSetReadPtr, regCSR}, sch[:]); err != nil {
-			return 255
+			return -1
 		}
 		ch := bytes.Index(cscr[:], sch[:])
 		if ch < 0 || ch > 7 {
-			return 255
+			return -1
 		}
 		return ch
 	case isDS2482x100, isDS2483:
 		return 0
 	default:
-		return 255
+		return -1
 	}
 }
 
