@@ -33,6 +33,14 @@ func ConvertAll(o onewire.Bus, maxResolutionBits int) error {
 	return nil
 }
 
+// StartAll starts a conversion on all DS18B20 devices on the bus.
+// Similar to ConvertAll but returns without waiting for conversion to finish.
+// To be used in conjunction with LastTemp() function. Conversion timing must be
+// handled by other means.
+func StartAll(o onewire.Bus) error {
+	return o.Tx([]byte{0xcc, 0x44}, nil, onewire.StrongPullup)
+}
+
 // New returns an object that communicates over 1-wire to the DS18B20 sensor
 // with the specified 64-bit address.
 //
