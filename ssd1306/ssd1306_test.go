@@ -669,10 +669,6 @@ func initCmdI2C() []byte {
 	return append([]byte{0}, getInitCmd(&Opts{W: 128, H: 64, Rotated: false})...)
 }
 
-var preludeI2C = []byte{
-	0x0, 0x21, 0x0, 0x7f, 0x22, 0x0, 0x7,
-}
-
 func getI2CPlayback() *i2ctest.Playback {
 	return &i2ctest.Playback{
 		Ops: []i2ctest.IO{

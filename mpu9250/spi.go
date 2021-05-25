@@ -118,10 +118,6 @@ func (s *SpiTransport) readUint16(address ...byte) (uint16, error) {
 	return uint16(h)<<8 | uint16(l), nil
 }
 
-func (s *SpiTransport) printFunc(msg string, args ...interface{}) {
-	fmt.Printf("SPI: "+msg+"\n", args...)
-}
-
 func noop(string, ...interface{}) {}
 
 var _ Proto = &SpiTransport{}

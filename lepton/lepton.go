@@ -108,15 +108,14 @@ func New(p spi.Port, i i2c.Bus) (*Dev, error) {
 // Lepton.
 type Dev struct {
 	*cci.Dev
-	s              spi.Conn
-	w              int
-	h              int
-	prevImg        *image14bit.Gray14
-	frameA, frameB []byte
-	frameWidth     int // in bytes
-	frameLines     int
-	maxTxSize      int
-	delay          time.Duration
+	s          spi.Conn
+	w          int
+	h          int
+	prevImg    *image14bit.Gray14
+	frameWidth int // in bytes
+	frameLines int
+	maxTxSize  int
+	delay      time.Duration
 }
 
 func (d *Dev) String() string {

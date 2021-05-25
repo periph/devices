@@ -93,8 +93,7 @@ jobs:
       run: ineffassign .
     - name: 'Check: staticcheck'
       if: always()
-      # TODO: Remove true if we make this check ever pass.
-      run: staticcheck ./... || true
+      run: staticcheck -checks inherit,-SA1019 ./...
     - name: 'Check: gosec (only G104)'
       run: gosec -include=G104 -fmt=golint -quiet ./...
 

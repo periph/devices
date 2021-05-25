@@ -370,20 +370,22 @@ const (
 var (
 	// Mapping of gain values to config register values.
 	gainConfig = map[int]uint16{
-		2 / 3: 0x0000,
-		1:     0x0200,
-		2:     0x0400,
-		4:     0x0600,
-		8:     0x0800,
-		16:    0x0A00,
+		// This value should be 2/3 but cannot be expressed as an integer.
+		0:  0x0000,
+		1:  0x0200,
+		2:  0x0400,
+		4:  0x0600,
+		8:  0x0800,
+		16: 0x0A00,
 	}
 	gainVoltage = map[int]physic.ElectricPotential{
-		2 / 3: 6144 * physic.MilliVolt,
-		1:     4096 * physic.MilliVolt,
-		2:     2048 * physic.MilliVolt,
-		4:     1024 * physic.MilliVolt,
-		8:     512 * physic.MilliVolt,
-		16:    256 * physic.MilliVolt,
+		// This value should be 2/3 but cannot be expressed as an integer.
+		0:  6144 * physic.MilliVolt,
+		1:  4096 * physic.MilliVolt,
+		2:  2048 * physic.MilliVolt,
+		4:  1024 * physic.MilliVolt,
+		8:  512 * physic.MilliVolt,
+		16: 256 * physic.MilliVolt,
 	}
 )
 

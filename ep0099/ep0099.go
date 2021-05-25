@@ -10,8 +10,8 @@ import (
 	"periph.io/x/conn/v3/i2c"
 )
 
-var errInvalidAddress = errors.New("Invalid EP-0099 address")
-var errInvalidChannel = errors.New("Invalid EP-0099 channel")
+var errInvalidAddress = errors.New("invalid EP-0099 address")
+var errInvalidChannel = errors.New("invalid EP-0099 channel")
 
 type State byte
 

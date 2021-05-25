@@ -157,11 +157,6 @@ func TestNew(t *testing.T) {
 
 func TestSense(t *testing.T) {
 	stringErr := errors.New("use err.Error() error")
-	type fields struct {
-		currentLSB physic.ElectricCurrent
-		powerLSB   physic.Power
-	}
-
 	var tests = []struct {
 		name      string
 		args      Opts
@@ -291,7 +286,6 @@ func TestCalibrate(t *testing.T) {
 		maxCurrent physic.ElectricCurrent
 		currentLSB physic.ElectricCurrent
 		powerLSB   physic.Power
-		caibrated  bool
 	}
 	tests := []struct {
 		name      string

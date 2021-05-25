@@ -64,12 +64,3 @@ func openPiblaster() error {
 	}
 	return nil
 }
-
-func closePiblaster() error {
-	if piblasterHandle != nil {
-		w := piblasterHandle
-		piblasterHandle = nil
-		return w.Close()
-	}
-	return nil
-}

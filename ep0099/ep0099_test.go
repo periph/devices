@@ -108,11 +108,11 @@ func TestReturnErrorForInvalidChannel(t *testing.T) {
 }
 
 func TestStateToString(t *testing.T) {
-	if s := fmt.Sprintf("%s", StateOn); s != "on" {
+	if s := StateOn.String(); s != "on" {
 		t.Fatal("StateOn as string should be 'on', got ", s)
 	}
 
-	if s := fmt.Sprintf("%s", StateOff); s != "off" {
+	if s := StateOff.String(); s != "off" {
 		t.Fatal("StateOn as string should be 'off', got ", s)
 	}
 }

@@ -153,7 +153,7 @@ func (d *Dev) Sense(ledDrive physic.ElectricCurrent, senseTime time.Duration) (S
 		return Spectrum{}, err
 	}
 
-	if err := d.writeVirtualRegister(ctx, controlReg, uint8(allOneShot)|uint8(d.gain)); err != nil {
+	if err := d.writeVirtualRegister(ctx, controlReg, allOneShot|uint8(d.gain)); err != nil {
 		return Spectrum{}, err
 	}
 
@@ -509,20 +509,11 @@ func calcLed(drive physic.ElectricCurrent) (uint8, physic.ElectricCurrent) {
 	}
 }
 
-type mode uint8
-
 const (
-	// Bank 1 consists of data from the V, G, B, Y photodiodes.
-	bank1 mode = 0x00
-	// Bank 2 consists of data from the G, Y, O, R photodiodes.
-	bank2 mode = 0x04
-	// AllContinuously gets data from both banks continuously, requires 2x
-	// the integration time.
-	allContinuously mode = 0x08
-	// AllOneShot gets data from both banks once, and set the data ready bit in
+	// allOneShot gets data from both banks once, and set the data ready bit in
 	// the status control register when complete requires 2x the integration
 	// time.
-	allOneShot mode = 0x0c
+	allOneShot uint8 = 0x0c
 )
 
 // IOError is a I/O specific error.

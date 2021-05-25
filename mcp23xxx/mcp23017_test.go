@@ -44,7 +44,6 @@ func TestMCP23017_out(t *testing.T) {
 }
 
 func TestMCP23S17_out(t *testing.T) {
-	const address uint16 = 0x20
 	scenario := &spitest.Playback{
 		Playback: conntest.Playback{
 			Ops: []conntest.IO{

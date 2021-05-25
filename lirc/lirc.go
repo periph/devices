@@ -7,7 +7,6 @@ package lirc
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net"
 	"strconv"
@@ -15,7 +14,6 @@ import (
 	"sync"
 
 	"periph.io/x/conn/v3"
-	"periph.io/x/conn/v3/gpio/gpioreg"
 	"periph.io/x/conn/v3/ir"
 )
 
@@ -220,59 +218,6 @@ func read(r *bufio.Reader) (string, error) {
 		raw = raw[:len(raw)-1]
 	}
 	return string(raw), nil
-}
-
-// driver implements periph.Driver.
-type driver struct {
-}
-
-func (d *driver) String() string {
-	return "lirc"
-}
-
-func (d *driver) Init() (bool, error) {
-	in, out := getPins()
-	if in == -1 && out == -1 {
-		return false, nil
-	}
-	if in != -1 {
-		if err := gpioreg.RegisterAlias("IR_IN", strconv.Itoa(in)); err != nil {
-			return true, err
-		}
-	}
-	if out != -1 {
-		if err := gpioreg.RegisterAlias("IR_OUT", strconv.Itoa(out)); err != nil {
-			return true, err
-		}
-	}
-	return true, nil
-}
-
-// getPins queries the kernel module to determine which GPIO pins are taken by
-// the driver.
-//
-// The return values can be converted to bcm238x.Pin. Return (-1, -1) on
-// failure.
-func getPins() (int, int) {
-	// This is configured in /boot/config.txt as:
-	// dtoverlay=gpio_in_pin=23,gpio_out_pin=22
-	bytes, err := ioutil.ReadFile("/sys/module/lirc_rpi/parameters/gpio_in_pin")
-	if err != nil || len(bytes) == 0 {
-		return -1, -1
-	}
-	in, err := strconv.Atoi(strings.TrimRight(string(bytes), "\n"))
-	if err != nil {
-		return -1, -1
-	}
-	bytes, err = ioutil.ReadFile("/sys/module/lirc_rpi/parameters/gpio_out_pin")
-	if err != nil || len(bytes) == 0 {
-		return -1, -1
-	}
-	out, err := strconv.Atoi(strings.TrimRight(string(bytes), "\n"))
-	if err != nil {
-		return -1, -1
-	}
-	return in, out
 }
 
 var _ ir.Conn = &Conn{}
