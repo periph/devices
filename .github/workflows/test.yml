@@ -191,6 +191,15 @@ jobs:
           false
         fi
 
+    - name: 'Test on periph.io/x/cmd'
+      # Force an upgrade to test cmd with tip of tree devices.
+      run: |
+        cd ..
+        git clone https://github.com/periph/cmd
+        cd cmd
+        go get periph.io/x/devices/v3@${GITHUB_SHA}
+        go test -short ./...
+
     - name: 'Send comments'
       if: failure() && github.event_name == 'pull_request'
       run: |
