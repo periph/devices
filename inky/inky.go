@@ -328,14 +328,14 @@ func (d *Dev) DrawAll(src image.Image) error {
 	return d.Draw(d.Bounds(), src, image.Point{})
 }
 
-func (d *Dev) update(border byte, black []byte, red []byte) (err error) {
+func (d *Dev) update(border byte, black []byte, red []byte) error {
 	if err := d.reset(); err != nil {
 		return err
 	}
 
-	r := make([]byte, 3)
-	binary.LittleEndian.PutUint16(r, uint16(d.Bounds().Size().Y))
-	h := make([]byte, 4)
+	r := [3]byte{}
+	binary.LittleEndian.PutUint16(r[:], uint16(d.Bounds().Size().Y))
+	h := [4]byte{}
 	binary.LittleEndian.PutUint16(h[2:], uint16(d.Bounds().Size().Y))
 
 	type cmdData struct {
@@ -343,7 +343,7 @@ func (d *Dev) update(border byte, black []byte, red []byte) (err error) {
 		data []byte
 	}
 	cmds := []cmdData{
-		{0x01, r},                        // Gate setting
+		{0x01, r[:]},                     // Gate setting
 		{0x74, []byte{0x54}},             // Set Analog Block Control.
 		{0x7e, []byte{0x3b}},             // Set Digital Block Control.
 		{0x03, []byte{0x17}},             // Gate Driving Voltage.
@@ -356,7 +356,7 @@ func (d *Dev) update(border byte, black []byte, red []byte) (err error) {
 		{0x3c, []byte{byte(border)}}, // Border colour
 		{0x32, modelLUT[d.color]},    // Set LUTs.
 		{0x44, []byte{0x00, byte(d.Bounds().Size().X/8) - 1}}, // Set RAM Y Start/End
-		{0x45, h},                  // Set RAM X Start/End
+		{0x45, h[:]},               // Set RAM X Start/End
 		{0x4e, []byte{0x00}},       // Set RAM X Pointer Start
 		{0x4f, []byte{0x00, 0x00}}, // Set RAM Y Pointer Start
 		{0x24, black},
@@ -378,21 +378,16 @@ func (d *Dev) update(border byte, black []byte, red []byte) (err error) {
 	if err := d.busy.In(gpio.PullUp, gpio.FallingEdge); err != nil {
 		return err
 	}
-	defer func() {
-		if err2 := d.busy.In(gpio.PullUp, gpio.NoEdge); err2 != nil {
-			err = err2
-		}
-	}()
-	if err := d.sendCommand(0x20, nil); err != nil {
-		return err
+	var err error
+	if err = d.sendCommand(0x20, nil); err == nil {
+		d.busy.WaitForEdge(-1)
+		// Enter deep sleep.
+		err = d.sendCommand(0x10, []byte{0x01})
 	}
-
-	d.busy.WaitForEdge(-1)
-
-	if err := d.sendCommand(0x10, []byte{0x01}); err != nil { // Enter deep sleep.
-		return err
+	if err2 := d.busy.In(gpio.PullUp, gpio.NoEdge); err2 != nil {
+		err = err2
 	}
-	return
+	return err
 }
 
 func (d *Dev) reset() (err error) {

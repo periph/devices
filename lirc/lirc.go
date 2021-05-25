@@ -136,8 +136,8 @@ func (c *Conn) readData(r *bufio.Reader) error {
 		}
 	default:
 		// In case of any error, ignore the rest.
-		line, err := read(r)
-		if err != nil {
+		line := ""
+		if line, err = read(r); err != nil {
 			return err
 		}
 		if line != "SUCCESS" {
@@ -154,8 +154,8 @@ func (c *Conn) readData(r *bufio.Reader) error {
 		if line, err = read(r); err != nil {
 			return err
 		}
-		nbLines, err := strconv.Atoi(line)
-		if err != nil {
+		nbLines := 0
+		if nbLines, err = strconv.Atoi(line); err != nil {
 			return err
 		}
 		list := make([]string, nbLines)

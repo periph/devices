@@ -78,13 +78,12 @@ jobs:
       if: always()
       run: go vet ./...
     - name: 'Check: go vet shadow; shadowed variables'
-      # TODO: Remove true if we make this check ever pass.
       run: |
         SHADOW_TOOL="$(which shadow)"
         if [ -f "${SHADOW_TOOL}.exe" ]; then
           SHADOW_TOOL="${SHADOW_TOOL}.exe"
         fi
-        go vet -vettool=$SHADOW_TOOL ./... || true
+        go vet -vettool=$SHADOW_TOOL ./...
     - name: 'Check: golint'
       if: always()
       # TODO: Remove true if we make this check ever pass.

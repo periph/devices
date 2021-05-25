@@ -205,8 +205,7 @@ func TestSenseContinuous(t *testing.T) {
 
 		if tt.Halt {
 			e := <-env
-			err := mcp9808.Halt()
-			if err != tt.err {
+			if err = mcp9808.Halt(); err != tt.err {
 				t.Errorf("SenseContinuous() %s wanted err: %v, but got: %v", tt.name, tt.err, err)
 			}
 			if err == nil && e.Temperature != tt.want {

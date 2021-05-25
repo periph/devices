@@ -29,7 +29,7 @@ func Example() {
 		log.Fatal("invalid alert GPIO pin number")
 	}
 	// We set the alert pin to monitor for interrupts.
-	if err := alertPin.In(gpio.PullUp, gpio.BothEdges); err != nil {
+	if err = alertPin.In(gpio.PullUp, gpio.BothEdges); err != nil {
 		log.Fatalf("Can't monitor the alert pin")
 	}
 

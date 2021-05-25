@@ -34,7 +34,7 @@ func (s *SmokeTest) Description() string {
 func (s *SmokeTest) Run(f *flag.FlagSet, args []string) (err error) {
 	i2cID := f.String("i2c", "", "I²C bus to use")
 	i2cAddr := f.Int("ia", 0x40, "I²C bus address use: 0x40 to 0x4f")
-	if err := f.Parse(args); err != nil {
+	if err = f.Parse(args); err != nil {
 		return err
 	}
 	if f.NArg() != 0 {
@@ -43,7 +43,7 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) (err error) {
 	}
 
 	fmt.Println("Starting INA219 Current Sensor\nctrl+c to exit")
-	if _, err := host.Init(); err != nil {
+	if _, err = host.Init(); err != nil {
 		return err
 	}
 

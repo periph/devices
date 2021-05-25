@@ -106,21 +106,21 @@ func (m *MPU9250) Calibrate() error {
 
 	writeGyroOffset := func(v int16, h, l byte) error {
 		o := (-v) >> 2
-		if err := m.transport.writeByte(h, byte(o>>8)); err != nil {
-			return wrapf("can't write Gyro offset %x(h):%x => %v", h, o, err)
+		if err = m.transport.writeByte(h, byte(o>>8)); err != nil {
+			return wrapf("can't write Gyro offset %x(h):%x => %w", h, o, err)
 		}
-		if err := m.transport.writeByte(l, byte(o&0xFF)); err != nil {
-			return wrapf("can't write Gyro offset %x(l):%x => %v", l, o, err)
+		if err = m.transport.writeByte(l, byte(o&0xFF)); err != nil {
+			return wrapf("can't write Gyro offset %x(l):%x => %w", l, o, err)
 		}
 		return nil
 	}
 
 	writeAccelOffset := func(o uint16, h, l byte) error {
-		if err := m.transport.writeByte(h, byte(o>>8)); err != nil {
-			return wrapf("can't write Accelerator %x(h):%x => %v", h, o, err)
+		if err = m.transport.writeByte(h, byte(o>>8)); err != nil {
+			return wrapf("can't write Accelerator %x(h):%x => %w", h, o, err)
 		}
-		if err := m.transport.writeByte(l, byte(o&0xFF)); err != nil {
-			return wrapf("can't write Accelerator %x(l):%x => %v", l, o, err)
+		if err = m.transport.writeByte(l, byte(o&0xFF)); err != nil {
+			return wrapf("can't write Accelerator %x(l):%x => %w", l, o, err)
 		}
 		return nil
 	}
@@ -132,9 +132,9 @@ func (m *MPU9250) Calibrate() error {
 
 	for i := 0; i < int(packets); i++ {
 		for j := 0; j < registers; j++ {
-			b, err := m.GetFIFOByte()
-			if err != nil {
-				return wrapf("can't read data byte %d of packet %d => %v", j, i, err)
+			b := byte(0)
+			if b, err = m.GetFIFOByte(); err != nil {
+				return wrapf("can't read data byte %d of packet %d => %w", j, i, err)
 			}
 			buffer[j] = b
 		}
@@ -177,13 +177,13 @@ func (m *MPU9250) Calibrate() error {
 	}
 	m.debug("Factory gyroscope bias: X:%d, Y:%d, Z:%d\n", int16(factoryGyroBiasX), int16(factoryGyroBiasY), int16(factoryGyroBiasZ))
 
-	if err := writeGyroOffset(gyroXBias, reg.MPU9250_GYRO_XOUT_H, reg.MPU9250_GYRO_XOUT_L); err != nil {
+	if err = writeGyroOffset(gyroXBias, reg.MPU9250_GYRO_XOUT_H, reg.MPU9250_GYRO_XOUT_L); err != nil {
 		return err
 	}
-	if err := writeGyroOffset(gyroYBias, reg.MPU9250_GYRO_YOUT_H, reg.MPU9250_GYRO_YOUT_L); err != nil {
+	if err = writeGyroOffset(gyroYBias, reg.MPU9250_GYRO_YOUT_H, reg.MPU9250_GYRO_YOUT_L); err != nil {
 		return err
 	}
-	if err := writeGyroOffset(gyroZBias, reg.MPU9250_GYRO_ZOUT_H, reg.MPU9250_GYRO_ZOUT_L); err != nil {
+	if err = writeGyroOffset(gyroZBias, reg.MPU9250_GYRO_ZOUT_H, reg.MPU9250_GYRO_ZOUT_L); err != nil {
 		return err
 	}
 

@@ -430,10 +430,10 @@ func (c *cciConn) set(cmd command, data interface{}) error {
 	if err != nil {
 		return err
 	}
-	if err := c.r.WriteUint16(regDataLength, uint16(nbWords)); err != nil {
+	if err = c.r.WriteUint16(regDataLength, uint16(nbWords)); err != nil {
 		return err
 	}
-	if err := c.r.WriteUint16(regCommandID, uint16(cmd)|1); err != nil {
+	if err = c.r.WriteUint16(regCommandID, uint16(cmd)|1); err != nil {
 		return err
 	}
 	s, err := c.waitIdle()

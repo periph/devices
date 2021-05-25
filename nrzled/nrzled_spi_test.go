@@ -571,7 +571,7 @@ func benchmarkSPIWrite(b *testing.B, o Opts, length int, f genColor) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	if _, err := d.Write(pixels[:]); err != nil {
+	if _, err = d.Write(pixels[:]); err != nil {
 		b.Fatal(err)
 	}
 	b.ResetTimer()

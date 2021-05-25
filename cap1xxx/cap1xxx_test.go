@@ -183,7 +183,7 @@ func TestDev_InputStatus(t *testing.T) {
 		}
 		// first check
 		var got [8]TouchStatus
-		if err := d.InputStatus(got[:]); err != nil {
+		if err = d.InputStatus(got[:]); err != nil {
 			t.Fatal(err)
 		}
 		if !reflect.DeepEqual(got, [8]TouchStatus{PressedStatus, OffStatus, OffStatus, OffStatus, OffStatus, OffStatus, OffStatus, OffStatus}) {
