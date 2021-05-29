@@ -90,7 +90,7 @@ jobs:
       run: golint -set_exit_status ./... || true
     - name: 'Check: inefficient variable assignment'
       if: always()
-      run: ineffassign .
+      run: ineffassign ./...
     - name: 'Check: staticcheck'
       if: always()
       run: staticcheck -checks inherit,-SA1019 ./...
