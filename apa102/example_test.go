@@ -9,6 +9,7 @@ import (
 	"image/color"
 	"log"
 
+	"periph.io/x/conn/v3/spi"
 	"periph.io/x/conn/v3/spi/spireg"
 	"periph.io/x/devices/v3/apa102"
 	"periph.io/x/host/v3"
@@ -33,7 +34,7 @@ func Example() {
 	o.NumPixels = 300
 	o.Intensity = 127
 	o.Temperature = 3500
-	dev, err := apa102.New(p, &o)
+	dev, err := apa102.New(p, &o, spi.Mode0)
 	if err != nil {
 		log.Fatalf("failed to open: %v", err)
 	}
@@ -61,7 +62,7 @@ func ExampleToRGB() {
 
 	o := apa102.PassThruOpts
 	o.NumPixels = 2
-	dev, err := apa102.New(p, &o)
+	dev, err := apa102.New(p, &o, spi.Mode3)
 	if err != nil {
 		log.Fatalf("failed to open: %v", err)
 	}

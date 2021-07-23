@@ -333,7 +333,7 @@ func TestDevEmpty(t *testing.T) {
 	buf := bytes.Buffer{}
 	o := DefaultOpts
 	o.NumPixels = 0
-	d, _ := New(spitest.NewRecordRaw(&buf), &o)
+	d, _ := New(spitest.NewRecordRaw(&buf), &o, spi.Mode3)
 	if n, err := d.Write([]byte{}); n != 0 || err != nil {
 		t.Fatalf("%d %v", n, err)
 	}
@@ -346,7 +346,7 @@ func TestDevEmpty(t *testing.T) {
 }
 
 func TestConnectFail(t *testing.T) {
-	if d, err := New(&configFail{}, &DefaultOpts); d != nil || err == nil {
+	if d, err := New(&configFail{}, &DefaultOpts, spi.Mode3); d != nil || err == nil {
 		t.Fatal("Connect() call have failed")
 	}
 }
@@ -355,7 +355,7 @@ func TestDevLen(t *testing.T) {
 	buf := bytes.Buffer{}
 	o := DefaultOpts
 	o.NumPixels = 1
-	d, _ := New(spitest.NewRecordRaw(&buf), &o)
+	d, _ := New(spitest.NewRecordRaw(&buf), &o, spi.Mode3)
 	if n, err := d.Write([]byte{0}); n != 0 || err == nil {
 		t.Fatalf("%d %v", n, err)
 	}
@@ -555,7 +555,7 @@ func TestWrites(t *testing.T) {
 	for _, tt := range writeTests {
 		buf := bytes.Buffer{}
 		tt.opts.NumPixels = len(tt.pixels) / 3
-		d, _ := New(spitest.NewRecordRaw(&buf), &tt.opts)
+		d, _ := New(spitest.NewRecordRaw(&buf), &tt.opts, spi.Mode3)
 		n, err := d.Write(tt.pixels)
 		if err != nil {
 			t.Fatal(err)
@@ -580,7 +580,7 @@ func TestDevLong(t *testing.T) {
 	colors := make([]color.NRGBA, 256)
 	o := DefaultOpts
 	o.NumPixels = len(colors)
-	d, _ := New(spitest.NewRecordRaw(&buf), &o)
+	d, _ := New(spitest.NewRecordRaw(&buf), &o, spi.Mode3)
 	if n, err := d.Write(ToRGB(colors)); n != len(colors)*3 || err != nil {
 		t.Fatalf("%d %v", n, err)
 	}
@@ -601,7 +601,7 @@ func TestDevWrite_Long(t *testing.T) {
 	buf := bytes.Buffer{}
 	o := DefaultOpts
 	o.NumPixels = 1
-	d, _ := New(spitest.NewRecordRaw(&buf), &o)
+	d, _ := New(spitest.NewRecordRaw(&buf), &o, spi.Mode3)
 	if n, err := d.Write([]byte{0, 0, 0, 1, 1, 1}); n != 0 || err == nil {
 		t.Fatal(n, err)
 	}
@@ -769,7 +769,7 @@ var drawTests = []struct {
 func TestDraws(t *testing.T) {
 	for _, tt := range drawTests {
 		buf := bytes.Buffer{}
-		d, _ := New(spitest.NewRecordRaw(&buf), &tt.opts)
+		d, _ := New(spitest.NewRecordRaw(&buf), &tt.opts, spi.Mode3)
 		if err := d.Draw(d.Bounds(), tt.img, image.Point{}); err != nil {
 			t.Fatalf("%s: %v", tt.name, err)
 		}
@@ -874,7 +874,7 @@ var offsetDrawTests = []struct {
 func TestOffsetDraws(t *testing.T) {
 	for _, tt := range offsetDrawTests {
 		buf := bytes.Buffer{}
-		d, _ := New(spitest.NewRecordRaw(&buf), &tt.opts)
+		d, _ := New(spitest.NewRecordRaw(&buf), &tt.opts, spi.Mode3)
 		if err := d.Draw(tt.offset, tt.img, tt.point); err != nil {
 			t.Fatalf("%s: %v", tt.name, err)
 		}
@@ -895,7 +895,7 @@ func TestHalt(t *testing.T) {
 	o := DefaultOpts
 	o.NumPixels = 4
 	o.Temperature = 5000
-	d, _ := New(&s, &o)
+	d, _ := New(&s, &o, spi.Mode3)
 	if err := d.Halt(); err != nil {
 		t.Fatal(err)
 	}
@@ -925,7 +925,7 @@ func benchmarkWrite(b *testing.B, o Opts, length int, f genColor) {
 	}
 	o.NumPixels = length
 	b.ReportAllocs()
-	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), &o)
+	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), &o, spi.Mode3)
 	_, _ = d.Write(pixels[:])
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -983,7 +983,7 @@ func BenchmarkWriteColorfulVariation(b *testing.B) {
 	o.NumPixels = len(pixels) / 3
 	o.Intensity = 250
 	o.Temperature = 5000
-	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), &o)
+	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), &o, spi.Mode3)
 	_, _ = d.Write(pixels[:])
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -1003,7 +1003,7 @@ func benchmarkDraw(b *testing.B, o Opts, img draw.Image, f genColor) {
 	}
 	o.NumPixels = img.Bounds().Max.X
 	b.ReportAllocs()
-	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), &o)
+	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), &o, spi.Mode3)
 	r := d.Bounds()
 	p := image.Point{}
 	if err := d.Draw(r, img, p); err != nil {
@@ -1062,7 +1062,7 @@ func BenchmarkDrawSlowpath(b *testing.B) {
 	o := DefaultOpts
 	o.NumPixels = img.Bounds().Max.X
 	b.ReportAllocs()
-	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), &o)
+	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), &o, spi.Mode3)
 	r := d.Bounds()
 	p := image.Point{}
 	if err := d.Draw(r, img, p); err != nil {
@@ -1078,7 +1078,7 @@ func BenchmarkDrawSlowpath(b *testing.B) {
 
 func BenchmarkHalt(b *testing.B) {
 	b.ReportAllocs()
-	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), &DefaultOpts)
+	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), &DefaultOpts, spi.Mode3)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		if err := d.Halt(); err != nil {

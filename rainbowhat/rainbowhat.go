@@ -7,6 +7,7 @@ package rainbowhat
 import (
 	"periph.io/x/conn/v3/gpio"
 	"periph.io/x/conn/v3/i2c/i2creg"
+	"periph.io/x/conn/v3/spi"
 	"periph.io/x/conn/v3/spi/spireg"
 	"periph.io/x/devices/v3/apa102"
 	"periph.io/x/devices/v3/bmxx80"
@@ -53,7 +54,7 @@ func NewRainbowHat(ao *apa102.Opts) (*Dev, error) {
 
 	opts := *ao
 	opts.NumPixels = 7
-	ledstrip, err := apa102.New(spiPort, &opts)
+	ledstrip, err := apa102.New(spiPort, &opts, spi.Mode3)
 	if err != nil {
 		return nil, err
 	}

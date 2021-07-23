@@ -92,8 +92,12 @@ type Opts struct {
 // As per APA102-C spec, the chip's max refresh rate is 400hz.
 // https://en.wikipedia.org/wiki/Flicker_fusion_threshold is a recommended
 // reading.
-func New(p spi.Port, o *Opts) (*Dev, error) {
-	c, err := p.Connect(20*physic.MegaHertz, spi.Mode3, 8)
+//
+// Most devices can use spi.Mode3, but the raspberry pi 3 secondary SPI
+// for example does not support this Mode. You may need to use spi.Mode0
+// in this and similar cases.
+func New(p spi.Port, o *Opts, spiMode spi.Mode) (*Dev, error) {
+	c, err := p.Connect(20*physic.MegaHertz, spiMode, 8)
 	if err != nil {
 		return nil, err
 	}
