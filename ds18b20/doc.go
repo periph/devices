@@ -2,8 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package ds18b20 interfaces to Dallas Semi / Maxim DS18B20 and MAX31820
-// 1-wire temperature sensors.
+// Package ds18b20 interfaces to Dallas Semi / Maxim DS18S20, DS18B20 and
+// MAX31820 1-wire temperature sensors.
 //
 // Note that both DS18B20 and MAX31820 use family code 0x28.
 //
@@ -11,8 +11,8 @@
 // as long as the bus driver can provide sufficient power using an active
 // pull-up.
 //
-// The DS18B20 alarm functionality and reading/writing the 2 alarm bytes in
-// the EEPROM are not supported. The DS18S20 is also not supported.
+// The DS18B20/DS18S20 alarm functionality and reading/writing the 2 alarm
+// bytes in the EEPROM are not supported.
 //
 // More details
 //
@@ -21,6 +21,7 @@
 // Datasheets
 //
 // https://datasheets.maximintegrated.com/en/ds/DS18B20-PAR.pdf
+// https://datasheets.maximintegrated.com/en/ds/DS18S20.pdf
 //
 // http://datasheets.maximintegrated.com/en/ds/MAX31820.pdf
 package ds18b20

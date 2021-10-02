@@ -13,6 +13,23 @@ import (
 	"periph.io/x/conn/v3/physic"
 )
 
+// Family code of the specific device type
+type Family byte
+
+func (f Family) String() string {
+	switch f {
+	case DS18S20:
+		return "DS18S20"
+	case DS18B20:
+		return "DS18B20"
+	default:
+		return "unknown"
+	}
+}
+
+const DS18B20 Family = 0x28
+const DS18S20 Family = 0x10
+
 // ConvertAll performs a conversion on all DS18B20 devices on the bus.
 //
 // During the conversion it places the bus in strong pull-up mode to power
@@ -89,8 +106,12 @@ type Dev struct {
 	resolution int         // resolution in bits (9..12)
 }
 
+func (d *Dev) Family() Family {
+	return Family(d.onewire.Addr & 0xFF)
+}
+
 func (d *Dev) String() string {
-	return "DS18B20{" + d.onewire.String() + "}"
+	return d.Family().String() + "{" + d.onewire.String() + "}"
 }
 
 // Halt implements conn.Resource.
@@ -134,24 +155,46 @@ func (d *Dev) LastTemp() (physic.Temperature, error) {
 		return 0, err
 	}
 
-	// spad[1] is MSB, spad[0] is LSB and has 4 fractional bits. Need to do sign
-	// extension multiply by 1000 to get Millis, divide by 16 due to 4 fractional
-	// bits. Datasheet p.4.
-	v := physic.Temperature((int(int8(spad[1]))<<8 + int(spad[0])))
-	c := v*physic.Kelvin/16 + physic.ZeroCelsius
+	c := d.parseTemperature(spad)
 
 	// The device powers up with a value of 85°C, so if we read that odds are
 	// very high that either no conversion was performed or that the conversion
 	// failed due to lack of power. This prevents reading a temp of exactly 85°C,
 	// but that seems like the right tradeoff.
-	if c == 85000 {
+	if c == 85*physic.Celsius {
 		return 0, busError("ds18b20: has not performed a temperature conversion (insufficient pull-up?)")
 	}
 
 	return c, nil
 }
 
-//
+// parseTemperature from scratchpad and handle special calculation for DS18S20
+func (d *Dev) parseTemperature(spad []byte) physic.Temperature {
+	// spad[1] is MSB and spad[0] is LSB of the raw temperature value
+	rawTemp := int16(spad[1])<<8 | int16(spad[0])
+
+	if d.Family() == DS18S20 && spad[7] != 0 {
+		// for higher resolution some additional calculation is required
+		// TEMPERATURE = TEMP_READ - 0,25 + (COUNT_PER_C-COUNT_REMAIN)/COUNT_PER_C
+		//  TEMP_READ = value from spad[1] (MSB) and spad[0] (LSB) with truncated last bit (0,5°C)
+		//  COUNT_PER_C = spad[7]
+		//  COUNT_REMAIN = spad[6]
+
+		// calculation from http://myarduinotoy.blogspot.com/2013/02/12bit-result-from-ds18s20.html
+		mask := 0xFFFE
+		rawTemp = ((rawTemp & int16(mask)) << 3) + 12 - int16(spad[6])
+
+		//rawTemp = rawTemp/2 // truncated last bit (0,5°C)
+		//rawTemp <<= 4 // convert to 12 bit precision (rawTemp is now in 1/16 °C)
+
+		//rawTemp = rawTemp-4 + (int16(spad[7])*16 - int16(spad[6])*16)/int16(spad[7])
+		//rawTemp += int16(16 - spad[6] - 4) // add compensation and remove 0.25 °C (4/16)
+	}
+	// rawTemp has 4 fractional bits. Need to do sign extension multiply by
+	// 1000 to get Millis, divide by 16 due to 4 fractional bits. Datasheet p.4.
+	v := physic.Temperature(rawTemp)
+	return v*physic.Kelvin/16 + physic.ZeroCelsius
+}
 
 // busError implements error and onewire.BusError.
 type busError string
