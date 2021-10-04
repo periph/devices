@@ -21,7 +21,8 @@
 // Datasheets
 //
 // https://datasheets.maximintegrated.com/en/ds/DS18B20-PAR.pdf
+//
 // https://datasheets.maximintegrated.com/en/ds/DS18S20.pdf
 //
-// http://datasheets.maximintegrated.com/en/ds/MAX31820.pdf
+// https://datasheets.maximintegrated.com/en/ds/MAX31820.pdf
 package ds18b20
