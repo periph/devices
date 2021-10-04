@@ -75,6 +75,13 @@ func New(o onewire.Bus, addr onewire.Address, resolutionBits int) (*Dev, error) 
 
 	d := &Dev{onewire: onewire.Dev{Bus: o, Addr: addr}, resolution: resolutionBits}
 
+	if d.Family() == DS18S20 {
+		if resolutionBits != 12 {
+			return nil, errors.New("ds18b20: DS18S20 only supports 12 resolutionBits")
+		}
+		return d, nil
+	}
+
 	// Start by reading the scratchpad memory, this will tell us whether we can
 	// talk to the device correctly and also how it's configured.
 	spad, err := d.readScratchpad()
