@@ -75,6 +75,13 @@ func New(o onewire.Bus, addr onewire.Address, resolutionBits int) (*Dev, error) 
 
 	d := &Dev{onewire: onewire.Dev{Bus: o, Addr: addr}, resolution: resolutionBits}
 
+	if d.Family() == DS18S20 {
+		if resolutionBits != 12 {
+			return nil, errors.New("ds18b20: DS18S20 only supports 12 resolutionBits")
+		}
+		return d, nil
+	}
+
 	// Start by reading the scratchpad memory, this will tell us whether we can
 	// talk to the device correctly and also how it's configured.
 	spad, err := d.readScratchpad()
@@ -183,12 +190,6 @@ func (d *Dev) parseTemperature(spad []byte) physic.Temperature {
 		// calculation from http://myarduinotoy.blogspot.com/2013/02/12bit-result-from-ds18s20.html
 		mask := 0xFFFE
 		rawTemp = ((rawTemp & int16(mask)) << 3) + 12 - int16(spad[6])
-
-		//rawTemp = rawTemp/2 // truncated last bit (0,5°C)
-		//rawTemp <<= 4 // convert to 12 bit precision (rawTemp is now in 1/16 °C)
-
-		//rawTemp = rawTemp-4 + (int16(spad[7])*16 - int16(spad[6])*16)/int16(spad[7])
-		//rawTemp += int16(16 - spad[6] - 4) // add compensation and remove 0.25 °C (4/16)
 	}
 	// rawTemp has 4 fractional bits. Need to do sign extension multiply by
 	// 1000 to get Millis, divide by 16 due to 4 fractional bits. Datasheet p.4.
