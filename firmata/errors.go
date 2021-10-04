@@ -21,4 +21,5 @@ var (
 	ErrAnalogIOMessagePinOutOfRange       = errors.New("analog io message pin number cannot exceed 0xF")
 	ErrDigitalIOMessagePinOutOfRange      = errors.New("digital io message port number cannot exceed 0xF")
 	ErrPinListenerNotReleased             = errors.New("pin listener is already set for pin")
+	ErrI2CAddressListenerNotReleased      = errors.New("address listener is already set")
 )

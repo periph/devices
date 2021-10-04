@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"periph.io/x/conn/v3/gpio"
+	"periph.io/x/conn/v3/i2c"
 	"periph.io/x/conn/v3/onewire"
 	"periph.io/x/conn/v3/pin"
 )
@@ -38,15 +39,17 @@ type ClientI interface {
 	SetSamplingInterval(uint16) error
 	SetDigitalPinValue(p uint8, value gpio.Level) error
 	SendAnalogMappingQuery() (chan AnalogMappingResponse, error)
-	SetI2CMessageChannel(address uint8, ch chan I2CPacket)
-	WriteI2CData(address uint8, restart bool, data []uint8) error
-	ReadI2CData(address uint8, restart bool, len uint16) error
-	ReadI2CRegister(address uint8, restart bool, register uint8, len uint16) error
-	SendI2CConfig(delayMicroseconds uint8) error
 	AnalogPinToDigitalPin(p uint8) (uint8, error)
 	SetAnalogIOMessageListener(p uint8, ch chan uint16) (release func(), err error)
 	SetDigitalIOMessageListener(p uint8, ch chan gpio.Level) (release func(), err error)
 	SendAnalogIOMessage(uint8, uint16) error
+
+	OpenI2CBus() (i2c.Bus, error)
+	SetI2CAddressListener(addr uint8, ch chan I2CPacket) (release func(), err error)
+	WriteI2CData(address uint8, restart bool, data []uint8) error
+	ReadI2CData(address uint8, restart bool, len uint16) error
+	ReadI2CRegister(address uint8, restart bool, register uint8, len uint16) error
+	SendI2CConfig(delayMicroseconds uint8) error
 
 	OpenOneWireBus(p uint8) (bus onewire.BusCloser, err error)
 	SetOneWireListener(uint8, chan []byte) (release func(), err error)
@@ -61,7 +64,9 @@ type Client struct {
 	board                 io.ReadWriteCloser
 	responseChannels      map[SysExCmd][]chan []byte
 	sysExListenerChannels map[SysExCmd]chan []byte
-	i2cListeners          map[uint8]chan I2CPacket
+
+	i2cListeners map[uint8]chan I2CPacket
+	i2cMU        sync.Mutex
 
 	onewireListeners map[uint8]chan []byte
 	onewireMU        sync.Mutex
@@ -587,13 +592,25 @@ func (c *Client) SendI2CConfig(delayMicroseconds uint8) error {
 	return nil
 }
 
+func (c *Client) releaseI2CAddressListener(addr uint8) {
+	c.i2cMU.Lock()
+	defer c.i2cMU.Unlock()
+
+	delete(c.i2cListeners, addr)
+}
+
 // This function only supports 7-bit I2C addresses
-func (c *Client) SetI2CMessageChannel(address uint8, ch chan I2CPacket) {
-	if c.i2cListeners[address] != nil {
-		close(c.i2cListeners[address])
+func (c *Client) SetI2CAddressListener(addr uint8, ch chan I2CPacket) (release func(), err error) {
+	c.i2cMU.Lock()
+	defer c.i2cMU.Unlock()
+
+	if c.i2cListeners[addr] != nil {
+		return nil, ErrI2CAddressListenerNotReleased
 	}
 
-	c.i2cListeners[address] = ch
+	c.i2cListeners[addr] = ch
+
+	return func() { c.releaseI2CAddressListener(addr) }, nil
 }
 
 func (c *Client) releaseAnalogIOMessageListener(p uint8) {
@@ -694,4 +711,8 @@ func (c *Client) GetPinName(p uint8) string {
 
 func (c *Client) GetPinFunctions(p uint8) []pin.Func {
 	return c.cr.SupportedPinModes[int(p)]
+}
+
+func (c *Client) OpenI2CBus() (i2c.Bus, error) {
+	return newI2CBus(c)
 }
