@@ -173,13 +173,17 @@ func (p *Pin) DefaultPull() gpio.Pull {
 }
 
 func (p *Pin) Out(l gpio.Level) error {
-	// TODO:
-	panic("implement me")
+	// No need to set mode as firmata does so automatically
+	return p.c.SetDigitalPinValue(p.pin, l)
 }
 
+const dutyMax gpio.Duty = 1<<8 - 1
+
+// PWM ignores physic.Frequency as there is no way to set it through firmata
 func (p *Pin) PWM(duty gpio.Duty, f physic.Frequency) error {
-	// TODO:
-	panic("implement me")
+	// No need to set mode as firmata does so automatically
+	// PWM duty scaled down from 24 to 8 bits
+	return p.c.ExtendedReportAnalogPin(p.pin, uint8((duty>>16)&0xFF))
 }
 
 func (p *Pin) Func() pin.Func {

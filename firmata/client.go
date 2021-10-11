@@ -15,8 +15,10 @@ import (
 
 // These max values are for data bytes as, within firmata, data is 7 bits long.
 const (
-	MaxUInt8  uint8  = (1<<8 - 1) >> 1
-	MaxUInt16 uint16 = (1<<16 - 1) >> 2
+	MaxUInt8  uint8  = (1<<8 - 1) >> (8 / 8)
+	MaxUInt16 uint16 = (1<<16 - 1) >> (16 / 8)
+	MaxUInt24 uint32 = (1<<24 - 1) >> (24 / 8)
+	MaxUInt32 uint32 = (1<<32 - 1) >> (32 / 8)
 )
 
 var commandResponseMap = map[SysExCmd]SysExCmd{
@@ -28,7 +30,7 @@ var commandResponseMap = map[SysExCmd]SysExCmd{
 type ClientI interface {
 	SendSysEx(SysExCmd, ...byte) (chan []byte, error)
 	SendReset() error
-	ExtendedReportAnalogPin(uint8, int) error
+	ExtendedReportAnalogPin(uint8, uint8) error
 	CapabilityQuery() (chan CapabilityResponse, error)
 	PinStateQuery(uint8) (chan PinStateResponse, error)
 	ReportFirmware() (chan FirmwareReport, error)
@@ -124,6 +126,10 @@ func (c *Client) Start() error {
 	c.started = true
 	c.mu.Unlock()
 
+	if err := c.SendReset(); err != nil {
+		return err
+	}
+
 	if b, ok := c.board.(flusher); ok {
 		b.Flush()
 	} else if b, ok := c.board.(flusherErr); ok {
@@ -132,12 +138,16 @@ func (c *Client) Start() error {
 		}
 	}
 
-	firmChannel := make(chan []byte, 1)
 	// Don't call ReportFirmware as it is automatic, but we want to register a listener for it.
+	firmChannel := make(chan []byte, 1)
 	c.mu.Lock()
 	c.responseChannels[SysExReportFirmware] = []chan []byte{firmChannel}
 	c.mu.Unlock()
-	report := c.parseReportFirmware(firmChannel)
+
+	responseChannel := make(chan FirmwareReport, 1)
+	go func() {
+		responseChannel <- ParseFirmwareReport(<-firmChannel)
+	}()
 
 	go func() {
 		err := c.responseWatcher()
@@ -146,7 +156,22 @@ func (c *Client) Start() error {
 		}
 	}()
 
-	fmt.Println("Firmware Info:", <-report)
+	// Do not move on until we receive our firmware report. This is a signal the device is ready.
+	// Anything sent before we receive this message will not be read by the device.
+	fmt.Println("Firmware Info:", <-responseChannel)
+
+	analogMappingQuery, err := c.SendAnalogMappingQuery()
+	if err != nil {
+		return err
+	}
+
+	capabilityQuery, err := c.CapabilityQuery()
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(<-analogMappingQuery)
+	fmt.Println(<-capabilityQuery)
 
 	return nil
 }
@@ -155,8 +180,6 @@ func (c *Client) write(payload []byte, withinMutex func()) error {
 	// Cannot allow multiple writes at the same time.
 	c.mu.Lock()
 	defer c.mu.Unlock()
-
-	//fmt.Println(SprintHexArray(payload))
 
 	// Write to the board.
 	_, err := c.board.Write(payload)
@@ -280,6 +303,8 @@ func (c *Client) responseWatcher() (err error) {
 				resp <- data
 				close(resp)
 			case cmd == SysExStringData:
+				// TODO: The Firmata spec defines this as mostly an error statement.
+				//  Should we fail on receiving a string message?
 				fmt.Printf("device: [%s]\n", TwoByteString(data))
 			default:
 				str := ""
@@ -347,41 +372,18 @@ func (c *Client) CapabilityQuery() (chan CapabilityResponse, error) {
 		return nil, err
 	}
 
-	resp := c.parseCapabilityCommand(future)
-
-	return resp, nil
-}
-
-func (c *Client) parseCapabilityCommand(future chan []byte) chan CapabilityResponse {
 	resp := make(chan CapabilityResponse, 1)
 
 	go func() {
 		data := <-future
-		var response = CapabilityResponse{
-			PinToModeToResolution: []map[pin.Func]uint8{{}},
-			SupportedPinModes:     [][]pin.Func{{}},
-		}
-		var pindex = 0
-		for i := 0; i < len(data); {
-			if data[i] == CapabilityResponsePinDelimiter {
-				response.PinToModeToResolution = append(response.PinToModeToResolution, map[pin.Func]uint8{})
-				response.SupportedPinModes = append(response.SupportedPinModes, []pin.Func{})
-				i += 1
-				pindex++
-			} else {
-				pinFunc := pinModeToFuncMap[data[i]]
-				response.PinToModeToResolution[pindex][pinFunc] = data[i+1]
-				response.SupportedPinModes[pindex] = append(response.SupportedPinModes[pindex], pinFunc)
-				i += 2
-			}
-		}
+		var response = ParseCapabilityResponse(data)
 
 		c.cr = response
 		resp <- response
 		close(resp)
 	}()
 
-	return resp
+	return resp, nil
 }
 
 func (c *Client) SendAnalogMappingQuery() (chan AnalogMappingResponse, error) {
@@ -390,46 +392,18 @@ func (c *Client) SendAnalogMappingQuery() (chan AnalogMappingResponse, error) {
 		return nil, err
 	}
 
-	resp := c.parseAnalogMappingQuery(future)
-
-	return resp, nil
-}
-
-func (c *Client) parseAnalogMappingQuery(future chan []byte) chan AnalogMappingResponse {
 	resp := make(chan AnalogMappingResponse, 1)
 
 	go func() {
 		data := <-future
-		var response = AnalogMappingResponse{
-			AnalogPinToDigital: []uint8{},
-			DigitalPinToAnalog: map[uint8]uint8{},
-		}
-		for i := 0; i < len(data); i++ {
-			if data[i] != CapabilityResponsePinDelimiter {
-				response.DigitalPinToAnalog[uint8(i)] = uint8(len(response.AnalogPinToDigital))
-				response.AnalogPinToDigital = append(response.AnalogPinToDigital, uint8(i))
-			}
-		}
+		var response = ParseAnalogMappingResponse(data)
 
 		c.amr = response
 		resp <- response
 		close(resp)
 	}()
 
-	return resp
-}
-
-func (c *Client) ExtendedReportAnalogPin(p uint8, value int) error {
-	if value > 0xFFFFFFFFFFFFFF {
-		return fmt.Errorf("%w: 0x0 - 0xFFFFFFFFFFFFFF", ErrValueOutOfRange)
-	}
-
-	_, err := c.SendSysEx(SysExExtendedAnalog, p, uint8(value), uint8(value>>7), uint8(value>>14))
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return resp, nil
 }
 
 func (c *Client) PinStateQuery(p uint8) (chan PinStateResponse, error) {
@@ -438,31 +412,17 @@ func (c *Client) PinStateQuery(p uint8) (chan PinStateResponse, error) {
 		return nil, err
 	}
 
-	resp := c.parsePinStateQuery(future)
-
-	return resp, nil
-}
-
-func (c *Client) parsePinStateQuery(future chan []byte) chan PinStateResponse {
 	resp := make(chan PinStateResponse, 1)
 
 	go func() {
 		data := <-future
-		var ps = PinStateResponse{
-			Pin:   data[0],
-			Mode:  pinModeToFuncMap[data[1]],
-			State: 0,
-		}
+		var response = ParsePinStateResponse(data)
 
-		for i, b := range data[2:] {
-			ps.State |= int(b << (i * 7))
-		}
-
-		resp <- ps
+		resp <- response
 		close(resp)
 	}()
 
-	return resp
+	return resp, nil
 }
 
 func (c *Client) ReportFirmware() (chan FirmwareReport, error) {
@@ -471,27 +431,28 @@ func (c *Client) ReportFirmware() (chan FirmwareReport, error) {
 		return nil, err
 	}
 
-	resp := c.parseReportFirmware(future)
-
-	return resp, nil
-}
-
-func (c *Client) parseReportFirmware(future chan []byte) chan FirmwareReport {
 	resp := make(chan FirmwareReport, 1)
 
 	go func() {
 		data := <-future
-		var rc = FirmwareReport{
-			Major: data[0],
-			Minor: data[1],
-			Name:  data[2:],
-		}
+		var response = ParseFirmwareReport(data)
 
-		resp <- rc
+		resp <- response
 		close(resp)
 	}()
 
-	return resp
+	return resp, nil
+}
+
+func (c *Client) ExtendedReportAnalogPin(p uint8, value uint8) error {
+	lsb, msb := ByteToTwoByte(value)
+
+	_, err := c.SendSysEx(SysExExtendedAnalog, p, lsb, msb)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (c *Client) SetAnalogPinReporting(analogPin uint8, report bool) error {
@@ -523,7 +484,7 @@ func (c *Client) SetSamplingInterval(ms uint16) error {
 	return c.write([]byte{byte(SysExSamplingInterval), byte(ms), byte(ms >> 7)}, nil)
 }
 
-// This function only supports 7-bit I2C addresses
+// WriteI2CData only supports 7-bit I2C addresses
 func (c *Client) WriteI2CData(address uint8, restart bool, data []uint8) error {
 	if !c.i2cStarted {
 		return ErrI2CNotEnabled
@@ -539,14 +500,14 @@ func (c *Client) WriteI2CData(address uint8, restart bool, data []uint8) error {
 	return err
 }
 
-// This function only supports 7-bit I2C addresses
+// ReadI2CData only supports 7-bit I2C addresses
 func (c *Client) ReadI2CData(address uint8, restart bool, length uint16) error {
 	if !c.i2cStarted {
 		return ErrI2CNotEnabled
 	}
 
 	if length > MaxUInt16 {
-		return fmt.Errorf("%w: 0x0 - 0xFFFFFFFFFFFFFF", ErrValueOutOfRange)
+		return fmt.Errorf("%w: 0x0 - 0x%X", ErrValueOutOfRange, MaxUInt16)
 	}
 
 	byte2 := byte(I2CModeRead)
@@ -560,14 +521,14 @@ func (c *Client) ReadI2CData(address uint8, restart bool, length uint16) error {
 	return err
 }
 
-// This function only supports 7-bit I2C addresses
+// ReadI2CRegister only supports 7-bit I2C addresses
 func (c *Client) ReadI2CRegister(address uint8, restart bool, register uint8, length uint16) error {
 	if !c.i2cStarted {
 		return ErrI2CNotEnabled
 	}
 
 	if length > MaxUInt16 {
-		return fmt.Errorf("%w: 0x0 - 0xFFFFFFFFFFFFFF", ErrValueOutOfRange)
+		return fmt.Errorf("%w: 0x0 - 0x%X", ErrValueOutOfRange, MaxUInt16)
 	}
 
 	byte2 := byte(I2CModeRead)
@@ -599,7 +560,7 @@ func (c *Client) releaseI2CAddressListener(addr uint8) {
 	delete(c.i2cListeners, addr)
 }
 
-// This function only supports 7-bit I2C addresses
+// SetI2CAddressListener only supports 7-bit I2C addresses
 func (c *Client) SetI2CAddressListener(addr uint8, ch chan I2CPacket) (release func(), err error) {
 	c.i2cMU.Lock()
 	defer c.i2cMU.Unlock()

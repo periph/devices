@@ -33,6 +33,30 @@ type CapabilityResponse struct {
 	SupportedPinModes     [][]pin.Func
 }
 
+func ParseCapabilityResponse(data []byte) CapabilityResponse {
+	var response = CapabilityResponse{
+		PinToModeToResolution: []map[pin.Func]uint8{{}},
+		SupportedPinModes:     [][]pin.Func{{}},
+	}
+
+	var pindex = 0
+	for i := 0; i < len(data); {
+		if data[i] == CapabilityResponsePinDelimiter {
+			response.PinToModeToResolution = append(response.PinToModeToResolution, map[pin.Func]uint8{})
+			response.SupportedPinModes = append(response.SupportedPinModes, []pin.Func{})
+			i += 1
+			pindex++
+		} else {
+			pinFunc := pinModeToFuncMap[data[i]]
+			response.PinToModeToResolution[pindex][pinFunc] = data[i+1]
+			response.SupportedPinModes[pindex] = append(response.SupportedPinModes[pindex], pinFunc)
+			i += 2
+		}
+	}
+
+	return response
+}
+
 func (c CapabilityResponse) String() string {
 	str := bytes.Buffer{}
 	for p, modeMap := range c.PinToModeToResolution {
