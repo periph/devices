@@ -5,9 +5,9 @@ import (
 )
 
 const (
-	PinFuncDigitalInput  pin.Func = "DigitalInput"
-	PinFuncDigitalOutput pin.Func = "DigitalOutput"
-	PinFuncAnalogInput   pin.Func = "AnalogInput"
+	PinFuncDigitalInput  pin.Func = "Digital Input"
+	PinFuncDigitalOutput pin.Func = "Digital Output"
+	PinFuncAnalogInput   pin.Func = "Analog Input"
 	PinFuncPWM           pin.Func = "PWM"
 	PinFuncServo         pin.Func = "Servo"
 	PinFuncShift         pin.Func = "Shift"
@@ -16,7 +16,7 @@ const (
 	PinFuncStepper       pin.Func = "Stepper"
 	PinFuncEncoder       pin.Func = "Encoder"
 	PinFuncSerial        pin.Func = "Serial"
-	PinFuncInputPullUp   pin.Func = "InputPullUp"
+	PinFuncInputPullUp   pin.Func = "Input Pull-Up"
 	PinFuncSPI           pin.Func = "SPI"
 	PinFuncSonar         pin.Func = "Sonar"
 	PinFuncTone          pin.Func = "Tone"
