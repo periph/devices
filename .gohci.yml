@@ -17,26 +17,35 @@ workers:
     - -benchtime=1000ms
     - -benchmem
     - ./...
-  # Test in advance.
-  - cmd:
+  # Test in advance: cmd
+  - dir: ..
+    cmd:
     - git
     - clone
     - --depth
     - 1
     - https://github.com/periph/cmd
-    dir: ..
-  - cmd:
+  - dir: ../cmd
+    cmd:
+    - go
+    - mod
+    - edit
+    - -replace=periph.io/x/devices/v3=../devices
+  - dir: ../cmd
+    cmd:
     - go
     - get
-    - periph.io/x/devices/v3@${GIT_SHA}
-    dir: ../cmd
-  - cmd:
+    - -t
+    - ./...
+  - dir: ../cmd
+    cmd:
     - go
     - test
+    - -short
     - ./...
-    dir: ../cmd
   # Test commands.
-  - cmd:
+  - dir: ../cmd
+    cmd:
     - go
     - install
     - -v
@@ -45,7 +54,6 @@ workers:
     - ./periph-info
     - ./periph-smoketest
     - ./spi-list
-    dir: ../cmd
   - cmd:
     - periph-info
   - cmd:
@@ -75,26 +83,35 @@ workers:
     - -benchtime=1000ms
     - -benchmem
     - ./...
-  # Test in advance.
-  - cmd:
+  # Test in advance: cmd
+  - dir: ..
+    cmd:
     - git
     - clone
     - --depth
     - 1
     - https://github.com/periph/cmd
-    dir: ..
-  - cmd:
+  - dir: ../cmd
+    cmd:
+    - go
+    - mod
+    - edit
+    - -replace=periph.io/x/devices/v3=../devices
+  - dir: ../cmd
+    cmd:
     - go
     - get
-    - periph.io/x/devices/v3@${GIT_SHA}
-    dir: ../cmd
-  - cmd:
+    - -t
+    - ./...
+  - dir: ../cmd
+    cmd:
     - go
     - test
+    - -short
     - ./...
-    dir: ../cmd
   # Test commands.
-  - cmd:
+  - dir: ../cmd
+    cmd:
     - go
     - install
     - -v
@@ -104,7 +121,6 @@ workers:
     - ./periph-info
     - ./periph-smoketest
     - ./spi-list
-    dir: ../cmd
   - cmd:
     - periph-info
   - cmd:
@@ -147,26 +163,35 @@ workers:
     - -benchtime=1000ms
     - -benchmem
     - ./...
-  # Test in advance.
-  - cmd:
+  # Test in advance: cmd
+  - dir: ..
+    cmd:
     - git
     - clone
     - --depth
     - 1
     - https://github.com/periph/cmd
-    dir: ..
-  - cmd:
+  - dir: ../cmd
+    cmd:
+    - go
+    - mod
+    - edit
+    - -replace=periph.io/x/devices/v3=../devices
+  - dir: ../cmd
+    cmd:
     - go
     - get
-    - periph.io/x/devices/v3@${GIT_SHA}
-    dir: ../cmd
-  - cmd:
+    - -t
+    - ./...
+  - dir: ../cmd
+    cmd:
     - go
     - test
+    - -short
     - ./...
-    dir: ../cmd
   # Test commands.
-  - cmd:
+  - dir: ../cmd
+    cmd:
     - go
     - install
     - -v
@@ -176,7 +201,6 @@ workers:
     - ./periph-info
     - ./periph-smoketest
     - ./spi-list
-    dir: ../cmd
   - cmd:
     - periph-info
   - cmd:
@@ -223,6 +247,11 @@ workers:
     - periph-smoketest
     - bcm283x
     - -quick
+  - cmd:
+    - periph-smoketest
+    - ftdi
+    - -type
+    - ft232h
 
 # Old MacBook Pro on 10.9.
 - name: mbp
@@ -235,26 +264,35 @@ workers:
     - -benchtime=1000ms
     - -benchmem
     - ./...
-  # Test in advance.
-  - cmd:
+  # Test in advance: cmd
+  - dir: ..
+    cmd:
     - git
     - clone
     - --depth
     - 1
     - https://github.com/periph/cmd
-    dir: ..
-  - cmd:
+  - dir: ../cmd
+    cmd:
+    - go
+    - mod
+    - edit
+    - -replace=periph.io/x/devices/v3=../devices
+  - dir: ../cmd
+    cmd:
     - go
     - get
-    - periph.io/x/devices/v3@${GIT_SHA}
-    dir: ../cmd
-  - cmd:
+    - -t
+    - ./...
+  - dir: ../cmd
+    cmd:
     - go
     - test
+    - -short
     - ./...
-    dir: ../cmd
   # Test commands.
-  - cmd:
+  - dir: ../cmd
+    cmd:
     - go
     - install
     - -v
@@ -264,7 +302,6 @@ workers:
     - ./periph-info
     - ./periph-smoketest
     - ./spi-list
-    dir: ../cmd
   - cmd:
     - periph-info
   - cmd:
@@ -277,6 +314,11 @@ workers:
     - i2c-list
   - cmd:
     - spi-list
+  - cmd:
+    - periph-smoketest
+    - ftdi
+    - -type
+    - ft232r
 
 # Laptop on Windows 10.
 - name: win10
@@ -289,26 +331,35 @@ workers:
     - -benchtime=1000ms
     - -benchmem
     - ./...
-  # Test in advance.
-  - cmd:
+  # Test in advance: cmd
+  - dir: ..
+    cmd:
     - git
     - clone
     - --depth
     - 1
     - https://github.com/periph/cmd
-    dir: ..
-  - cmd:
+  - dir: ../cmd
+    cmd:
+    - go
+    - mod
+    - edit
+    - -replace=periph.io/x/devices/v3=../devices
+  - dir: ../cmd
+    cmd:
     - go
     - get
-    - periph.io/x/devices/v3@${GIT_SHA}
-    dir: ../cmd
-  - cmd:
+    - -t
+    - ./...
+  - dir: ../cmd
+    cmd:
     - go
     - test
+    - -short
     - ./...
-    dir: ../cmd
   # Test commands.
-  - cmd:
+  - dir: ../cmd
+    cmd:
     - go
     - install
     - -v
@@ -318,7 +369,6 @@ workers:
     - ./periph-info
     - ./periph-smoketest
     - ./spi-list
-    dir: ../cmd
   - cmd:
     - periph-info
   - cmd:
