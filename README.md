@@ -9,8 +9,7 @@ get an [invite here](https://invite.slack.golangbridge.org/).
 [![mascot](https://raw.githubusercontent.com/periph/website/master/site/static/img/periph-mascot-280.png)](https://periph.io/)
 
 [![PkgGoDev](https://pkg.go.dev/badge/periph.io/x/devices/v3)](https://pkg.go.dev/periph.io/x/devices/v3)
-[![Coverage
-Status](https://codecov.io/gh/periph/devices/graph/badge.svg)](https://codecov.io/gh/periph/devices)
+[![codecov](https://codecov.io/gh/periph/devices/branch/main/graph/badge.svg?token=UA4NGFM2YJ)](https://codecov.io/gh/periph/devices)
 
 
 ## Example
