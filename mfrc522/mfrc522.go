@@ -26,6 +26,7 @@ type Dev struct {
 	operationTimeout time.Duration
 	beforeCall       func()
 	afterCall        func()
+	bogusUID         bool
 }
 
 // Key is the access key that consists of 6 bytes. There could be two types of keys - keyA and keyB.
@@ -40,9 +41,21 @@ type config struct {
 	defaultTimeout time.Duration
 	beforeCall     func()
 	afterCall      func()
+	bogusUID       bool
 }
 
 type configF func(*config) *config
+
+// WithFixedUID sets the card reader to return correct 4-byte UIDs. Without
+// this setting 4-byte UIDs will be 5-bytes long with bytes 0 to 3 being the
+// correct UID and byte 4 being an XOR of bytes 0 to 3. 7-byte UIDs are correct
+// regardless of this configuration.
+func WithFixedUID() configF {
+	return func(c *config) *config {
+		c.bogusUID = false
+		return c
+	}
+}
 
 // WithTimeout updates the default device-wide configuration timeout.
 func WithTimeout(timeout time.Duration) configF {
@@ -66,15 +79,20 @@ func WithSync() configF {
 func noop() {}
 
 // NewSPI creates and initializes the RFID card reader attached to SPI.
+// It is recommended to use the WithFixedUID configuration to return correct
+// card UIDs. Incorrect UIDs are returned for compatibility but will be removed
+// from a future version of this package.
 //
 //  spiPort     the SPI device to use.
 //  resetPin    reset GPIO pin.
 //  irqPin      irq GPIO pin.
+//  configs     configuration options
 func NewSPI(spiPort spi.Port, resetPin gpio.PinOut, irqPin gpio.PinIn, configs ...configF) (*Dev, error) {
 	cfg := &config{
 		defaultTimeout: 30 * time.Second,
 		beforeCall:     noop,
 		afterCall:      noop,
+		bogusUID:       true,
 	}
 	for _, cf := range configs {
 		cfg = cf(cfg)
@@ -92,6 +110,7 @@ func NewSPI(spiPort spi.Port, resetPin gpio.PinOut, irqPin gpio.PinIn, configs .
 		operationTimeout: cfg.defaultTimeout,
 		beforeCall:       cfg.beforeCall,
 		afterCall:        cfg.afterCall,
+		bogusUID:         cfg.bogusUID,
 	}
 	return dev, nil
 }
@@ -123,7 +142,9 @@ func (r *Dev) SetAntennaGain(gain int) error {
 	return nil
 }
 
-// ReadUID reads the card UID with IRQ event timeout.
+// ReadUID reads the 4-byte or 7-byte card UID with IRQ event timeout.
+// 4-byte UIDs will include their checksum byte unless Dev was created using
+// WithFixedUID.
 //
 //  timeout   the operation timeout
 func (r *Dev) ReadUID(timeout time.Duration) (uid []byte, err error) {
@@ -410,8 +431,15 @@ func (r *Dev) selectCard(timeout time.Duration) ([]byte, error) {
 
 		uuid = uuid[1 : len(uuid)-1]
 		uuid = append(uuid, uuidEnd[:len(uuidEnd)-1]...)
+
+		return uuid, nil
 	}
-	return uuid, nil
+
+	if r.bogusUID {
+		return uuid, nil
+	}
+
+	return uuid[:len(uuid)-1], nil
 }
 
 // write  writes the data block into the card at given block address.
