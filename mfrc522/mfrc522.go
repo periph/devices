@@ -46,11 +46,11 @@ type config struct {
 
 type configF func(*config) *config
 
-// WithFixedUID sets the card reader to return correct 4-byte UIDs. Without
-// this setting 4-byte UIDs will be 5-bytes long with bytes 0 to 3 being the
-// correct UID and byte 4 being an XOR of bytes 0 to 3. 7-byte UIDs are correct
-// regardless of this configuration.
-func WithFixedUID() configF {
+// WithBogusUID sets the card reader to return incorrect 4-byte UIDs. In
+// version 3.6.12 and earlier this package ruturned 5-bytes for tags with a
+// 4-byte UID with bytes 0 to 3 being the correct UID and byte 4 being an XOR
+// of bytes 0 to 3. 7-byte UIDs are correct regardless of this configuration.
+func WithBogusUID() configF {
 	return func(c *config) *config {
 		c.bogusUID = false
 		return c
@@ -79,9 +79,6 @@ func WithSync() configF {
 func noop() {}
 
 // NewSPI creates and initializes the RFID card reader attached to SPI.
-// It is recommended to use the WithFixedUID configuration to return correct
-// card UIDs. Incorrect UIDs are returned for compatibility but will be removed
-// from a future version of this package.
 //
 //  spiPort     the SPI device to use.
 //  resetPin    reset GPIO pin.
@@ -143,8 +140,6 @@ func (r *Dev) SetAntennaGain(gain int) error {
 }
 
 // ReadUID reads the 4-byte or 7-byte card UID with IRQ event timeout.
-// 4-byte UIDs will include their checksum byte unless Dev was created using
-// WithFixedUID.
 //
 //  timeout   the operation timeout
 func (r *Dev) ReadUID(timeout time.Duration) (uid []byte, err error) {
