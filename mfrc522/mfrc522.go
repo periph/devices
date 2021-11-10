@@ -52,7 +52,7 @@ type configF func(*config) *config
 // of bytes 0 to 3. 7-byte UIDs are correct regardless of this configuration.
 func WithBogusUID() configF {
 	return func(c *config) *config {
-		c.bogusUID = false
+		c.bogusUID = true
 		return c
 	}
 }
@@ -89,7 +89,7 @@ func NewSPI(spiPort spi.Port, resetPin gpio.PinOut, irqPin gpio.PinIn, configs .
 		defaultTimeout: 30 * time.Second,
 		beforeCall:     noop,
 		afterCall:      noop,
-		bogusUID:       true,
+		bogusUID:       false,
 	}
 	for _, cf := range configs {
 		cfg = cf(cfg)
