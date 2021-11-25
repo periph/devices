@@ -9,7 +9,6 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"strconv"
 	"time"
 
 	"periph.io/x/conn/v3"
@@ -402,7 +401,7 @@ func (d *Dev) Halt() error {
 
 // String returns a string containing configuration information.
 func (d *Dev) String() string {
-	return fmt.Sprintf("epd.Dev{%s, %s, Height: %s, Width: %s}", d.c, d.dc, strconv.Itoa(d.opts.Height), strconv.Itoa(d.opts.Width))
+	return fmt.Sprintf("epd.Dev{%s, %s, Height: %d, Width: %d}", d.c, d.dc, d.opts.Height, d.opts.Width)
 }
 
 func (d *Dev) sendData(c []byte) error {
@@ -451,7 +450,6 @@ func (d *Dev) reset() error {
 	time.Sleep(200 * time.Millisecond)
 
 	return eh.err
-
 }
 
 func (d *Dev) waitUntilIdle() {
