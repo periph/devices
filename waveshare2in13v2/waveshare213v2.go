@@ -20,6 +20,31 @@ import (
 	"periph.io/x/host/v3/rpi"
 )
 
+// Commands
+const (
+	driverOutputControl            byte = 0x01
+	gateDrivingVoltageControl      byte = 0x03
+	sourceDrivingVoltageControl    byte = 0x04
+	dataEntryModeSetting           byte = 0x11
+	swReset                        byte = 0x12
+	masterActivation               byte = 0x20
+	displayUpdateControl1          byte = 0x21
+	displayUpdateControl2          byte = 0x22
+	writeRAMBW                     byte = 0x24
+	writeRAMRed                    byte = 0x26
+	writeVcomRegister              byte = 0x2C
+	writeLutRegister               byte = 0x32
+	setDummyLinePeriod             byte = 0x3A
+	setGateTime                    byte = 0x3B
+	borderWaveformControl          byte = 0x3C
+	setRAMXAddressStartEndPosition byte = 0x44
+	setRAMYAddressStartEndPosition byte = 0x45
+	setRAMXAddressCounter          byte = 0x4E
+	setRAMYAddressCounter          byte = 0x4F
+	setAnalogBlockControl          byte = 0x74
+	setDigitalBlockControl         byte = 0x7E
+)
+
 // Dev defines the handler which is used to access the display.
 type Dev struct {
 	c conn.Conn
@@ -183,12 +208,12 @@ func (d *Dev) Init(partialUpdate PartialUpdate) error {
 		// Partital Update Mode
 
 		// VCOM Voltage
-		eh.sendCommand([]byte{0x2C})
+		eh.sendCommand([]byte{writeVcomRegister})
 		eh.sendData([]byte{0x26})
 
 		d.waitUntilIdle()
 
-		eh.sendCommand([]byte{0x32})
+		eh.sendCommand([]byte{writeLutRegister})
 		for i := range [70]int{} {
 			eh.sendData([]byte{d.opts.PartialUpdate[i]})
 		}
@@ -196,15 +221,15 @@ func (d *Dev) Init(partialUpdate PartialUpdate) error {
 		eh.sendCommand([]byte{0x37})
 		eh.sendData([]byte{0x00, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00})
 
-		eh.sendCommand([]byte{0x22})
+		eh.sendCommand([]byte{displayUpdateControl2})
 		eh.sendData([]byte{0xC0})
 
-		eh.sendCommand([]byte{0x20})
+		eh.sendCommand([]byte{masterActivation})
 
 		d.waitUntilIdle()
 
 		// Border Waveform
-		eh.sendCommand([]byte{0x3C})
+		eh.sendCommand([]byte{borderWaveformControl})
 		eh.sendData([]byte{0x01})
 
 	} else {
@@ -212,66 +237,66 @@ func (d *Dev) Init(partialUpdate PartialUpdate) error {
 
 		// Software Reset
 		d.waitUntilIdle()
-		eh.sendCommand([]byte{0x12})
+		eh.sendCommand([]byte{swReset})
 		d.waitUntilIdle()
 
 		// Set analog block control
-		eh.sendCommand([]byte{0x74})
+		eh.sendCommand([]byte{setAnalogBlockControl})
 		eh.sendData([]byte{0x54})
 
 		// Set digital block control
-		eh.sendCommand([]byte{0x7E})
+		eh.sendCommand([]byte{setDigitalBlockControl})
 		eh.sendData([]byte{0x3B})
 
 		// Driver output control
-		eh.sendCommand([]byte{0x01})
+		eh.sendCommand([]byte{driverOutputControl})
 		eh.sendData([]byte{0xF9, 0x00, 0x00})
 
 		// Data entry mode
-		eh.sendCommand([]byte{0x11})
+		eh.sendCommand([]byte{dataEntryModeSetting})
 		eh.sendData([]byte{0x01})
 
 		// Set Ram-X address start/end position
-		eh.sendCommand([]byte{0x44})
+		eh.sendCommand([]byte{setRAMXAddressStartEndPosition})
 		eh.sendData([]byte{0x00, 0x0F})
 
 		// Set Ram-Y address start/end position
-		eh.sendCommand([]byte{0x45})
+		eh.sendCommand([]byte{setRAMYAddressStartEndPosition})
 		eh.sendData([]byte{0xF9, 0x00, 0x00, 0x00}) //0xF9-->(249+1)=250
 
 		// Border Waveform
-		eh.sendCommand([]byte{0x3C})
+		eh.sendCommand([]byte{borderWaveformControl})
 		eh.sendData([]byte{0x03})
 
 		// VCOM Voltage
-		eh.sendCommand([]byte{0x2C})
+		eh.sendCommand([]byte{writeVcomRegister})
 		eh.sendData([]byte{0x55})
 
-		eh.sendCommand([]byte{0x03})
+		eh.sendCommand([]byte{gateDrivingVoltageControl})
 		eh.sendData([]byte{d.opts.FullUpdate[70]})
 
-		eh.sendCommand([]byte{0x04})
+		eh.sendCommand([]byte{sourceDrivingVoltageControl})
 		eh.sendData([]byte{d.opts.FullUpdate[71], d.opts.FullUpdate[72], d.opts.FullUpdate[73]})
 
 		// Dummy Line
-		eh.sendCommand([]byte{0x3A})
+		eh.sendCommand([]byte{setDummyLinePeriod})
 		eh.sendData([]byte{d.opts.FullUpdate[74]})
 
 		// Gate Time
-		eh.sendCommand([]byte{0x3B})
+		eh.sendCommand([]byte{setGateTime})
 		eh.sendData([]byte{d.opts.FullUpdate[75]})
 
-		eh.sendCommand([]byte{0x32})
+		eh.sendCommand([]byte{writeLutRegister})
 		for i := range [70]int{} {
 			eh.sendData([]byte{d.opts.FullUpdate[i]})
 		}
 
 		// Set RAM x address count to 0
-		eh.sendCommand([]byte{0x4E})
+		eh.sendCommand([]byte{setRAMXAddressCounter})
 		eh.sendData([]byte{0x00})
 
 		// Set RAM y address count to 0X127
-		eh.sendCommand([]byte{0x4F})
+		eh.sendCommand([]byte{setRAMYAddressCounter})
 		eh.sendData([]byte{0xF9, 0x00})
 
 		d.waitUntilIdle()
@@ -288,7 +313,7 @@ func (d *Dev) Clear(color byte) error {
 	} else {
 		linewidth = d.opts.Width/8 + 1
 	}
-	if err := d.sendCommand([]byte{0x24}); err != nil {
+	if err := d.sendCommand([]byte{writeRAMBW}); err != nil {
 		return err
 	}
 
@@ -323,7 +348,7 @@ func (d *Dev) Draw(dstRect image.Rectangle, src image.Image, srcPts image.Point)
 		if err := d.setMemoryPointer(0, y); err != nil {
 			return err
 		}
-		if err := d.sendCommand([]byte{0x24}); err != nil {
+		if err := d.sendCommand([]byte{writeRAMBW}); err != nil {
 			return err
 		}
 		for x := 0; x <= d.opts.Width; x++ {
@@ -352,7 +377,7 @@ func (d *Dev) DrawPartial(dstRect image.Rectangle, src image.Image, srcPts image
 		if err := d.setMemoryPointer(0, y); err != nil {
 			return err
 		}
-		if err := d.sendCommand([]byte{0x24}); err != nil {
+		if err := d.sendCommand([]byte{writeRAMBW}); err != nil {
 			return err
 		}
 		for x := 0; x < d.opts.Width; x++ {
@@ -374,7 +399,7 @@ func (d *Dev) DrawPartial(dstRect image.Rectangle, src image.Image, srcPts image
 		if err := d.setMemoryPointer(0, y); err != nil {
 			return err
 		}
-		if err := d.sendCommand([]byte{0x26}); err != nil {
+		if err := d.sendCommand([]byte{writeRAMRed}); err != nil {
 			return err
 		}
 		for x := 0; x < d.opts.Width; x++ {
@@ -429,9 +454,9 @@ func (d *Dev) sendCommand(c []byte) error {
 func (d *Dev) turnOnDisplay() error {
 	eh := errorHandler{d: *d}
 
-	eh.sendCommand([]byte{0x22})
+	eh.sendCommand([]byte{displayUpdateControl2})
 	eh.sendData([]byte{0xC7})
-	eh.sendCommand([]byte{0x20})
+	eh.sendCommand([]byte{masterActivation})
 
 	d.waitUntilIdle()
 
@@ -461,9 +486,9 @@ func (d *Dev) waitUntilIdle() {
 func (d *Dev) setMemoryPointer(x, y int) error {
 	eh := errorHandler{d: *d}
 
-	eh.sendCommand([]byte{0x4E})
+	eh.sendCommand([]byte{setRAMXAddressCounter})
 	eh.sendData([]byte{byte((x >> 3) & 0xFF)})
-	eh.sendCommand([]byte{0x4F})
+	eh.sendCommand([]byte{setRAMYAddressCounter})
 	eh.sendData([]byte{byte(y & 0xFF)})
 	eh.sendData([]byte{byte((y >> 8) & 0xFF)})
 
