@@ -38,7 +38,12 @@ func Example() {
 
 	dev, err := waveshare2in13v2.NewHat(b, &waveshare2in13v2.EPD2in13v2) // Display config and size
 	if err != nil {
-		log.Fatalf("failed to initialize epd: %v", err)
+		log.Fatalf("Failed to initialize driver: %v", err)
+	}
+
+	err = dev.Init(false)
+	if err != nil {
+		log.Fatalf("Failed to initialize display: %v", err)
 	}
 
 	// Draw on it. Black text on a white background.
@@ -73,7 +78,12 @@ func Example_other() {
 
 	dev, err := waveshare2in13v2.NewHat(b, &waveshare2in13v2.EPD2in13v2) // Display config and size
 	if err != nil {
-		log.Fatalf("failed to initialize epd: %v", err)
+		log.Fatalf("Failed to initialize driver: %v", err)
+	}
+
+	err = dev.Init(false)
+	if err != nil {
+		log.Fatalf("Failed to initialize display: %v", err)
 	}
 
 	var img image.Image
