@@ -4,7 +4,7 @@
 
 module periph.io/x/devices/v3
 
-go 1.13
+go 1.14
 
 require (
 	github.com/maruel/ansi256 v1.0.2
