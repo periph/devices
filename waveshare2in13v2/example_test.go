@@ -13,10 +13,6 @@ import (
 	"golang.org/x/image/font/basicfont"
 	"golang.org/x/image/math/fixed"
 
-	"github.com/fogleman/gg"
-	"github.com/golang/freetype/truetype"
-	"golang.org/x/image/font/gofont/goregular"
-
 	"periph.io/x/conn/v3/spi/spireg"
 	"periph.io/x/devices/v3/ssd1306/image1bit"
 	"periph.io/x/devices/v3/waveshare2in13v2"
@@ -87,42 +83,46 @@ func Example_other() {
 	}
 
 	var img image.Image
-	bounds := dev.Bounds()
-	w := bounds.Dx()
-	h := bounds.Dy()
-	dc := gg.NewContext(w, h)
-	im, err := gg.LoadPNG("gopher.png")
-	if err != nil {
-		panic(err)
-	}
-	dc.SetRGB(1, 1, 1)
-	dc.Clear()
-	dc.SetRGB(0, 0, 0)
-	dc.Rotate(gg.Radians(90))
-	dc.Translate(0.0, -float64(h/2))
-	font, err := truetype.Parse(goregular.TTF)
-	if err != nil {
-		panic(err)
-	}
-	face := truetype.NewFace(font, &truetype.Options{
-		Size: 16,
-	})
-	dc.SetFontFace(face)
-	text := "Hello from periph!"
-	tw, th := dc.MeasureString(text)
-	dc.DrawImage(im, 120, 30)
-	padding := 8.0
-	dc.DrawRoundedRectangle(padding*2, padding*2, tw+padding*2, th+padding, 10)
-	dc.Stroke()
-	dc.DrawString(text, padding*3, padding*2+th)
-	for i := 0; i < 10; i++ {
-		dc.DrawCircle(float64(30+(10*i)), 100, 5)
-	}
-	for i := 0; i < 10; i++ {
-		dc.DrawRectangle(float64(30+(10*i)), 80, 5, 5)
-	}
-	dc.Fill()
-	img = dc.Image()
+	// Note: this code is commented out so periph does not depend on:
+	//    "github.com/fogleman/gg"
+	//    "github.com/golang/freetype/truetype"
+	//    "golang.org/x/image/font/gofont/goregular"
+	// bounds := dev.Bounds()
+	// w := bounds.Dx()
+	// h := bounds.Dy()
+	// dc := gg.NewContext(w, h)
+	// im, err := gg.LoadPNG("gopher.png")
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// dc.SetRGB(1, 1, 1)
+	// dc.Clear()
+	// dc.SetRGB(0, 0, 0)
+	// dc.Rotate(gg.Radians(90))
+	// dc.Translate(0.0, -float64(h/2))
+	// font, err := truetype.Parse(goregular.TTF)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// face := truetype.NewFace(font, &truetype.Options{
+	// 	Size: 16,
+	// })
+	// dc.SetFontFace(face)
+	// text := "Hello from periph!"
+	// tw, th := dc.MeasureString(text)
+	// dc.DrawImage(im, 120, 30)
+	// padding := 8.0
+	// dc.DrawRoundedRectangle(padding*2, padding*2, tw+padding*2, th+padding, 10)
+	// dc.Stroke()
+	// dc.DrawString(text, padding*3, padding*2+th)
+	// for i := 0; i < 10; i++ {
+	// 	dc.DrawCircle(float64(30+(10*i)), 100, 5)
+	// }
+	// for i := 0; i < 10; i++ {
+	// 	dc.DrawRectangle(float64(30+(10*i)), 80, 5, 5)
+	// }
+	// dc.Fill()
+	// img = dc.Image()
 
 	if err := dev.Draw(dev.Bounds(), img, image.Point{}); err != nil {
 		log.Fatal(err)
