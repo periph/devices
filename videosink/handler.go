@@ -6,6 +6,7 @@ package videosink
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"image/jpeg"
 	"log"
@@ -14,6 +15,7 @@ import (
 	"net/textproto"
 	"net/url"
 	"sync"
+	"time"
 )
 
 // bufferPool stores reusable []byte instances.
@@ -21,6 +23,17 @@ var bufferPool = sync.Pool{
 	New: func() interface{} {
 		return []byte(nil)
 	},
+}
+
+// stopAndDrain ensures that the given timer is stopped and has no pending
+// event.
+func stopAndDrain(timer *time.Timer) {
+	if timer != nil && !timer.Stop() {
+		select {
+		case <-timer.C:
+		default:
+		}
+	}
 }
 
 type imageConfig struct {
@@ -44,8 +57,58 @@ func (d *Display) configFromQuery(values url.Values) (imageConfig, error) {
 }
 
 type client struct {
+	disp *Display
+
 	refresh   chan struct{}
 	terminate chan struct{}
+
+	mostRecent time.Time
+}
+
+func newClient(d *Display) *client {
+	return &client{
+		disp:      d,
+		refresh:   make(chan struct{}, 1),
+		terminate: make(chan struct{}, 1),
+	}
+}
+
+// Wait until the next frame should be sent, either because the keep-alive
+// interval has passed or a change has been made to the buffer and the rate
+// limit isn't violated.
+func (c *client) waitNext(ctx context.Context) bool {
+	earliestFrameAt := c.mostRecent.Add(c.disp.minFrameInterval)
+	latestFrameAt := c.mostRecent.Add(c.disp.keepAliveInterval)
+
+	var rateLimit <-chan time.Time
+	keepAliveTimer := time.NewTimer(time.Until(latestFrameAt))
+
+	defer stopAndDrain(keepAliveTimer)
+
+	for {
+		select {
+		case <-rateLimit:
+			return true
+
+		case <-c.refresh:
+			if remaining := time.Until(earliestFrameAt); remaining <= 0 {
+				return true
+			} else if rateLimit == nil {
+				rateLimitTimer := time.NewTimer(remaining)
+				defer stopAndDrain(rateLimitTimer)
+				rateLimit = rateLimitTimer.C
+			}
+
+		case <-keepAliveTimer.C:
+			return true
+
+		case <-c.terminate:
+			return false
+
+		case <-ctx.Done():
+			return false
+		}
+	}
 }
 
 func (d *Display) bufferChangedLocked() {
@@ -141,10 +204,7 @@ func (d *Display) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			"boundary": pw.boundary,
 		}))
 
-	c := &client{
-		refresh:   make(chan struct{}, 1),
-		terminate: make(chan struct{}, 1),
-	}
+	c := newClient(d)
 
 	d.mu.Lock()
 	d.clients[c] = struct{}{}
@@ -176,18 +236,13 @@ func (d *Display) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		c.mostRecent = time.Now()
+
 		if flusher, ok := w.(http.Flusher); ok {
 			flusher.Flush()
 		}
 
-		// TODO: Keepalive (send an image every N seconds)
-		// TODO: Rate-limiting (don't send more than N per time unit)
-
-		select {
-		case <-c.refresh:
-		case <-c.terminate:
-			return
-		case <-r.Context().Done():
+		if !c.waitNext(r.Context()) {
 			return
 		}
 	}

@@ -14,6 +14,7 @@ import (
 	"image/png"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"mime"
 	"mime/multipart"
 	"net/http"
@@ -165,6 +166,9 @@ func TestMultipartResponse(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 			t.Cleanup(cancel)
 
+			tc.opt.MinFrameInterval = time.Millisecond
+			tc.opt.KeepAliveInterval = time.Minute
+
 			d := New(&tc.opt)
 
 			srv := httptest.NewServer(d)
@@ -271,5 +275,133 @@ func TestRequestStatus(t *testing.T) {
 					req.Method, req.URL.String(), got, resp.Status, want)
 			}
 		})
+	}
+}
+
+func TestWaitNextRateLimit(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		interval time.Duration
+	}{
+		{
+			name:     "1ms",
+			interval: time.Millisecond,
+		},
+		{
+			name:     "10ms",
+			interval: 10 * time.Millisecond,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+			t.Cleanup(cancel)
+
+			opt := &Options{
+				MinFrameInterval:  tc.interval,
+				KeepAliveInterval: time.Minute,
+			}
+
+			c := newClient(New(opt))
+
+			quit := make(chan struct{})
+
+			var wg sync.WaitGroup
+			wg.Add(1)
+
+			go func() {
+				defer wg.Done()
+
+				for {
+					time.Sleep(time.Duration(rand.Intn(int(tc.interval / 10))))
+
+					select {
+					case c.refresh <- struct{}{}:
+					case <-quit:
+						return
+					}
+				}
+			}()
+
+			count := int(time.Second / 10 / tc.interval)
+
+			if count < 10 {
+				count = 10
+			}
+
+			for i := 0; i < count; i++ {
+				begin := time.Now()
+				c.mostRecent = begin
+
+				if got := c.waitNext(ctx); !got {
+					t.Errorf("waitNext() returned %v, want %v", got, true)
+				}
+
+				if duration := time.Since(begin); duration < opt.MinFrameInterval {
+					t.Errorf("waitNext() returned after %v, want at least %v", duration, opt.MinFrameInterval)
+				}
+			}
+
+			close(quit)
+
+			wg.Wait()
+		})
+	}
+}
+
+func TestWaitNextKeepAlive(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		interval time.Duration
+	}{
+		{
+			name:     "1ms",
+			interval: time.Millisecond,
+		},
+		{
+			name:     "100ms",
+			interval: 100 * time.Millisecond,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+			t.Cleanup(cancel)
+
+			opt := &Options{
+				MinFrameInterval:  time.Minute,
+				KeepAliveInterval: tc.interval,
+			}
+
+			c := newClient(New(opt))
+
+			begin := time.Now()
+			c.mostRecent = begin
+
+			if got := c.waitNext(ctx); !got {
+				t.Errorf("waitNext() returned %v, want %v", got, true)
+			}
+
+			if duration := time.Since(begin); duration < opt.KeepAliveInterval {
+				t.Errorf("waitNext() returned after %v, want at least %v", duration, opt.KeepAliveInterval)
+			}
+		})
+	}
+}
+
+func TestWaitNextTerminate(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	t.Cleanup(cancel)
+
+	c := newClient(New(&Options{
+		MinFrameInterval:  time.Minute,
+		KeepAliveInterval: time.Minute,
+	}))
+	c.mostRecent = time.Now()
+
+	go func() {
+		c.terminate <- struct{}{}
+	}()
+
+	if got := c.waitNext(ctx); got {
+		t.Errorf("waitNext() returned %v, want %v", got, false)
 	}
 }

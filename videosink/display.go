@@ -25,11 +25,14 @@ import (
 	"image/png"
 	"net/http"
 	"sync"
+	"time"
 
 	"periph.io/x/conn/v3/display"
 )
 
 const defaultJPEGQuality = 95
+const defaultKeepAliveInterval = time.Minute
+const defaultMinFrameInterval = time.Second / 15
 
 // Options for videosink devices.
 type Options struct {
@@ -48,6 +51,16 @@ type Options struct {
 		// encoder. Defaults to png.DefaultCompression.
 		CompressionLevel png.CompressionLevel
 	}
+
+	// MinFrameInterval is the amount of time which needs to pass before
+	// sending a new image, thus implementing rate-limiting. Defaults to 15
+	// frames per second.
+	MinFrameInterval time.Duration
+
+	// KeepAliveInterval is the amount of time after which to send a new
+	// image regardless of whether any changes have been made. Defaults to
+	// once per minute.
+	KeepAliveInterval time.Duration
 }
 
 // Display is a virtual device receiving drawing operations and sending
@@ -56,6 +69,8 @@ type Display struct {
 	defaultFormat       ImageFormat
 	jpegOptions         jpeg.Options
 	pngCompressionLevel png.CompressionLevel
+	keepAliveInterval   time.Duration
+	minFrameInterval    time.Duration
 
 	mu       sync.Mutex
 	buffer   *image.RGBA
@@ -77,6 +92,8 @@ func New(opt *Options) *Display {
 	d := &Display{
 		jpegOptions:         opt.JPEG,
 		pngCompressionLevel: opt.PNG.CompressionLevel,
+		keepAliveInterval:   opt.KeepAliveInterval,
+		minFrameInterval:    opt.MinFrameInterval,
 
 		buffer:        buffer,
 		clients:       map[*client]struct{}{},
@@ -86,6 +103,14 @@ func New(opt *Options) *Display {
 
 	if d.jpegOptions.Quality == 0 {
 		d.jpegOptions.Quality = defaultJPEGQuality
+	}
+
+	if d.keepAliveInterval == 0 {
+		d.keepAliveInterval = defaultKeepAliveInterval
+	}
+
+	if d.minFrameInterval == 0 {
+		d.minFrameInterval = defaultMinFrameInterval
 	}
 
 	return d
