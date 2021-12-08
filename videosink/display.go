@@ -21,11 +21,15 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+	"image/jpeg"
+	"image/png"
 	"net/http"
 	"sync"
 
 	"periph.io/x/conn/v3/display"
 )
+
+const defaultJPEGQuality = 95
 
 // Options for videosink devices.
 type Options struct {
@@ -35,13 +39,23 @@ type Options struct {
 	// Format specifies the image format to send to clients.
 	Format ImageFormat
 
-	// TODO: Add options for JPEG and PNG encoder settings
+	// JPEG controls options for the JPEG encoder.
+	JPEG jpeg.Options
+
+	// PNG controls options for the PNG encoder.
+	PNG struct {
+		// CompressionLevel is the amount of compression applied by the PNG
+		// encoder. Defaults to png.DefaultCompression.
+		CompressionLevel png.CompressionLevel
+	}
 }
 
 // Display is a virtual device receiving drawing operations and sending
 // a stream of images to all connected HTTP clients.
 type Display struct {
-	defaultFormat ImageFormat
+	defaultFormat       ImageFormat
+	jpegOptions         jpeg.Options
+	pngCompressionLevel png.CompressionLevel
 
 	mu       sync.Mutex
 	buffer   *image.RGBA
@@ -60,12 +74,21 @@ func New(opt *Options) *Display {
 	// draw operation makes it opaque.
 	draw.Draw(buffer, buffer.Bounds(), image.Black, image.Point{}, draw.Src)
 
-	return &Display{
+	d := &Display{
+		jpegOptions:         opt.JPEG,
+		pngCompressionLevel: opt.PNG.CompressionLevel,
+
 		buffer:        buffer,
 		clients:       map[*client]struct{}{},
 		snapshot:      map[imageConfig][]byte{},
 		defaultFormat: opt.Format,
 	}
+
+	if d.jpegOptions.Quality == 0 {
+		d.jpegOptions.Quality = defaultJPEGQuality
+	}
+
+	return d
 }
 
 // String returns the name of the device.
