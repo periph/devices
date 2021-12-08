@@ -80,12 +80,12 @@ func (d *Display) encodeBufferLocked(format ImageFormat) ([]byte, error) {
 
 	switch format {
 	case PNG:
-		if err := pngEncoder.get().Encode(buf, d.buffer); err != nil {
+		if err := pngEncoder.get(d.pngCompressionLevel).Encode(buf, d.buffer); err != nil {
 			return nil, err
 		}
 
 	case JPEG:
-		if err := jpeg.Encode(buf, d.buffer, &jpegOptions); err != nil {
+		if err := jpeg.Encode(buf, d.buffer, &d.jpegOptions); err != nil {
 			return nil, err
 		}
 

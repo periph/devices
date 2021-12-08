@@ -5,14 +5,9 @@
 package videosink
 
 import (
-	"image/jpeg"
 	"image/png"
 	"sync"
 )
-
-var jpegOptions = jpeg.Options{
-	Quality: 95,
-}
 
 type pngEncoderBufferPool sync.Pool
 
@@ -26,21 +21,33 @@ func (p *pngEncoderBufferPool) Put(buf *png.EncoderBuffer) {
 }
 
 type pngEncoderManager struct {
-	once sync.Once
+	mu   sync.Mutex
 	pool pngEncoderBufferPool
-	enc  *png.Encoder
+	enc  map[png.CompressionLevel]*png.Encoder
 }
 
 var pngEncoder pngEncoderManager
 
 // get returns a PNG encoder with a globally shared buffer pool.
-func (m *pngEncoderManager) get() *png.Encoder {
-	m.once.Do(func() {
-		m.enc = &png.Encoder{
-			CompressionLevel: png.BestSpeed,
+func (m *pngEncoderManager) get(level png.CompressionLevel) *png.Encoder {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	enc := m.enc[level]
+	if enc == nil {
+		if m.enc == nil {
+			// The vast majority of use cases will involve exactly one
+			// compression level.
+			m.enc = make(map[png.CompressionLevel]*png.Encoder, 1)
+		}
+
+		enc = &png.Encoder{
+			CompressionLevel: level,
 			BufferPool:       &m.pool,
 		}
-	})
 
-	return m.enc
+		m.enc[level] = enc
+	}
+
+	return enc
 }
