@@ -38,6 +38,8 @@ type Options struct {
 	// TODO: Add options for JPEG and PNG encoder settings
 }
 
+// Display is a virtual device receiving drawing operations and sending
+// a stream of images to all connected HTTP clients.
 type Display struct {
 	defaultFormat ImageFormat
 
