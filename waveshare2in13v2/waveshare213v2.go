@@ -5,6 +5,7 @@
 package waveshare2in13v2
 
 import (
+	"bytes"
 	"fmt"
 	"image"
 	"image/color"
@@ -122,6 +123,12 @@ var EPD2in13v2 = Opts{
 
 		0x15, 0x41, 0xA8, 0x32, 0x30, 0x0A,
 	},
+}
+
+// dataDimensions returns the size in terms of bytes needed to fill the
+// display.
+func dataDimensions(opts *Opts) (int, int) {
+	return opts.Height, (opts.Width + 7) / 8
 }
 
 func (eh *errorHandler) rstOut(l gpio.Level) {
@@ -307,21 +314,16 @@ func (d *Dev) Init(partialUpdate PartialUpdate) error {
 
 // Clear clears the display.
 func (d *Dev) Clear(color byte) error {
-	linewidth := 0
-	if d.opts.Width%8 == 0 {
-		linewidth = d.opts.Width / 8
-	} else {
-		linewidth = d.opts.Width/8 + 1
-	}
+	rows, cols := dataDimensions(d.opts)
+	data := bytes.Repeat([]byte{color}, cols)
+
 	if err := d.sendCommand([]byte{writeRAMBW}); err != nil {
 		return err
 	}
 
-	for i := 0; i <= d.opts.Height; i++ {
-		for i := 0; i <= linewidth; i++ {
-			if err := d.sendData([]byte{color}); err != nil {
-				return err
-			}
+	for y := 0; y < rows; y++ {
+		if err := d.sendData(data); err != nil {
+			return err
 		}
 	}
 
@@ -338,32 +340,44 @@ func (d *Dev) Bounds() image.Rectangle {
 	return image.Rect(0, 0, d.opts.Width, d.opts.Height)
 }
 
+func (d *Dev) sendImage(cmd []byte, dstRect image.Rectangle, src *image1bit.VerticalLSB) error {
+	// TODO: Handle dstRect not matching the device bounds.
+
+	if err := d.setMemoryPointer(0, 0); err != nil {
+		return err
+	}
+
+	eh := errorHandler{d: *d}
+	eh.sendCommand(cmd)
+
+	rows, cols := dataDimensions(d.opts)
+
+	for y := 0; y < rows; y++ {
+		data := make([]byte, cols)
+
+		for x := 0; x < cols; x++ {
+			for bit := 0; bit < 8; bit++ {
+				if src.BitAt((x*8)+bit, y) {
+					data[x] |= 0x80 >> bit
+				}
+			}
+		}
+
+		eh.sendData(data)
+	}
+
+	return eh.err
+}
+
 // Draw draws the given image to the display.
 func (d *Dev) Draw(dstRect image.Rectangle, src image.Image, srcPts image.Point) error {
 	next := image1bit.NewVerticalLSB(dstRect)
 	draw.Src.Draw(next, dstRect, src, srcPts)
 
-	var byteToSend byte = 0x00
-	for y := 0; y <= d.opts.Height; y++ {
-		if err := d.setMemoryPointer(0, y); err != nil {
-			return err
-		}
-		if err := d.sendCommand([]byte{writeRAMBW}); err != nil {
-			return err
-		}
-		for x := 0; x <= d.opts.Width; x++ {
-			bit := next.BitAt(x, y)
-			if bit {
-				byteToSend |= 0x80 >> (uint32(x) % 8)
-			}
-			if x%8 == 7 {
-				if err := d.sendData([]byte{byteToSend}); err != nil {
-					return err
-				}
-				byteToSend = 0x00
-			}
-		}
+	if err := d.sendImage([]byte{writeRAMBW}, dstRect, next); err != nil {
+		return err
 	}
+
 	return d.turnOnDisplay()
 }
 
@@ -372,48 +386,12 @@ func (d *Dev) DrawPartial(dstRect image.Rectangle, src image.Image, srcPts image
 	next := image1bit.NewVerticalLSB(dstRect)
 	draw.Src.Draw(next, dstRect, src, srcPts)
 
-	var byteToSend byte = 0x00
-	for y := 0; y < d.opts.Height; y++ {
-		if err := d.setMemoryPointer(0, y); err != nil {
-			return err
-		}
-		if err := d.sendCommand([]byte{writeRAMBW}); err != nil {
-			return err
-		}
-		for x := 0; x < d.opts.Width; x++ {
-			bit := next.BitAt(x, y)
-			if bit {
-				byteToSend |= 0x80 >> (uint32(x) % 8)
-			}
-			if x%8 == 7 {
-				if err := d.sendData([]byte{byteToSend}); err != nil {
-					return err
-				}
-				byteToSend = 0x00
-			}
-		}
+	if err := d.sendImage([]byte{writeRAMBW}, dstRect, next); err != nil {
+		return err
 	}
 
-	byteToSend = 0x00
-	for y := 0; y < d.opts.Height; y++ {
-		if err := d.setMemoryPointer(0, y); err != nil {
-			return err
-		}
-		if err := d.sendCommand([]byte{writeRAMRed}); err != nil {
-			return err
-		}
-		for x := 0; x < d.opts.Width; x++ {
-			bit := next.BitAt(x, y)
-			if bit {
-				byteToSend |= 0x80 >> (uint32(x) % 8)
-			}
-			if x%8 == 7 {
-				if err := d.sendData([]byte{^byteToSend}); err != nil {
-					return err
-				}
-				byteToSend = 0x00
-			}
-		}
+	if err := d.sendImage([]byte{writeRAMRed}, dstRect, next); err != nil {
+		return err
 	}
 
 	return d.turnOnDisplay()
