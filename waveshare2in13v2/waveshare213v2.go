@@ -164,11 +164,11 @@ func (eh *errorHandler) csOut(l gpio.Level) {
 	eh.err = eh.d.cs.Out(l)
 }
 
-func (eh *errorHandler) sendCommand(c []byte) {
+func (eh *errorHandler) sendCommand(cmd byte) {
 	if eh.err != nil {
 		return
 	}
-	eh.err = eh.d.sendCommand(c)
+	eh.err = eh.d.sendCommand(cmd)
 }
 
 func (eh *errorHandler) sendData(d []byte) {
@@ -220,26 +220,26 @@ func (d *Dev) Init(partialUpdate PartialUpdate) error {
 		// Partital Update Mode
 
 		// VCOM Voltage
-		eh.sendCommand([]byte{writeVcomRegister})
+		eh.sendCommand(writeVcomRegister)
 		eh.sendData([]byte{0x26})
 
 		d.waitUntilIdle()
 
-		eh.sendCommand([]byte{writeLutRegister})
+		eh.sendCommand(writeLutRegister)
 		eh.sendData(d.opts.PartialUpdate[:70])
 
-		eh.sendCommand([]byte{0x37})
+		eh.sendCommand(0x37)
 		eh.sendData([]byte{0x00, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00})
 
-		eh.sendCommand([]byte{displayUpdateControl2})
+		eh.sendCommand(displayUpdateControl2)
 		eh.sendData([]byte{0xC0})
 
-		eh.sendCommand([]byte{masterActivation})
+		eh.sendCommand(masterActivation)
 
 		d.waitUntilIdle()
 
 		// Border Waveform
-		eh.sendCommand([]byte{borderWaveformControl})
+		eh.sendCommand(borderWaveformControl)
 		eh.sendData([]byte{0x01})
 
 	} else {
@@ -247,19 +247,19 @@ func (d *Dev) Init(partialUpdate PartialUpdate) error {
 
 		// Software Reset
 		d.waitUntilIdle()
-		eh.sendCommand([]byte{swReset})
+		eh.sendCommand(swReset)
 		d.waitUntilIdle()
 
 		// Set analog block control
-		eh.sendCommand([]byte{setAnalogBlockControl})
+		eh.sendCommand(setAnalogBlockControl)
 		eh.sendData([]byte{0x54})
 
 		// Set digital block control
-		eh.sendCommand([]byte{setDigitalBlockControl})
+		eh.sendCommand(setDigitalBlockControl)
 		eh.sendData([]byte{0x3B})
 
 		// Driver output control
-		eh.sendCommand([]byte{driverOutputControl})
+		eh.sendCommand(driverOutputControl)
 		eh.sendData([]byte{
 			byte((d.opts.Height - 1) % 0xFF),
 			byte((d.opts.Height - 1) / 0xFF),
@@ -267,40 +267,40 @@ func (d *Dev) Init(partialUpdate PartialUpdate) error {
 		})
 
 		// Data entry mode
-		eh.sendCommand([]byte{dataEntryModeSetting})
+		eh.sendCommand(dataEntryModeSetting)
 		eh.sendData([]byte{0x01})
 
 		// Set Ram-X address start/end position
-		eh.sendCommand([]byte{setRAMXAddressStartEndPosition})
+		eh.sendCommand(setRAMXAddressStartEndPosition)
 		eh.sendData([]byte{0x00, 0x0F})
 
 		// Set Ram-Y address start/end position
-		eh.sendCommand([]byte{setRAMYAddressStartEndPosition})
+		eh.sendCommand(setRAMYAddressStartEndPosition)
 		eh.sendData([]byte{0xF9, 0x00, 0x00, 0x00}) //0xF9-->(249+1)=250
 
 		// Border Waveform
-		eh.sendCommand([]byte{borderWaveformControl})
+		eh.sendCommand(borderWaveformControl)
 		eh.sendData([]byte{0x03})
 
 		// VCOM Voltage
-		eh.sendCommand([]byte{writeVcomRegister})
+		eh.sendCommand(writeVcomRegister)
 		eh.sendData([]byte{0x55})
 
-		eh.sendCommand([]byte{gateDrivingVoltageControl})
+		eh.sendCommand(gateDrivingVoltageControl)
 		eh.sendData([]byte{gateDrivingVoltage19V})
 
-		eh.sendCommand([]byte{sourceDrivingVoltageControl})
+		eh.sendCommand(sourceDrivingVoltageControl)
 		eh.sendData([]byte{sourceDrivingVoltageVSH1_15V, sourceDrivingVoltageVSH2_5V, sourceDrivingVoltageVSL_neg15V})
 
 		// Dummy Line
-		eh.sendCommand([]byte{setDummyLinePeriod})
+		eh.sendCommand(setDummyLinePeriod)
 		eh.sendData([]byte{0x30})
 
 		// Gate Time
-		eh.sendCommand([]byte{setGateTime})
+		eh.sendCommand(setGateTime)
 		eh.sendData([]byte{0x0A})
 
-		eh.sendCommand([]byte{writeLutRegister})
+		eh.sendCommand(writeLutRegister)
 		eh.sendData(d.opts.FullUpdate[:70])
 
 		// Set RAM x address count to 0
@@ -322,7 +322,7 @@ func (d *Dev) Clear(color byte) error {
 	rows, cols := dataDimensions(d.opts)
 	data := bytes.Repeat([]byte{color}, cols)
 
-	if err := d.sendCommand([]byte{writeRAMBW}); err != nil {
+	if err := d.sendCommand(writeRAMBW); err != nil {
 		return err
 	}
 
@@ -345,7 +345,7 @@ func (d *Dev) Bounds() image.Rectangle {
 	return image.Rect(0, 0, d.opts.Width, d.opts.Height)
 }
 
-func (d *Dev) sendImage(cmd []byte, dstRect image.Rectangle, src *image1bit.VerticalLSB) error {
+func (d *Dev) sendImage(cmd byte, dstRect image.Rectangle, src *image1bit.VerticalLSB) error {
 	// TODO: Handle dstRect not matching the device bounds.
 
 	if err := d.setMemoryPointer(0, 0); err != nil {
@@ -379,7 +379,7 @@ func (d *Dev) Draw(dstRect image.Rectangle, src image.Image, srcPts image.Point)
 	next := image1bit.NewVerticalLSB(dstRect)
 	draw.Src.Draw(next, dstRect, src, srcPts)
 
-	if err := d.sendImage([]byte{writeRAMBW}, dstRect, next); err != nil {
+	if err := d.sendImage(writeRAMBW, dstRect, next); err != nil {
 		return err
 	}
 
@@ -391,11 +391,11 @@ func (d *Dev) DrawPartial(dstRect image.Rectangle, src image.Image, srcPts image
 	next := image1bit.NewVerticalLSB(dstRect)
 	draw.Src.Draw(next, dstRect, src, srcPts)
 
-	if err := d.sendImage([]byte{writeRAMBW}, dstRect, next); err != nil {
+	if err := d.sendImage(writeRAMBW, dstRect, next); err != nil {
 		return err
 	}
 
-	if err := d.sendImage([]byte{writeRAMRed}, dstRect, next); err != nil {
+	if err := d.sendImage(writeRAMRed, dstRect, next); err != nil {
 		return err
 	}
 
@@ -423,12 +423,12 @@ func (d *Dev) sendData(c []byte) error {
 	return eh.err
 }
 
-func (d *Dev) sendCommand(c []byte) error {
+func (d *Dev) sendCommand(cmd byte) error {
 	eh := errorHandler{d: *d}
 
 	eh.dcOut(gpio.Low)
 	eh.csOut(gpio.Low)
-	eh.cTx(c, nil)
+	eh.cTx([]byte{cmd}, nil)
 	eh.csOut(gpio.High)
 
 	return eh.err
@@ -437,9 +437,9 @@ func (d *Dev) sendCommand(c []byte) error {
 func (d *Dev) turnOnDisplay() error {
 	eh := errorHandler{d: *d}
 
-	eh.sendCommand([]byte{displayUpdateControl2})
+	eh.sendCommand(displayUpdateControl2)
 	eh.sendData([]byte{0xC7})
-	eh.sendCommand([]byte{masterActivation})
+	eh.sendCommand(masterActivation)
 
 	d.waitUntilIdle()
 
@@ -469,9 +469,9 @@ func (d *Dev) waitUntilIdle() {
 func (d *Dev) setMemoryPointer(x, y int) error {
 	eh := errorHandler{d: *d}
 
-	eh.sendCommand([]byte{setRAMXAddressCounter})
+	eh.sendCommand(setRAMXAddressCounter)
 	eh.sendData([]byte{byte((x >> 3) & 0xFF)})
-	eh.sendCommand([]byte{setRAMYAddressCounter})
+	eh.sendCommand(setRAMYAddressCounter)
 	eh.sendData([]byte{byte(y & 0xFF)})
 	eh.sendData([]byte{byte((y >> 8) & 0xFF)})
 
