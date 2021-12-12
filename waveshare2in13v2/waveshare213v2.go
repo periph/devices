@@ -266,18 +266,6 @@ func (d *Dev) Init(partialUpdate PartialUpdate) error {
 			0x00,
 		})
 
-		// Data entry mode
-		eh.sendCommand(dataEntryModeSetting)
-		eh.sendData([]byte{0x01})
-
-		// Set Ram-X address start/end position
-		eh.sendCommand(setRAMXAddressStartEndPosition)
-		eh.sendData([]byte{0x00, 0x0F})
-
-		// Set Ram-Y address start/end position
-		eh.sendCommand(setRAMYAddressStartEndPosition)
-		eh.sendData([]byte{0xF9, 0x00, 0x00, 0x00}) //0xF9-->(249+1)=250
-
 		// Border Waveform
 		eh.sendCommand(borderWaveformControl)
 		eh.sendData([]byte{0x03})
@@ -303,14 +291,6 @@ func (d *Dev) Init(partialUpdate PartialUpdate) error {
 		eh.sendCommand(writeLutRegister)
 		eh.sendData(d.opts.FullUpdate[:70])
 
-		// Set RAM x address count to 0
-		eh.sendCommand([]byte{setRAMXAddressCounter})
-		eh.sendData([]byte{0x00})
-
-		// Set RAM y address count to 0X127
-		eh.sendCommand([]byte{setRAMYAddressCounter})
-		eh.sendData([]byte{0xF9, 0x00})
-
 		d.waitUntilIdle()
 	}
 
@@ -319,6 +299,10 @@ func (d *Dev) Init(partialUpdate PartialUpdate) error {
 
 // Clear clears the display.
 func (d *Dev) Clear(color byte) error {
+	if err := d.setMemoryArea(d.Bounds()); err != nil {
+		return err
+	}
+
 	rows, cols := dataDimensions(d.opts)
 	data := bytes.Repeat([]byte{color}, cols)
 
@@ -348,7 +332,7 @@ func (d *Dev) Bounds() image.Rectangle {
 func (d *Dev) sendImage(cmd byte, dstRect image.Rectangle, src *image1bit.VerticalLSB) error {
 	// TODO: Handle dstRect not matching the device bounds.
 
-	if err := d.setMemoryPointer(0, 0); err != nil {
+	if err := d.setMemoryArea(dstRect); err != nil {
 		return err
 	}
 
@@ -466,14 +450,43 @@ func (d *Dev) waitUntilIdle() {
 	}
 }
 
-func (d *Dev) setMemoryPointer(x, y int) error {
+func (d *Dev) setMemoryArea(area image.Rectangle) error {
 	eh := errorHandler{d: *d}
 
+	eh.sendCommand(dataEntryModeSetting)
+	eh.sendData([]byte{
+		// Y increment, X increment; update address counter in X direction
+		0b011,
+	})
+
+	eh.sendCommand(setRAMXAddressStartEndPosition)
+	eh.sendData([]byte{
+		// Start
+		byte(area.Min.X / 8),
+
+		// End
+		byte((area.Max.X - 1) / 8),
+	})
+
+	eh.sendCommand(setRAMYAddressStartEndPosition)
+	eh.sendData([]byte{
+		// Start
+		byte(area.Min.Y % 0xFF),
+		byte(area.Min.Y / 0xFF),
+
+		// End
+		byte((area.Max.Y - 1) % 0xFF),
+		byte((area.Max.Y - 1) / 0xFF),
+	})
+
 	eh.sendCommand(setRAMXAddressCounter)
-	eh.sendData([]byte{byte((x >> 3) & 0xFF)})
+	eh.sendData([]byte{byte(area.Min.X / 8)})
+
 	eh.sendCommand(setRAMYAddressCounter)
-	eh.sendData([]byte{byte(y & 0xFF)})
-	eh.sendData([]byte{byte((y >> 8) & 0xFF)})
+	eh.sendData([]byte{
+		byte(area.Min.Y & 0xFF),
+		byte(area.Min.Y / 0xFF),
+	})
 
 	d.waitUntilIdle()
 
