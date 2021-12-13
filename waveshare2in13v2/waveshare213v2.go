@@ -305,6 +305,8 @@ func (d *Dev) Init(partialUpdate PartialUpdate) error {
 
 // Clear clears the display.
 func (d *Dev) Clear(color byte) error {
+	eh := errorHandler{d: *d}
+
 	if err := d.setMemoryArea(d.Bounds()); err != nil {
 		return err
 	}
@@ -312,14 +314,14 @@ func (d *Dev) Clear(color byte) error {
 	rows, cols := dataDimensions(d.opts)
 	data := bytes.Repeat([]byte{color}, cols)
 
-	if err := d.sendCommand(writeRAMBW); err != nil {
-		return err
-	}
+	eh.sendCommand(writeRAMBW)
 
 	for y := 0; y < rows; y++ {
-		if err := d.sendData(data); err != nil {
-			return err
-		}
+		eh.sendData(data)
+	}
+
+	if eh.err != nil {
+		return eh.err
 	}
 
 	return d.turnOnDisplay()
