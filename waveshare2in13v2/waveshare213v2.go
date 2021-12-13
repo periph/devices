@@ -162,9 +162,9 @@ func (d *Dev) initFull() error {
 	eh := errorHandler{d: *d}
 
 	// Software Reset
-	d.waitUntilIdle()
+	eh.waitUntilIdle()
 	eh.sendCommand(swReset)
-	d.waitUntilIdle()
+	eh.waitUntilIdle()
 
 	// Set analog block control
 	eh.sendCommand(setAnalogBlockControl)
@@ -207,7 +207,7 @@ func (d *Dev) initFull() error {
 	eh.sendCommand(writeLutRegister)
 	eh.sendData(d.opts.FullUpdate[:70])
 
-	d.waitUntilIdle()
+	eh.waitUntilIdle()
 
 	return eh.err
 }
@@ -219,7 +219,7 @@ func (d *Dev) initPartial() error {
 	eh.sendCommand(writeVcomRegister)
 	eh.sendData([]byte{0x26})
 
-	d.waitUntilIdle()
+	eh.waitUntilIdle()
 
 	eh.sendCommand(writeLutRegister)
 	eh.sendData(d.opts.PartialUpdate[:70])
@@ -232,7 +232,7 @@ func (d *Dev) initPartial() error {
 
 	eh.sendCommand(masterActivation)
 
-	d.waitUntilIdle()
+	eh.waitUntilIdle()
 
 	// Border Waveform
 	eh.sendCommand(borderWaveformControl)
@@ -364,7 +364,7 @@ func (d *Dev) turnOnDisplay() error {
 	eh.sendData([]byte{0xC7})
 	eh.sendCommand(masterActivation)
 
-	d.waitUntilIdle()
+	eh.waitUntilIdle()
 
 	return eh.err
 }
@@ -381,12 +381,6 @@ func (d *Dev) reset() error {
 	time.Sleep(200 * time.Millisecond)
 
 	return eh.err
-}
-
-func (d *Dev) waitUntilIdle() {
-	for d.busy.Read() == gpio.High {
-		time.Sleep(100 * time.Millisecond)
-	}
 }
 
 func (d *Dev) setMemoryArea(area image.Rectangle) error {
@@ -427,7 +421,7 @@ func (d *Dev) setMemoryArea(area image.Rectangle) error {
 		byte(area.Min.Y / 0xFF),
 	})
 
-	d.waitUntilIdle()
+	eh.waitUntilIdle()
 
 	return eh.err
 }

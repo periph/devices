@@ -4,7 +4,11 @@
 
 package waveshare2in13v2
 
-import "periph.io/x/conn/v3/gpio"
+import (
+	"time"
+
+	"periph.io/x/conn/v3/gpio"
+)
 
 // errorHandler is a wrapper for error management.
 type errorHandler struct {
@@ -38,6 +42,12 @@ func (eh *errorHandler) csOut(l gpio.Level) {
 		return
 	}
 	eh.err = eh.d.cs.Out(l)
+}
+
+func (eh *errorHandler) waitUntilIdle() {
+	for eh.d.busy.Read() == gpio.High {
+		time.Sleep(100 * time.Millisecond)
+	}
 }
 
 func (eh *errorHandler) sendCommand(cmd byte) {
