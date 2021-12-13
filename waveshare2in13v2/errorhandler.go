@@ -44,12 +44,20 @@ func (eh *errorHandler) sendCommand(cmd byte) {
 	if eh.err != nil {
 		return
 	}
-	eh.err = eh.d.sendCommand(cmd)
+
+	eh.dcOut(gpio.Low)
+	eh.csOut(gpio.Low)
+	eh.cTx([]byte{cmd}, nil)
+	eh.csOut(gpio.High)
 }
 
-func (eh *errorHandler) sendData(d []byte) {
+func (eh *errorHandler) sendData(data []byte) {
 	if eh.err != nil {
 		return
 	}
-	eh.err = eh.d.sendData(d)
+
+	eh.dcOut(gpio.High)
+	eh.csOut(gpio.Low)
+	eh.cTx(data, nil)
+	eh.csOut(gpio.High)
 }
