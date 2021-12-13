@@ -357,28 +357,6 @@ func (d *Dev) String() string {
 	return fmt.Sprintf("epd.Dev{%s, %s, Height: %d, Width: %d}", d.c, d.dc, d.opts.Height, d.opts.Width)
 }
 
-func (d *Dev) sendData(c []byte) error {
-	eh := errorHandler{d: *d}
-
-	eh.dcOut(gpio.High)
-	eh.csOut(gpio.Low)
-	eh.cTx(c, nil)
-	eh.csOut(gpio.High)
-
-	return eh.err
-}
-
-func (d *Dev) sendCommand(cmd byte) error {
-	eh := errorHandler{d: *d}
-
-	eh.dcOut(gpio.Low)
-	eh.csOut(gpio.Low)
-	eh.cTx([]byte{cmd}, nil)
-	eh.csOut(gpio.High)
-
-	return eh.err
-}
-
 func (d *Dev) turnOnDisplay() error {
 	eh := errorHandler{d: *d}
 
