@@ -340,11 +340,12 @@ func (d *Dev) sendImage(cmd byte, dstRect image.Rectangle, src *image1bit.Vertic
 	eh.sendCommand(cmd)
 
 	rows, cols := dataDimensions(d.opts)
+	data := make([]byte, cols)
 
 	for y := 0; y < rows; y++ {
-		data := make([]byte, cols)
-
 		for x := 0; x < cols; x++ {
+			data[x] = 0
+
 			for bit := 0; bit < 8; bit++ {
 				if src.BitAt((x*8)+bit, y) {
 					data[x] |= 0x80 >> bit
