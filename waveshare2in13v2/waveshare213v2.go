@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"image/draw"
 	"time"
 
 	"periph.io/x/conn/v3"
@@ -122,12 +121,6 @@ var EPD2in13v2 = Opts{
 		0x00, 0x00, 0x00, 0x00, 0x00, // TP5 A~D RP5
 		0x00, 0x00, 0x00, 0x00, 0x00, // TP6 A~D RP6
 	},
-}
-
-// dataDimensions returns the size in terms of bytes needed to fill the
-// display.
-func dataDimensions(opts *Opts) (int, int) {
-	return opts.Height, (opts.Width + 7) / 8
 }
 
 // New creates new handler which is used to access the display.
@@ -257,26 +250,28 @@ func (d *Dev) Init(partialUpdate PartialUpdate) error {
 
 // Clear clears the display.
 func (d *Dev) Clear(color byte) error {
+	spec := (&drawOpts{
+		devSize: image.Pt(d.opts.Width, d.opts.Height),
+		dstRect: d.Bounds(),
+	}).spec()
+
 	eh := errorHandler{d: *d}
 
-	if err := d.setMemoryArea(d.Bounds()); err != nil {
-		return err
-	}
-
-	rows, cols := dataDimensions(d.opts)
-	data := bytes.Repeat([]byte{color}, cols)
+	setMemoryArea(&eh, spec.MemRect)
 
 	eh.sendCommand(writeRAMBW)
 
-	for y := 0; y < rows; y++ {
+	data := bytes.Repeat([]byte{color}, spec.MemRect.Dy())
+
+	for y := 0; y < spec.MemRect.Max.Y; y++ {
 		eh.sendData(data)
 	}
 
-	if eh.err != nil {
-		return eh.err
+	if eh.err == nil {
+		eh.err = d.turnOnDisplay()
 	}
 
-	return d.turnOnDisplay()
+	return eh.err
 }
 
 // ColorModel returns a 1Bit color model.
@@ -289,62 +284,53 @@ func (d *Dev) Bounds() image.Rectangle {
 	return image.Rect(0, 0, d.opts.Width, d.opts.Height)
 }
 
-func (d *Dev) sendImage(cmd byte, dstRect image.Rectangle, src *image1bit.VerticalLSB) error {
-	// TODO: Handle dstRect not matching the device bounds.
-
-	if err := d.setMemoryArea(dstRect); err != nil {
-		return err
+// Draw draws the given image to the display.
+func (d *Dev) Draw(dstRect image.Rectangle, src image.Image, srcPts image.Point) error {
+	opts := drawOpts{
+		cmd:     writeRAMBW,
+		devSize: image.Pt(d.opts.Width, d.opts.Height),
+		dstRect: dstRect,
+		src:     src,
+		srcPts:  srcPts,
 	}
 
 	eh := errorHandler{d: *d}
-	eh.sendCommand(cmd)
 
-	rows, cols := dataDimensions(d.opts)
-	data := make([]byte, cols)
+	drawImage(&eh, &opts)
 
-	for y := 0; y < rows; y++ {
-		for x := 0; x < cols; x++ {
-			data[x] = 0
-
-			for bit := 0; bit < 8; bit++ {
-				if src.BitAt((x*8)+bit, y) {
-					data[x] |= 0x80 >> bit
-				}
-			}
-		}
-
-		eh.sendData(data)
+	if eh.err == nil {
+		eh.err = d.turnOnDisplay()
 	}
 
 	return eh.err
 }
 
-// Draw draws the given image to the display.
-func (d *Dev) Draw(dstRect image.Rectangle, src image.Image, srcPts image.Point) error {
-	next := image1bit.NewVerticalLSB(dstRect)
-	draw.Src.Draw(next, dstRect, src, srcPts)
-
-	if err := d.sendImage(writeRAMBW, dstRect, next); err != nil {
-		return err
-	}
-
-	return d.turnOnDisplay()
-}
-
 // DrawPartial draws the given image to the display. Display will update only changed pixel.
 func (d *Dev) DrawPartial(dstRect image.Rectangle, src image.Image, srcPts image.Point) error {
-	next := image1bit.NewVerticalLSB(dstRect)
-	draw.Src.Draw(next, dstRect, src, srcPts)
-
-	if err := d.sendImage(writeRAMBW, dstRect, next); err != nil {
-		return err
+	opts := drawOpts{
+		devSize: image.Pt(d.opts.Width, d.opts.Height),
+		dstRect: dstRect,
+		src:     src,
+		srcPts:  srcPts,
 	}
 
-	if err := d.sendImage(writeRAMRed, dstRect, next); err != nil {
-		return err
+	eh := errorHandler{d: *d}
+
+	for _, cmd := range []byte{writeRAMBW, writeRAMRed} {
+		opts.cmd = cmd
+
+		drawImage(&eh, &opts)
+
+		if eh.err != nil {
+			break
+		}
 	}
 
-	return d.turnOnDisplay()
+	if eh.err == nil {
+		eh.err = d.turnOnDisplay()
+	}
+
+	return eh.err
 }
 
 // Halt clears the display.
@@ -379,49 +365,6 @@ func (d *Dev) reset() error {
 	time.Sleep(200 * time.Millisecond)
 	eh.rstOut(gpio.High)
 	time.Sleep(200 * time.Millisecond)
-
-	return eh.err
-}
-
-func (d *Dev) setMemoryArea(area image.Rectangle) error {
-	eh := errorHandler{d: *d}
-
-	eh.sendCommand(dataEntryModeSetting)
-	eh.sendData([]byte{
-		// Y increment, X increment; update address counter in X direction
-		0b011,
-	})
-
-	eh.sendCommand(setRAMXAddressStartEndPosition)
-	eh.sendData([]byte{
-		// Start
-		byte(area.Min.X / 8),
-
-		// End
-		byte((area.Max.X - 1) / 8),
-	})
-
-	eh.sendCommand(setRAMYAddressStartEndPosition)
-	eh.sendData([]byte{
-		// Start
-		byte(area.Min.Y % 0xFF),
-		byte(area.Min.Y / 0xFF),
-
-		// End
-		byte((area.Max.Y - 1) % 0xFF),
-		byte((area.Max.Y - 1) / 0xFF),
-	})
-
-	eh.sendCommand(setRAMXAddressCounter)
-	eh.sendData([]byte{byte(area.Min.X / 8)})
-
-	eh.sendCommand(setRAMYAddressCounter)
-	eh.sendData([]byte{
-		byte(area.Min.Y & 0xFF),
-		byte(area.Min.Y / 0xFF),
-	})
-
-	eh.waitUntilIdle()
 
 	return eh.err
 }

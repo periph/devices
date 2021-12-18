@@ -7,6 +7,7 @@ module periph.io/x/devices/v3
 go 1.14
 
 require (
+	github.com/google/go-cmp v0.5.6
 	github.com/maruel/ansi256 v1.0.2
 	github.com/mattn/go-colorable v0.1.12
 	golang.org/x/image v0.0.0-20211028202545-6944b10bf410
