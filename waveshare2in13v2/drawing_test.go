@@ -144,3 +144,58 @@ func TestDrawImage(t *testing.T) {
 		})
 	}
 }
+
+func TestClearDisplay(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		size  image.Point
+		color image1bit.Bit
+		want  []record
+	}{
+		{
+			name: "empty",
+		},
+		{
+			name:  "off",
+			size:  image.Pt(100, 10),
+			color: image1bit.Off,
+			want: []record{
+				{cmd: dataEntryModeSetting, data: []byte{0x3}},
+				{cmd: setRAMXAddressStartEndPosition, data: []byte{0, (100+7)/8 - 1}},
+				{cmd: setRAMYAddressStartEndPosition, data: []byte{0, 0, 10 - 1, 0}},
+				{cmd: setRAMXAddressCounter, data: []byte{0}},
+				{cmd: setRAMYAddressCounter, data: []byte{0, 0}},
+				{
+					cmd:  writeRAMBW,
+					data: bytes.Repeat([]byte{0}, 13*10),
+				},
+			},
+		},
+		{
+			name:  "on",
+			size:  image.Pt(32, 20),
+			color: image1bit.On,
+			want: []record{
+				{cmd: dataEntryModeSetting, data: []byte{0x3}},
+				{cmd: setRAMXAddressStartEndPosition, data: []byte{0, 32/8 - 1}},
+				{cmd: setRAMYAddressStartEndPosition, data: []byte{0, 0, 20 - 1, 0}},
+				{cmd: setRAMXAddressCounter, data: []byte{0}},
+				{cmd: setRAMYAddressCounter, data: []byte{0, 0}},
+				{
+					cmd:  writeRAMBW,
+					data: bytes.Repeat([]byte{0xff}, 4*20),
+				},
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var got fakeController
+
+			clearDisplay(&got, tc.size, tc.color)
+
+			if diff := cmp.Diff([]record(got), tc.want, cmpopts.EquateEmpty(), cmp.AllowUnexported(record{})); diff != "" {
+				t.Errorf("clearDisplay() difference (-got +want):\n%s", diff)
+			}
+		})
+	}
+}
