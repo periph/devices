@@ -261,7 +261,7 @@ func (d *Dev) Clear(color byte) error {
 
 	eh.sendCommand(writeRAMBW)
 
-	data := bytes.Repeat([]byte{color}, spec.MemRect.Dy())
+	data := bytes.Repeat([]byte{color}, spec.MemRect.Dx())
 
 	for y := 0; y < spec.MemRect.Max.Y; y++ {
 		eh.sendData(data)
