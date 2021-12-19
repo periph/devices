@@ -5,6 +5,7 @@
 package waveshare2in13v2
 
 import (
+	"bytes"
 	"image"
 	"image/draw"
 
@@ -126,5 +127,32 @@ func drawImage(ctrl controller, opts *drawOpts) {
 		}
 
 		ctrl.sendData(rowData)
+	}
+}
+
+func clearDisplay(ctrl controller, size image.Point, color image1bit.Bit) {
+	var colorValue byte
+
+	if color == image1bit.On {
+		colorValue = 0xff
+	}
+
+	spec := (&drawOpts{
+		devSize: size,
+		dstRect: image.Rectangle{Max: size},
+	}).spec()
+
+	if spec.MemRect.Empty() {
+		return
+	}
+
+	setMemoryArea(ctrl, spec.MemRect)
+
+	ctrl.sendCommand(writeRAMBW)
+
+	data := bytes.Repeat([]byte{colorValue}, spec.MemRect.Dx())
+
+	for y := 0; y < spec.MemRect.Max.Y; y++ {
+		ctrl.sendData(data)
 	}
 }

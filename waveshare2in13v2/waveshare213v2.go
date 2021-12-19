@@ -5,7 +5,6 @@
 package waveshare2in13v2
 
 import (
-	"bytes"
 	"fmt"
 	"image"
 	"image/color"
@@ -249,23 +248,11 @@ func (d *Dev) Init(partialUpdate PartialUpdate) error {
 }
 
 // Clear clears the display.
-func (d *Dev) Clear(color byte) error {
-	spec := (&drawOpts{
-		devSize: image.Pt(d.opts.Width, d.opts.Height),
-		dstRect: d.Bounds(),
-	}).spec()
-
+func (d *Dev) Clear(color color.Color) error {
 	eh := errorHandler{d: *d}
 
-	setMemoryArea(&eh, spec.MemRect)
-
-	eh.sendCommand(writeRAMBW)
-
-	data := bytes.Repeat([]byte{color}, spec.MemRect.Dx())
-
-	for y := 0; y < spec.MemRect.Max.Y; y++ {
-		eh.sendData(data)
-	}
+	clearDisplay(&eh, image.Pt(d.opts.Width, d.opts.Height),
+		image1bit.BitModel.Convert(color).(image1bit.Bit))
 
 	if eh.err == nil {
 		eh.err = d.turnOnDisplay()
@@ -335,7 +322,7 @@ func (d *Dev) DrawPartial(dstRect image.Rectangle, src image.Image, srcPts image
 
 // Halt clears the display.
 func (d *Dev) Halt() error {
-	return d.Clear(0xFF)
+	return d.Clear(image1bit.On)
 }
 
 // String returns a string containing configuration information.
