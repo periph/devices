@@ -60,7 +60,7 @@ type Dev struct {
 	dc   gpio.PinOut
 	cs   gpio.PinOut
 	rst  gpio.PinOut
-	busy gpio.PinIO
+	busy gpio.PinIn
 
 	opts *Opts
 }
@@ -123,9 +123,13 @@ var EPD2in13v2 = Opts{
 }
 
 // New creates new handler which is used to access the display.
-func New(p spi.Port, dc, cs, rst gpio.PinOut, busy gpio.PinIO, opts *Opts) (*Dev, error) {
+func New(p spi.Port, dc, cs, rst gpio.PinOut, busy gpio.PinIn, opts *Opts) (*Dev, error) {
 	c, err := p.Connect(5*physic.MegaHertz, spi.Mode0, 8)
 	if err != nil {
+		return nil, err
+	}
+
+	if err := busy.In(gpio.Float, gpio.FallingEdge); err != nil {
 		return nil, err
 	}
 
