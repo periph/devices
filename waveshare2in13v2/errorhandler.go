@@ -45,8 +45,8 @@ func (eh *errorHandler) csOut(l gpio.Level) {
 }
 
 func (eh *errorHandler) waitUntilIdle() {
-	for eh.d.busy.Read() == gpio.High {
-		time.Sleep(100 * time.Millisecond)
+	for busy := eh.d.busy; busy.Read() == gpio.High; {
+		busy.WaitForEdge(100 * time.Millisecond)
 	}
 }
 
