@@ -154,89 +154,6 @@ func NewHat(p spi.Port, opts *Opts) (*Dev, error) {
 	return New(p, dc, cs, rst, busy, opts)
 }
 
-func (d *Dev) initFull() error {
-	eh := errorHandler{d: *d}
-
-	// Software Reset
-	eh.waitUntilIdle()
-	eh.sendCommand(swReset)
-	eh.waitUntilIdle()
-
-	// Set analog block control
-	eh.sendCommand(setAnalogBlockControl)
-	eh.sendData([]byte{0x54})
-
-	// Set digital block control
-	eh.sendCommand(setDigitalBlockControl)
-	eh.sendData([]byte{0x3B})
-
-	// Driver output control
-	eh.sendCommand(driverOutputControl)
-	eh.sendData([]byte{
-		byte((d.opts.Height - 1) % 0xFF),
-		byte((d.opts.Height - 1) / 0xFF),
-		0x00,
-	})
-
-	// Border Waveform
-	eh.sendCommand(borderWaveformControl)
-	eh.sendData([]byte{0x03})
-
-	// VCOM Voltage
-	eh.sendCommand(writeVcomRegister)
-	eh.sendData([]byte{0x55})
-
-	eh.sendCommand(gateDrivingVoltageControl)
-	eh.sendData([]byte{gateDrivingVoltage19V})
-
-	eh.sendCommand(sourceDrivingVoltageControl)
-	eh.sendData([]byte{sourceDrivingVoltageVSH1_15V, sourceDrivingVoltageVSH2_5V, sourceDrivingVoltageVSL_neg15V})
-
-	// Dummy Line
-	eh.sendCommand(setDummyLinePeriod)
-	eh.sendData([]byte{0x30})
-
-	// Gate Time
-	eh.sendCommand(setGateTime)
-	eh.sendData([]byte{0x0A})
-
-	eh.sendCommand(writeLutRegister)
-	eh.sendData(d.opts.FullUpdate[:70])
-
-	eh.waitUntilIdle()
-
-	return eh.err
-}
-
-func (d *Dev) initPartial() error {
-	eh := errorHandler{d: *d}
-
-	// VCOM Voltage
-	eh.sendCommand(writeVcomRegister)
-	eh.sendData([]byte{0x26})
-
-	eh.waitUntilIdle()
-
-	eh.sendCommand(writeLutRegister)
-	eh.sendData(d.opts.PartialUpdate[:70])
-
-	eh.sendCommand(0x37)
-	eh.sendData([]byte{0x00, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00})
-
-	eh.sendCommand(displayUpdateControl2)
-	eh.sendData([]byte{0xC0})
-
-	eh.sendCommand(masterActivation)
-
-	eh.waitUntilIdle()
-
-	// Border Waveform
-	eh.sendCommand(borderWaveformControl)
-	eh.sendData([]byte{0x01})
-
-	return eh.err
-}
-
 // Init will initialize the display with the partial-update or full-update mode.
 func (d *Dev) Init(partialUpdate PartialUpdate) error {
 	// Hardware Reset
@@ -244,11 +161,15 @@ func (d *Dev) Init(partialUpdate PartialUpdate) error {
 		return err
 	}
 
+	eh := errorHandler{d: *d}
+
 	if partialUpdate {
-		return d.initPartial()
+		initDisplayPartial(&eh, d.opts)
+	} else {
+		initDisplayFull(&eh, d.opts)
 	}
 
-	return d.initFull()
+	return eh.err
 }
 
 // Clear clears the display.
