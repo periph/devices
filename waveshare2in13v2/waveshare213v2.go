@@ -54,6 +54,18 @@ const (
 	sourceDrivingVoltageVSL_neg15V = 0x32
 )
 
+// Flags for the displayUpdateControl2 command
+const (
+	displayUpdateDisableClock byte = 1 << iota
+	displayUpdateDisableAnalog
+	displayUpdateDisplay
+	displayUpdateMode2
+	displayUpdateLoadLUTFromOTP
+	displayUpdateLoadTemperature
+	displayUpdateEnableClock
+	displayUpdateEnableAnalog
+)
+
 // Dev defines the handler which is used to access the display.
 type Dev struct {
 	c conn.Conn
