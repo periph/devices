@@ -76,3 +76,14 @@ func configDisplayMode(ctrl controller, mode PartialUpdate, lut LUT) {
 
 	ctrl.waitUntilIdle()
 }
+
+func updateDisplay(ctrl controller, mode PartialUpdate) {
+	ctrl.sendCommand(displayUpdateControl1)
+	ctrl.sendData([]byte{0})
+
+	ctrl.sendCommand(displayUpdateControl2)
+	ctrl.sendData([]byte{0xC7})
+
+	ctrl.sendCommand(masterActivation)
+	ctrl.waitUntilIdle()
+}
