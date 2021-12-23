@@ -69,7 +69,10 @@ func configDisplayMode(ctrl controller, mode PartialUpdate, lut LUT) {
 		ctrl.sendData([]byte{0x00, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00})
 
 		ctrl.sendCommand(displayUpdateControl2)
-		ctrl.sendData([]byte{0xC0})
+		ctrl.sendData([]byte{
+			displayUpdateEnableClock |
+				displayUpdateEnableAnalog,
+		})
 
 		ctrl.sendCommand(masterActivation)
 	}
@@ -89,7 +92,13 @@ func updateDisplay(ctrl controller, mode PartialUpdate) {
 	ctrl.sendData([]byte{displayUpdateFlags})
 
 	ctrl.sendCommand(displayUpdateControl2)
-	ctrl.sendData([]byte{0xC7})
+	ctrl.sendData([]byte{
+		displayUpdateDisableClock |
+			displayUpdateDisableAnalog |
+			displayUpdateDisplay |
+			displayUpdateEnableClock |
+			displayUpdateEnableAnalog,
+	})
 
 	ctrl.sendCommand(masterActivation)
 	ctrl.waitUntilIdle()
