@@ -163,6 +163,18 @@ func NewHat(p spi.Port, opts *Opts) (*Dev, error) {
 	return New(p, dc, cs, rst, busy, opts)
 }
 
+func (d *Dev) configMode(ctrl controller, mode PartialUpdate) {
+	var lut LUT
+
+	if mode == Full {
+		lut = d.opts.FullUpdate
+	} else {
+		lut = d.opts.PartialUpdate
+	}
+
+	configDisplayMode(ctrl, mode, lut)
+}
+
 // Init will initialize the display with the partial-update or full-update mode.
 func (d *Dev) Init(partialUpdate PartialUpdate) error {
 	// Hardware Reset
@@ -172,10 +184,10 @@ func (d *Dev) Init(partialUpdate PartialUpdate) error {
 
 	eh := errorHandler{d: *d}
 
-	if partialUpdate {
-		initDisplayPartial(&eh, d.opts)
-	} else {
-		initDisplayFull(&eh, d.opts)
+	initDisplay(&eh, d.opts)
+
+	if eh.err == nil {
+		d.configMode(&eh, partialUpdate)
 	}
 
 	return eh.err
