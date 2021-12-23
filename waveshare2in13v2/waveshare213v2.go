@@ -239,10 +239,11 @@ func (d *Dev) Bounds() image.Rectangle {
 	return image.Rect(0, 0, d.opts.Width, d.opts.Height)
 }
 
-// Draw draws the given image to the display.
+// Draw draws the given image to the display. Only the destination area is
+// uploaded. Depending on the update mode the whole display or the destination
+// area is refreshed.
 func (d *Dev) Draw(dstRect image.Rectangle, src image.Image, srcPts image.Point) error {
 	opts := drawOpts{
-		cmd:     writeRAMBW,
 		devSize: image.Pt(d.opts.Width, d.opts.Height),
 		buffer:  d.buffer,
 		dstRect: dstRect,
@@ -252,27 +253,7 @@ func (d *Dev) Draw(dstRect image.Rectangle, src image.Image, srcPts image.Point)
 
 	eh := errorHandler{d: *d}
 
-	drawImage(&eh, &opts)
-
-	if eh.err == nil {
-		updateDisplay(&eh, d.mode)
-	}
-
-	return eh.err
-}
-
-// DrawPartial draws the given image to the display. Display will update only changed pixel.
-func (d *Dev) DrawPartial(dstRect image.Rectangle, src image.Image, srcPts image.Point) error {
-	opts := drawOpts{
-		devSize: image.Pt(d.opts.Width, d.opts.Height),
-		buffer:  d.buffer,
-		dstRect: dstRect,
-		src:     src,
-		srcPts:  srcPts,
-	}
-
-	eh := errorHandler{d: *d}
-
+	// Keep the two buffers in sync.
 	for _, cmd := range []byte{writeRAMBW, writeRAMRed} {
 		opts.cmd = cmd
 
@@ -288,6 +269,13 @@ func (d *Dev) DrawPartial(dstRect image.Rectangle, src image.Image, srcPts image
 	}
 
 	return eh.err
+}
+
+// DrawPartial draws the given image to the display.
+//
+// Deprecated: Use Draw instead. DrawPartial merely forwards all calls.
+func (d *Dev) DrawPartial(dstRect image.Rectangle, src image.Image, srcPts image.Point) error {
+	return d.Draw(dstRect, src, srcPts)
 }
 
 // Halt clears the display.
