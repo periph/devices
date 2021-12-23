@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"image/draw"
 	"time"
 
 	"periph.io/x/conn/v3"
@@ -61,6 +62,8 @@ type Dev struct {
 	cs   gpio.PinOut
 	rst  gpio.PinOut
 	busy gpio.PinIn
+
+	buffer *image1bit.VerticalLSB
 
 	opts *Opts
 }
@@ -139,8 +142,14 @@ func New(p spi.Port, dc, cs, rst gpio.PinOut, busy gpio.PinIn, opts *Opts) (*Dev
 		cs:   cs,
 		rst:  rst,
 		busy: busy,
+		buffer: image1bit.NewVerticalLSB(image.Rectangle{
+			Max: image.Pt((opts.Width+7)/8*8, opts.Height),
+		}),
 		opts: opts,
 	}
+
+	// Default color
+	draw.Src.Draw(d.buffer, d.buffer.Bounds(), &image.Uniform{image1bit.On}, image.Point{})
 
 	return d, nil
 }
@@ -176,8 +185,10 @@ func (d *Dev) Init(partialUpdate PartialUpdate) error {
 func (d *Dev) Clear(color color.Color) error {
 	eh := errorHandler{d: *d}
 
-	clearDisplay(&eh, image.Pt(d.opts.Width, d.opts.Height),
-		image1bit.BitModel.Convert(color).(image1bit.Bit))
+	c := image1bit.BitModel.Convert(color).(image1bit.Bit)
+	draw.Src.Draw(d.buffer, d.buffer.Bounds(), &image.Uniform{c}, image.Point{})
+
+	clearDisplay(&eh, image.Pt(d.opts.Width, d.opts.Height), c)
 
 	if eh.err == nil {
 		eh.err = d.turnOnDisplay()
@@ -201,6 +212,7 @@ func (d *Dev) Draw(dstRect image.Rectangle, src image.Image, srcPts image.Point)
 	opts := drawOpts{
 		cmd:     writeRAMBW,
 		devSize: image.Pt(d.opts.Width, d.opts.Height),
+		buffer:  d.buffer,
 		dstRect: dstRect,
 		src:     src,
 		srcPts:  srcPts,
@@ -221,6 +233,7 @@ func (d *Dev) Draw(dstRect image.Rectangle, src image.Image, srcPts image.Point)
 func (d *Dev) DrawPartial(dstRect image.Rectangle, src image.Image, srcPts image.Point) error {
 	opts := drawOpts{
 		devSize: image.Pt(d.opts.Width, d.opts.Height),
+		buffer:  d.buffer,
 		dstRect: dstRect,
 		src:     src,
 		srcPts:  srcPts,

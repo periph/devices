@@ -54,6 +54,7 @@ func setMemoryArea(ctrl controller, area image.Rectangle) {
 type drawOpts struct {
 	cmd     byte
 	devSize image.Point
+	buffer  *image1bit.VerticalLSB
 	dstRect image.Rectangle
 	src     image.Image
 	srcPts  image.Point
@@ -63,15 +64,9 @@ type drawSpec struct {
 	// Destination on display in pixels, normalized to fit into actual size.
 	DstRect image.Rectangle
 
-	// Size of memory area to write; horizontally in bytes, vertically in
-	// pixels.
+	// Area to send to device; horizontally in bytes (thus aligned to
+	// 8 pixels), vertically in pixels.
 	MemRect image.Rectangle
-
-	// Size of image buffer, horizontally aligned to multiples of 8 pixels.
-	BufferSize image.Point
-
-	// Destination rectangle within image buffer.
-	BufferRect image.Rectangle
 }
 
 func (o *drawOpts) spec() drawSpec {
@@ -83,12 +78,6 @@ func (o *drawOpts) spec() drawSpec {
 		s.DstRect.Min.X/8, s.DstRect.Min.Y,
 		(s.DstRect.Max.X+7)/8, s.DstRect.Max.Y,
 	)
-	s.BufferSize = image.Pt(s.MemRect.Dx()*8, s.MemRect.Dy())
-	s.BufferRect = image.Rectangle{
-		Min: image.Point{X: s.DstRect.Min.X - (s.MemRect.Min.X * 8)},
-		Max: image.Point{Y: s.DstRect.Dy()},
-	}
-	s.BufferRect.Max.X = s.BufferRect.Min.X + s.DstRect.Dx()
 
 	return s
 }
@@ -101,8 +90,7 @@ func drawImage(ctrl controller, opts *drawOpts) {
 		return
 	}
 
-	img := image1bit.NewVerticalLSB(image.Rectangle{Max: s.BufferSize})
-	draw.Src.Draw(img, s.BufferRect, opts.src, opts.srcPts)
+	draw.Src.Draw(opts.buffer, s.DstRect, opts.src, opts.srcPts)
 
 	setMemoryArea(ctrl, s.MemRect)
 
@@ -110,12 +98,12 @@ func drawImage(ctrl controller, opts *drawOpts) {
 
 	rowData := make([]byte, s.MemRect.Dx())
 
-	for y := 0; y < img.Bounds().Dy(); y++ {
+	for y := s.MemRect.Min.Y; y < s.MemRect.Max.Y; y++ {
 		for x := 0; x < len(rowData); x++ {
 			rowData[x] = 0
 
 			for bit := 0; bit < 8; bit++ {
-				if img.BitAt((x*8)+bit, y) {
+				if opts.buffer.BitAt(((s.MemRect.Min.X+x)*8)+bit, y) {
 					rowData[x] |= 0x80 >> bit
 				}
 			}
