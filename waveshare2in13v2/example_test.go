@@ -37,7 +37,7 @@ func Example() {
 		log.Fatalf("Failed to initialize driver: %v", err)
 	}
 
-	err = dev.Init(false)
+	err = dev.Init()
 	if err != nil {
 		log.Fatalf("Failed to initialize display: %v", err)
 	}
@@ -77,7 +77,7 @@ func Example_other() {
 		log.Fatalf("Failed to initialize driver: %v", err)
 	}
 
-	err = dev.Init(false)
+	err = dev.Init()
 	if err != nil {
 		log.Fatalf("Failed to initialize display: %v", err)
 	}
