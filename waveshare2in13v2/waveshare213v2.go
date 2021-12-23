@@ -64,6 +64,7 @@ type Dev struct {
 	busy gpio.PinIn
 
 	buffer *image1bit.VerticalLSB
+	mode   PartialUpdate
 
 	opts *Opts
 }
@@ -145,6 +146,7 @@ func New(p spi.Port, dc, cs, rst gpio.PinOut, busy gpio.PinIn, opts *Opts) (*Dev
 		buffer: image1bit.NewVerticalLSB(image.Rectangle{
 			Max: image.Pt((opts.Width+7)/8*8, opts.Height),
 		}),
+		mode: Full,
 		opts: opts,
 	}
 
@@ -163,20 +165,20 @@ func NewHat(p spi.Port, opts *Opts) (*Dev, error) {
 	return New(p, dc, cs, rst, busy, opts)
 }
 
-func (d *Dev) configMode(ctrl controller, mode PartialUpdate) {
+func (d *Dev) configMode(ctrl controller) {
 	var lut LUT
 
-	if mode == Full {
+	if d.mode == Full {
 		lut = d.opts.FullUpdate
 	} else {
 		lut = d.opts.PartialUpdate
 	}
 
-	configDisplayMode(ctrl, mode, lut)
+	configDisplayMode(ctrl, d.mode, lut)
 }
 
-// Init will initialize the display with the partial-update or full-update mode.
-func (d *Dev) Init(partialUpdate PartialUpdate) error {
+// Init configures the display for usage through the other functions.
+func (d *Dev) Init() error {
 	// Hardware Reset
 	if err := d.reset(); err != nil {
 		return err
@@ -187,8 +189,26 @@ func (d *Dev) Init(partialUpdate PartialUpdate) error {
 	initDisplay(&eh, d.opts)
 
 	if eh.err == nil {
-		d.configMode(&eh, partialUpdate)
+		d.configMode(&eh)
 	}
+
+	return eh.err
+}
+
+// SetUpdateMode changes the way updates to the displayed image are applied. In
+// Full mode (the default) a full refresh is done with all pixels cleared and
+// re-applied. In Partial mode only the changed pixels are updated (aligned to
+// multiples of 8 on the horizontal axis), potentially leaving behind small
+// optical artifacts due to the way e-paper displays work.
+//
+// The vendor datasheet recommends a full update at least once every 24 hours.
+// When using partial updates the Clear function can be used for the purpose,
+// followed by re-drawing.
+func (d *Dev) SetUpdateMode(mode PartialUpdate) error {
+	d.mode = mode
+
+	eh := errorHandler{d: *d}
+	d.configMode(&eh)
 
 	return eh.err
 }
