@@ -27,26 +27,24 @@ func TestDrawSpec(t *testing.T) {
 			name: "smaller than display",
 			opts: drawOpts{
 				devSize: image.Pt(100, 200),
+				buffer:  image1bit.NewVerticalLSB(image.Rect(0, 0, 120, 210)),
 				dstRect: image.Rect(17, 4, 25, 8),
 			},
 			want: drawSpec{
-				DstRect:    image.Rect(17, 4, 25, 8),
-				MemRect:    image.Rect(2, 4, 4, 8),
-				BufferSize: image.Pt(16, 4),
-				BufferRect: image.Rect(1, 0, 9, 4),
+				DstRect: image.Rect(17, 4, 25, 8),
+				MemRect: image.Rect(2, 4, 4, 8),
 			},
 		},
 		{
 			name: "larger than display",
 			opts: drawOpts{
 				devSize: image.Pt(100, 200),
+				buffer:  image1bit.NewVerticalLSB(image.Rect(0, 0, 100, 200)),
 				dstRect: image.Rect(-20, 50, 125, 300),
 			},
 			want: drawSpec{
-				DstRect:    image.Rect(0, 50, 100, 200),
-				MemRect:    image.Rect(0, 50, 13, 200),
-				BufferSize: image.Pt(13*8, 150),
-				BufferRect: image.Rect(0, 0, 100, 150),
+				DstRect: image.Rect(0, 50, 100, 200),
+				MemRect: image.Rect(0, 50, 13, 200),
 			},
 		},
 	} {
@@ -77,6 +75,7 @@ func TestDrawImage(t *testing.T) {
 			opts: drawOpts{
 				cmd:     writeRAMBW,
 				devSize: image.Pt(64, 64),
+				buffer:  image1bit.NewVerticalLSB(image.Rect(0, 0, 64, 64)),
 				dstRect: image.Rect(17, 4, 41, 8),
 				src:     &image.Uniform{image1bit.On},
 				srcPts:  image.Pt(0, 0),
@@ -98,6 +97,7 @@ func TestDrawImage(t *testing.T) {
 			opts: drawOpts{
 				cmd:     writeRAMBW,
 				devSize: image.Pt(80, 120),
+				buffer:  image1bit.NewVerticalLSB(image.Rect(0, 0, 80, 120)),
 				dstRect: image.Rect(0, 0, 80, 120),
 				src:     &image.Uniform{image1bit.On},
 				srcPts:  image.Pt(33, 44),
