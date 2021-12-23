@@ -10,7 +10,7 @@ type controller interface {
 	waitUntilIdle()
 }
 
-func initDisplayFull(ctrl controller, opts *Opts) {
+func initDisplay(ctrl controller, opts *Opts) {
 	ctrl.waitUntilIdle()
 	ctrl.sendCommand(swReset)
 	ctrl.waitUntilIdle()
@@ -28,12 +28,6 @@ func initDisplayFull(ctrl controller, opts *Opts) {
 		0x00,
 	})
 
-	ctrl.sendCommand(borderWaveformControl)
-	ctrl.sendData([]byte{0x03})
-
-	ctrl.sendCommand(writeVcomRegister)
-	ctrl.sendData([]byte{0x55})
-
 	ctrl.sendCommand(gateDrivingVoltageControl)
 	ctrl.sendData([]byte{gateDrivingVoltage19V})
 
@@ -45,31 +39,40 @@ func initDisplayFull(ctrl controller, opts *Opts) {
 
 	ctrl.sendCommand(setGateTime)
 	ctrl.sendData([]byte{0x0A})
-
-	ctrl.sendCommand(writeLutRegister)
-	ctrl.sendData(opts.FullUpdate[:70])
 }
 
-func initDisplayPartial(ctrl controller, opts *Opts) {
+func configDisplayMode(ctrl controller, mode PartialUpdate, lut LUT) {
+	var vcom byte
+	var borderWaveformControlValue byte
+
+	switch mode {
+	case Full:
+		vcom = 0x55
+		borderWaveformControlValue = 0x03
+	case Partial:
+		vcom = 0x24
+		borderWaveformControlValue = 0x01
+	}
+
 	ctrl.sendCommand(writeVcomRegister)
-	ctrl.sendData([]byte{0x26})
-
-	ctrl.waitUntilIdle()
-
-	ctrl.sendCommand(writeLutRegister)
-	ctrl.sendData(opts.PartialUpdate[:70])
-
-	// Undocumented command used in vendor example code.
-	ctrl.sendCommand(0x37)
-	ctrl.sendData([]byte{0x00, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00})
-
-	ctrl.sendCommand(displayUpdateControl2)
-	ctrl.sendData([]byte{0xC0})
-
-	ctrl.sendCommand(masterActivation)
-
-	ctrl.waitUntilIdle()
+	ctrl.sendData([]byte{vcom})
 
 	ctrl.sendCommand(borderWaveformControl)
-	ctrl.sendData([]byte{0x01})
+	ctrl.sendData([]byte{borderWaveformControlValue})
+
+	ctrl.sendCommand(writeLutRegister)
+	ctrl.sendData(lut[:70])
+
+	if mode == Partial {
+		// Undocumented command used in vendor example code.
+		ctrl.sendCommand(0x37)
+		ctrl.sendData([]byte{0x00, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00})
+
+		ctrl.sendCommand(displayUpdateControl2)
+		ctrl.sendData([]byte{0xC0})
+
+		ctrl.sendCommand(masterActivation)
+	}
+
+	ctrl.waitUntilIdle()
 }

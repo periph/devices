@@ -5,6 +5,7 @@
 package waveshare2in13v2
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -32,7 +33,7 @@ func (r *fakeController) sendData(data []byte) {
 func (*fakeController) waitUntilIdle() {
 }
 
-func TestInitDisplayFull(t *testing.T) {
+func TestInitDisplay(t *testing.T) {
 	for _, tc := range []struct {
 		name string
 		opts Opts
@@ -49,8 +50,6 @@ func TestInitDisplayFull(t *testing.T) {
 					cmd:  driverOutputControl,
 					data: []byte{250 - 1, 0, 0},
 				},
-				{cmd: borderWaveformControl, data: []byte{0x03}},
-				{cmd: writeVcomRegister, data: []byte{0x55}},
 				{cmd: gateDrivingVoltageControl, data: []byte{gateDrivingVoltage19V}},
 				{
 					cmd: sourceDrivingVoltageControl,
@@ -62,48 +61,59 @@ func TestInitDisplayFull(t *testing.T) {
 				},
 				{cmd: setDummyLinePeriod, data: []byte{0x30}},
 				{cmd: setGateTime, data: []byte{0x0a}},
-				{cmd: writeLutRegister, data: EPD2in13v2.FullUpdate},
 			},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var got fakeController
 
-			initDisplayFull(&got, &tc.opts)
+			initDisplay(&got, &tc.opts)
 
 			if diff := cmp.Diff([]record(got), tc.want, cmpopts.EquateEmpty(), cmp.AllowUnexported(record{})); diff != "" {
-				t.Errorf("initDisplayFull() difference (-got +want):\n%s", diff)
+				t.Errorf("initDisplay() difference (-got +want):\n%s", diff)
 			}
 		})
 	}
 }
 
-func TestInitDisplayPartial(t *testing.T) {
+func TestConfigDisplayMode(t *testing.T) {
 	for _, tc := range []struct {
 		name string
-		opts Opts
+		mode PartialUpdate
+		lut  LUT
 		want []record
 	}{
 		{
-			name: "epd2in13v2",
-			opts: EPD2in13v2,
+			name: "full",
+			mode: Full,
+			lut:  bytes.Repeat([]byte{'F'}, 100),
 			want: []record{
-				{cmd: writeVcomRegister, data: []byte{0x26}},
-				{cmd: writeLutRegister, data: EPD2in13v2.PartialUpdate},
+				{cmd: writeVcomRegister, data: []byte{0x55}},
+				{cmd: borderWaveformControl, data: []byte{0x03}},
+				{cmd: writeLutRegister, data: bytes.Repeat([]byte{'F'}, 70)},
+			},
+		},
+		{
+			name: "partial",
+			mode: Partial,
+			lut:  bytes.Repeat([]byte{'P'}, 70),
+			want: []record{
+				{cmd: writeVcomRegister, data: []byte{0x24}},
+				{cmd: borderWaveformControl, data: []byte{0x01}},
+				{cmd: writeLutRegister, data: bytes.Repeat([]byte{'P'}, 70)},
 				{cmd: 0x37, data: []byte{0x00, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00}},
 				{cmd: displayUpdateControl2, data: []byte{0xc0}},
 				{cmd: masterActivation},
-				{cmd: borderWaveformControl, data: []byte{0x01}},
 			},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var got fakeController
 
-			initDisplayPartial(&got, &tc.opts)
+			configDisplayMode(&got, tc.mode, tc.lut)
 
 			if diff := cmp.Diff([]record(got), tc.want, cmpopts.EquateEmpty(), cmp.AllowUnexported(record{})); diff != "" {
-				t.Errorf("initDisplayPartial() difference (-got +want):\n%s", diff)
+				t.Errorf("configDisplayMode() difference (-got +want):\n%s", diff)
 			}
 		})
 	}
