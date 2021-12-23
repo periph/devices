@@ -12,11 +12,6 @@ import (
 	"periph.io/x/devices/v3/ssd1306/image1bit"
 )
 
-type controller interface {
-	sendCommand(byte)
-	sendData([]byte)
-}
-
 // setMemoryArea configures the target drawing area (horizontal is in bytes,
 // vertical in pixels).
 func setMemoryArea(ctrl controller, area image.Rectangle) {

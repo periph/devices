@@ -14,24 +14,6 @@ import (
 	"periph.io/x/devices/v3/ssd1306/image1bit"
 )
 
-type record struct {
-	cmd  byte
-	data []byte
-}
-
-type fakeController []record
-
-func (r *fakeController) sendCommand(cmd byte) {
-	*r = append(*r, record{
-		cmd: cmd,
-	})
-}
-
-func (r *fakeController) sendData(data []byte) {
-	cur := &(*r)[len(*r)-1]
-	cur.data = append(cur.data, data...)
-}
-
 func TestDrawSpec(t *testing.T) {
 	for _, tc := range []struct {
 		name string
