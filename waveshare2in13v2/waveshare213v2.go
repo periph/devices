@@ -223,7 +223,7 @@ func (d *Dev) Clear(color color.Color) error {
 	clearDisplay(&eh, image.Pt(d.opts.Width, d.opts.Height), c)
 
 	if eh.err == nil {
-		eh.err = d.turnOnDisplay()
+		updateDisplay(&eh, Full)
 	}
 
 	return eh.err
@@ -255,7 +255,7 @@ func (d *Dev) Draw(dstRect image.Rectangle, src image.Image, srcPts image.Point)
 	drawImage(&eh, &opts)
 
 	if eh.err == nil {
-		eh.err = d.turnOnDisplay()
+		updateDisplay(&eh, d.mode)
 	}
 
 	return eh.err
@@ -284,7 +284,7 @@ func (d *Dev) DrawPartial(dstRect image.Rectangle, src image.Image, srcPts image
 	}
 
 	if eh.err == nil {
-		eh.err = d.turnOnDisplay()
+		updateDisplay(&eh, d.mode)
 	}
 
 	return eh.err
@@ -298,18 +298,6 @@ func (d *Dev) Halt() error {
 // String returns a string containing configuration information.
 func (d *Dev) String() string {
 	return fmt.Sprintf("epd.Dev{%s, %s, Height: %d, Width: %d}", d.c, d.dc, d.opts.Height, d.opts.Width)
-}
-
-func (d *Dev) turnOnDisplay() error {
-	eh := errorHandler{d: *d}
-
-	eh.sendCommand(displayUpdateControl2)
-	eh.sendData([]byte{0xC7})
-	eh.sendCommand(masterActivation)
-
-	eh.waitUntilIdle()
-
-	return eh.err
 }
 
 // Reset the hardware

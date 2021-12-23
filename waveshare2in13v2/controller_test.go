@@ -118,3 +118,40 @@ func TestConfigDisplayMode(t *testing.T) {
 		})
 	}
 }
+
+func TestUpdateDisplay(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		mode PartialUpdate
+		want []record
+	}{
+		{
+			name: "full",
+			mode: Full,
+			want: []record{
+				{cmd: displayUpdateControl1, data: []byte{0}},
+				{cmd: displayUpdateControl2, data: []byte{0xc7}},
+				{cmd: masterActivation},
+			},
+		},
+		{
+			name: "partial",
+			mode: Partial,
+			want: []record{
+				{cmd: displayUpdateControl1, data: []byte{0}},
+				{cmd: displayUpdateControl2, data: []byte{0xc7}},
+				{cmd: masterActivation},
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var got fakeController
+
+			updateDisplay(&got, tc.mode)
+
+			if diff := cmp.Diff([]record(got), tc.want, cmpopts.EquateEmpty(), cmp.AllowUnexported(record{})); diff != "" {
+				t.Errorf("updateDisplay() difference (-got +want):\n%s", diff)
+			}
+		})
+	}
+}
