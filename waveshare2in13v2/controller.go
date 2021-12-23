@@ -78,8 +78,15 @@ func configDisplayMode(ctrl controller, mode PartialUpdate, lut LUT) {
 }
 
 func updateDisplay(ctrl controller, mode PartialUpdate) {
+	var displayUpdateFlags byte
+
+	if mode == Partial {
+		// Make use of red buffer
+		displayUpdateFlags = 0b1000_0000
+	}
+
 	ctrl.sendCommand(displayUpdateControl1)
-	ctrl.sendData([]byte{0})
+	ctrl.sendData([]byte{displayUpdateFlags})
 
 	ctrl.sendCommand(displayUpdateControl2)
 	ctrl.sendData([]byte{0xC7})

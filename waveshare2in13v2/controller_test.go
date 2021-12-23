@@ -138,7 +138,7 @@ func TestUpdateDisplay(t *testing.T) {
 			name: "partial",
 			mode: Partial,
 			want: []record{
-				{cmd: displayUpdateControl1, data: []byte{0}},
+				{cmd: displayUpdateControl1, data: []byte{0x80}},
 				{cmd: displayUpdateControl2, data: []byte{0xc7}},
 				{cmd: masterActivation},
 			},
