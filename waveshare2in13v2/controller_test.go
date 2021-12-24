@@ -92,6 +92,8 @@ func TestConfigDisplayMode(t *testing.T) {
 				{cmd: borderWaveformControl, data: []byte{0x03}},
 				{cmd: writeLutRegister, data: bytes.Repeat([]byte{'F'}, 70)},
 				{cmd: 0x37, data: []byte{0x00, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00}},
+				{cmd: displayUpdateControl2, data: []byte{0xc0}},
+				{cmd: masterActivation},
 			},
 		},
 		{
