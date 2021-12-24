@@ -63,11 +63,10 @@ func configDisplayMode(ctrl controller, mode PartialUpdate, lut LUT) {
 	ctrl.sendCommand(writeLutRegister)
 	ctrl.sendData(lut[:70])
 
-	if mode == Partial {
-		// Undocumented command used in vendor example code.
-		ctrl.sendCommand(0x37)
-		ctrl.sendData([]byte{0x00, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00})
+	ctrl.sendCommand(writeDisplayOptionRegister)
+	ctrl.sendData([]byte{0x00, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00})
 
+	if mode == Partial {
 		ctrl.sendCommand(displayUpdateControl2)
 		ctrl.sendData([]byte{
 			displayUpdateEnableClock |

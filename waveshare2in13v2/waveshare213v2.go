@@ -37,6 +37,7 @@ const (
 	setDummyLinePeriod             byte = 0x3A
 	setGateTime                    byte = 0x3B
 	borderWaveformControl          byte = 0x3C
+	writeDisplayOptionRegister     byte = 0x37
 	setRAMXAddressStartEndPosition byte = 0x44
 	setRAMYAddressStartEndPosition byte = 0x45
 	setRAMXAddressCounter          byte = 0x4E
