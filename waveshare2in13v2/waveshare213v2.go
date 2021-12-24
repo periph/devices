@@ -25,6 +25,7 @@ const (
 	driverOutputControl            byte = 0x01
 	gateDrivingVoltageControl      byte = 0x03
 	sourceDrivingVoltageControl    byte = 0x04
+	deepSleepMode                  byte = 0x10
 	dataEntryModeSetting           byte = 0x11
 	swReset                        byte = 0x12
 	masterActivation               byte = 0x20
@@ -299,6 +300,19 @@ func (d *Dev) Halt() error {
 // String returns a string containing configuration information.
 func (d *Dev) String() string {
 	return fmt.Sprintf("epd.Dev{%s, %s, Height: %d, Width: %d}", d.c, d.dc, d.opts.Height, d.opts.Width)
+}
+
+// Sleep makes the controller enter deep sleep mode. It can be woken up by
+// calling Init again.
+func (d *Dev) Sleep() error {
+	eh := errorHandler{d: *d}
+
+	// Turn off DC/DC converter, clock, output load and MCU. RAM content is
+	// retained.
+	eh.sendCommand(deepSleepMode)
+	eh.sendData([]byte{0x01})
+
+	return eh.err
 }
 
 // Reset the hardware
