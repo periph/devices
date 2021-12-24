@@ -66,16 +66,11 @@ func configDisplayMode(ctrl controller, mode PartialUpdate, lut LUT) {
 	ctrl.sendCommand(writeDisplayOptionRegister)
 	ctrl.sendData([]byte{0x00, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00})
 
-	if mode == Partial {
-		ctrl.sendCommand(displayUpdateControl2)
-		ctrl.sendData([]byte{
-			displayUpdateEnableClock |
-				displayUpdateEnableAnalog,
-		})
+	// Start up the parts likely used by a draw operation soon.
+	ctrl.sendCommand(displayUpdateControl2)
+	ctrl.sendData([]byte{displayUpdateEnableClock | displayUpdateEnableAnalog})
 
-		ctrl.sendCommand(masterActivation)
-	}
-
+	ctrl.sendCommand(masterActivation)
 	ctrl.waitUntilIdle()
 }
 
