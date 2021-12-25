@@ -52,12 +52,12 @@ func setMemoryArea(ctrl controller, area image.Rectangle) {
 }
 
 type drawOpts struct {
-	cmd     byte
-	devSize image.Point
-	buffer  *image1bit.VerticalLSB
-	dstRect image.Rectangle
-	src     image.Image
-	srcPts  image.Point
+	commands []byte
+	devSize  image.Point
+	buffer   *image1bit.VerticalLSB
+	dstRect  image.Rectangle
+	src      image.Image
+	srcPts   image.Point
 }
 
 type drawSpec struct {
@@ -82,7 +82,34 @@ func (o *drawOpts) spec() drawSpec {
 	return s
 }
 
-// drawImage sends an image to the controller after setting up the registers.
+// sendImage sends an image to the controller after setting up the registers.
+// The area is in bytes on the horizontal axis.
+func sendImage(ctrl controller, cmd byte, area image.Rectangle, img *image1bit.VerticalLSB) {
+	if area.Empty() {
+		return
+	}
+
+	setMemoryArea(ctrl, area)
+
+	ctrl.sendCommand(cmd)
+
+	rowData := make([]byte, area.Dx())
+
+	for y := area.Min.Y; y < area.Max.Y; y++ {
+		for x := 0; x < len(rowData); x++ {
+			rowData[x] = 0
+
+			for bit := 0; bit < 8; bit++ {
+				if img.BitAt(((area.Min.X+x)*8)+bit, y) {
+					rowData[x] |= 0x80 >> bit
+				}
+			}
+		}
+
+		ctrl.sendData(rowData)
+	}
+}
+
 func drawImage(ctrl controller, opts *drawOpts) {
 	s := opts.spec()
 
@@ -92,24 +119,15 @@ func drawImage(ctrl controller, opts *drawOpts) {
 
 	draw.Src.Draw(opts.buffer, s.DstRect, opts.src, opts.srcPts)
 
-	setMemoryArea(ctrl, s.MemRect)
+	commands := opts.commands
 
-	ctrl.sendCommand(opts.cmd)
+	if len(commands) == 0 {
+		commands = []byte{writeRAMBW, writeRAMRed}
+	}
 
-	rowData := make([]byte, s.MemRect.Dx())
-
-	for y := s.MemRect.Min.Y; y < s.MemRect.Max.Y; y++ {
-		for x := 0; x < len(rowData); x++ {
-			rowData[x] = 0
-
-			for bit := 0; bit < 8; bit++ {
-				if opts.buffer.BitAt(((s.MemRect.Min.X+x)*8)+bit, y) {
-					rowData[x] |= 0x80 >> bit
-				}
-			}
-		}
-
-		ctrl.sendData(rowData)
+	// Keep the two buffers in sync.
+	for _, cmd := range commands {
+		sendImage(ctrl, cmd, s.MemRect, opts.buffer)
 	}
 }
 

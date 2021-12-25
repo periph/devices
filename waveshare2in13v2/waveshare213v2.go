@@ -267,16 +267,7 @@ func (d *Dev) Draw(dstRect image.Rectangle, src image.Image, srcPts image.Point)
 
 	eh := errorHandler{d: *d}
 
-	// Keep the two buffers in sync.
-	for _, cmd := range []byte{writeRAMBW, writeRAMRed} {
-		opts.cmd = cmd
-
-		drawImage(&eh, &opts)
-
-		if eh.err != nil {
-			break
-		}
-	}
+	drawImage(&eh, &opts)
 
 	if eh.err == nil {
 		updateDisplay(&eh, d.mode)
