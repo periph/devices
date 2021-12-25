@@ -7,6 +7,7 @@ package waveshare2in13v2
 import (
 	"bytes"
 	"image"
+	"image/draw"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -58,6 +59,89 @@ func TestDrawSpec(t *testing.T) {
 	}
 }
 
+func TestSendImage(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		cmd  byte
+		area image.Rectangle
+		img  *image1bit.VerticalLSB
+		want []record
+	}{
+		{
+			name: "empty",
+		},
+		{
+			name: "partial",
+			cmd:  writeRAMBW,
+			area: image.Rect(2, 20, 4, 40),
+			img:  image1bit.NewVerticalLSB(image.Rect(0, 0, 64, 64)),
+			want: []record{
+				{cmd: dataEntryModeSetting, data: []byte{0x3}},
+				{cmd: setRAMXAddressStartEndPosition, data: []byte{2, 4 - 1}},
+				{cmd: setRAMYAddressStartEndPosition, data: []byte{20, 0, 40 - 1, 0}},
+				{cmd: setRAMXAddressCounter, data: []byte{2}},
+				{cmd: setRAMYAddressCounter, data: []byte{20, 0}},
+				{
+					cmd:  writeRAMBW,
+					data: bytes.Repeat([]byte{0}, 2*(30-10)),
+				},
+			},
+		},
+		{
+			name: "partial non-aligned",
+			cmd:  writeRAMRed,
+			area: image.Rect(2, 4, 6, 8),
+			img: func() *image1bit.VerticalLSB {
+				img := image1bit.NewVerticalLSB(image.Rect(0, 0, 64, 64))
+				draw.Src.Draw(img, image.Rect(17, 4, 41, 8), &image.Uniform{image1bit.On}, image.Point{})
+				return img
+			}(),
+			want: []record{
+				{cmd: dataEntryModeSetting, data: []byte{0x3}},
+				{cmd: setRAMXAddressStartEndPosition, data: []byte{2, 6 - 1}},
+				{cmd: setRAMYAddressStartEndPosition, data: []byte{4, 0, 8 - 1, 0}},
+				{cmd: setRAMXAddressCounter, data: []byte{2}},
+				{cmd: setRAMYAddressCounter, data: []byte{4, 0}},
+				{
+					cmd:  writeRAMRed,
+					data: bytes.Repeat([]byte{0x7f, 0xff, 0xff, 0x80}, 4),
+				},
+			},
+		},
+		{
+			name: "full",
+			cmd:  writeRAMBW,
+			area: image.Rect(0, 0, 10, 120),
+			img: func() *image1bit.VerticalLSB {
+				img := image1bit.NewVerticalLSB(image.Rect(0, 0, 80, 120))
+				draw.Src.Draw(img, image.Rect(0, 0, 80, 120), &image.Uniform{image1bit.On}, image.Point{})
+				return img
+			}(),
+			want: []record{
+				{cmd: dataEntryModeSetting, data: []byte{0x3}},
+				{cmd: setRAMXAddressStartEndPosition, data: []byte{0, 10 - 1}},
+				{cmd: setRAMYAddressStartEndPosition, data: []byte{0, 0, 120 - 1, 0}},
+				{cmd: setRAMXAddressCounter, data: []byte{0}},
+				{cmd: setRAMYAddressCounter, data: []byte{0, 0}},
+				{
+					cmd:  writeRAMBW,
+					data: bytes.Repeat([]byte{0xff}, 80/8*120),
+				},
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var got fakeController
+
+			sendImage(&got, tc.cmd, tc.area, tc.img)
+
+			if diff := cmp.Diff([]record(got), tc.want, cmpopts.EquateEmpty(), cmp.AllowUnexported(record{})); diff != "" {
+				t.Errorf("sendImage() difference (-got +want):\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestDrawImage(t *testing.T) {
 	for _, tc := range []struct {
 		name string
@@ -66,19 +150,16 @@ func TestDrawImage(t *testing.T) {
 	}{
 		{
 			name: "empty",
-			opts: drawOpts{
-				src: &image.Uniform{image1bit.On},
-			},
 		},
 		{
 			name: "partial",
 			opts: drawOpts{
-				cmd:     writeRAMBW,
-				devSize: image.Pt(64, 64),
-				buffer:  image1bit.NewVerticalLSB(image.Rect(0, 0, 64, 64)),
-				dstRect: image.Rect(17, 4, 41, 8),
-				src:     &image.Uniform{image1bit.On},
-				srcPts:  image.Pt(0, 0),
+				commands: []byte{writeRAMBW},
+				devSize:  image.Pt(64, 64),
+				buffer:   image1bit.NewVerticalLSB(image.Rect(0, 0, 64, 64)),
+				dstRect:  image.Rect(17, 4, 41, 8),
+				src:      &image.Uniform{image1bit.On},
+				srcPts:   image.Pt(0, 0),
 			},
 			want: []record{
 				{cmd: dataEntryModeSetting, data: []byte{0x3}},
@@ -95,12 +176,12 @@ func TestDrawImage(t *testing.T) {
 		{
 			name: "full",
 			opts: drawOpts{
-				cmd:     writeRAMBW,
-				devSize: image.Pt(80, 120),
-				buffer:  image1bit.NewVerticalLSB(image.Rect(0, 0, 80, 120)),
-				dstRect: image.Rect(0, 0, 80, 120),
-				src:     &image.Uniform{image1bit.On},
-				srcPts:  image.Pt(33, 44),
+				commands: []byte{writeRAMRed},
+				devSize:  image.Pt(80, 120),
+				buffer:   image1bit.NewVerticalLSB(image.Rect(0, 0, 80, 120)),
+				dstRect:  image.Rect(0, 0, 80, 120),
+				src:      &image.Uniform{image1bit.On},
+				srcPts:   image.Pt(33, 44),
 			},
 			want: []record{
 				{cmd: dataEntryModeSetting, data: []byte{0x3}},
@@ -109,7 +190,7 @@ func TestDrawImage(t *testing.T) {
 				{cmd: setRAMXAddressCounter, data: []byte{0}},
 				{cmd: setRAMYAddressCounter, data: []byte{0, 0}},
 				{
-					cmd:  writeRAMBW,
+					cmd:  writeRAMRed,
 					data: bytes.Repeat([]byte{0xff}, 80/8*120),
 				},
 			},
