@@ -229,18 +229,9 @@ func (d *Dev) SetUpdateMode(mode PartialUpdate) error {
 
 // Clear clears the display.
 func (d *Dev) Clear(color color.Color) error {
-	eh := errorHandler{d: *d}
-
-	c := image1bit.BitModel.Convert(color).(image1bit.Bit)
-	draw.Src.Draw(d.buffer, d.buffer.Bounds(), &image.Uniform{c}, image.Point{})
-
-	clearDisplay(&eh, image.Pt(d.opts.Width, d.opts.Height), c)
-
-	if eh.err == nil {
-		updateDisplay(&eh, Full)
-	}
-
-	return eh.err
+	return d.Draw(d.buffer.Bounds(), &image.Uniform{
+		C: image1bit.BitModel.Convert(color).(image1bit.Bit),
+	}, image.Point{})
 }
 
 // ColorModel returns a 1Bit color model.
