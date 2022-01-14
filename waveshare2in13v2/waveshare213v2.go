@@ -84,6 +84,17 @@ type Dev struct {
 	opts *Opts
 }
 
+// Corner describes a corner on the physical device and is used to define the
+// origin for drawing operations.
+type Corner uint8
+
+const (
+	TopLeft Corner = iota
+	TopRight
+	BottomRight
+	BottomLeft
+)
+
 // LUT contains the waveform that is used to program the display.
 type LUT []byte
 
@@ -91,6 +102,7 @@ type LUT []byte
 type Opts struct {
 	Width         int
 	Height        int
+	Origin        Corner
 	FullUpdate    LUT
 	PartialUpdate LUT
 }
@@ -141,6 +153,11 @@ var EPD2in13v2 = Opts{
 	},
 }
 
+// flipPt returns a new image.Point with the X and Y coordinates exchanged.
+func flipPt(pt image.Point) image.Point {
+	return image.Point{X: pt.Y, Y: pt.X}
+}
+
 // New creates new handler which is used to access the display.
 func New(p spi.Port, dc, cs, rst gpio.PinOut, busy gpio.PinIn, opts *Opts) (*Dev, error) {
 	c, err := p.Connect(5*physic.MegaHertz, spi.Mode0, 8)
@@ -152,15 +169,30 @@ func New(p spi.Port, dc, cs, rst gpio.PinOut, busy gpio.PinIn, opts *Opts) (*Dev
 		return nil, err
 	}
 
+	displaySize := image.Pt(opts.Width, opts.Height)
+
+	// The physical X axis is sized to have one-byte alignment on the (0,0)
+	// on-display position after rotation.
+	bufferSize := image.Pt((opts.Width+7)/8*8, opts.Height)
+
+	switch opts.Origin {
+	case TopLeft, BottomRight:
+	case TopRight, BottomLeft:
+		displaySize = flipPt(displaySize)
+		bufferSize = flipPt(bufferSize)
+	default:
+		return nil, fmt.Errorf("unknown corner %v", opts.Origin)
+	}
+
 	d := &Dev{
 		c:      c,
 		dc:     dc,
 		cs:     cs,
 		rst:    rst,
 		busy:   busy,
-		bounds: image.Rect(0, 0, opts.Width, opts.Height),
+		bounds: image.Rectangle{Max: displaySize},
 		buffer: image1bit.NewVerticalLSB(image.Rectangle{
-			Max: image.Pt((opts.Width+7)/8*8, opts.Height),
+			Max: bufferSize,
 		}),
 		mode: Full,
 		opts: opts,
@@ -251,7 +283,8 @@ func (d *Dev) Bounds() image.Rectangle {
 // area is refreshed.
 func (d *Dev) Draw(dstRect image.Rectangle, src image.Image, srcPts image.Point) error {
 	opts := drawOpts{
-		devSize: image.Pt(d.opts.Width, d.opts.Height),
+		devSize: d.bounds.Max,
+		origin:  d.opts.Origin,
 		buffer:  d.buffer,
 		dstRect: dstRect,
 		src:     src,
