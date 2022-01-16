@@ -281,7 +281,9 @@ func (d *Dev) Halt() error {
 
 // String returns a string containing configuration information.
 func (d *Dev) String() string {
-	return fmt.Sprintf("epd.Dev{%s, %s, Height: %d, Width: %d}", d.c, d.dc, d.opts.Height, d.opts.Width)
+	bounds := d.Bounds()
+
+	return fmt.Sprintf("epd.Dev{%s, %s, Width: %d, Height: %d}", d.c, d.dc, bounds.Dx(), bounds.Dy())
 }
 
 // Sleep makes the controller enter deep sleep mode. It can be woken up by
