@@ -25,14 +25,14 @@ func TestNew(t *testing.T) {
 	}{
 		{
 			name:       "empty",
-			wantString: "epd.Dev{playback, (0), Height: 0, Width: 0}",
+			wantString: "epd.Dev{playback, (0), Width: 0, Height: 0}",
 		},
 		{
 			name:             "EPD2in13v2",
 			opts:             EPD2in13v2,
 			wantBounds:       image.Rect(0, 0, 122, 250),
 			wantBufferBounds: image.Rect(0, 0, 128, 250),
-			wantString:       "epd.Dev{playback, (0), Height: 250, Width: 122}",
+			wantString:       "epd.Dev{playback, (0), Width: 122, Height: 250}",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
