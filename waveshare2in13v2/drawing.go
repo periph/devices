@@ -5,6 +5,7 @@
 package waveshare2in13v2
 
 import (
+	"encoding/binary"
 	"image"
 	"image/draw"
 
@@ -14,6 +15,13 @@ import (
 // setMemoryArea configures the target drawing area (horizontal is in bytes,
 // vertical in pixels).
 func setMemoryArea(ctrl controller, area image.Rectangle) {
+	startX, endX := uint8(area.Min.X), uint8(area.Max.X-1)
+	startY, endY := uint16(area.Min.Y), uint16(area.Max.Y-1)
+
+	startEndY := [4]byte{}
+	binary.LittleEndian.PutUint16(startEndY[0:], startY)
+	binary.LittleEndian.PutUint16(startEndY[2:], endY)
+
 	ctrl.sendCommand(dataEntryModeSetting)
 	ctrl.sendData([]byte{
 		// Y increment, X increment; update address counter in X direction
@@ -21,33 +29,16 @@ func setMemoryArea(ctrl controller, area image.Rectangle) {
 	})
 
 	ctrl.sendCommand(setRAMXAddressStartEndPosition)
-	ctrl.sendData([]byte{
-		// Start
-		byte(area.Min.X),
-
-		// End
-		byte(area.Max.X - 1),
-	})
+	ctrl.sendData([]byte{startX, endX})
 
 	ctrl.sendCommand(setRAMYAddressStartEndPosition)
-	ctrl.sendData([]byte{
-		// Start
-		byte(area.Min.Y % 0xFF),
-		byte(area.Min.Y / 0xFF),
-
-		// End
-		byte((area.Max.Y - 1) % 0xFF),
-		byte((area.Max.Y - 1) / 0xFF),
-	})
+	ctrl.sendData(startEndY[:4])
 
 	ctrl.sendCommand(setRAMXAddressCounter)
-	ctrl.sendData([]byte{byte(area.Min.X)})
+	ctrl.sendData([]byte{startX})
 
 	ctrl.sendCommand(setRAMYAddressCounter)
-	ctrl.sendData([]byte{
-		byte(area.Min.Y % 0xFF),
-		byte(area.Min.Y / 0xFF),
-	})
+	ctrl.sendData(startEndY[:2])
 }
 
 type drawOpts struct {
