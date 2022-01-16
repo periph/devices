@@ -49,8 +49,8 @@ var BitModel = color.ModelFunc(convert)
 
 // VerticalLSB is a 1 bit (black and white) image.
 //
-// Each byte is 8 vertical pixels. Each stride is an horizontal band of 8
-// pixels high with LSB first. So the first byte represent the following
+// Each byte is 8 vertical pixels. Each stride is a horizontal band of 8
+// pixels high with LSB first. So the first byte represents the following
 // pixels, with lowest bit being the top left pixel.
 //
 //   0 x x x x x x x
@@ -62,7 +62,7 @@ var BitModel = color.ModelFunc(convert)
 //   6 x x x x x x x
 //   7 x x x x x x x
 //
-// It is designed specifically to work with SSD1306 OLED display controler.
+// It is designed specifically to work with SSD1306 OLED display controller.
 type VerticalLSB struct {
 	// Pix holds the image's pixels, as vertically LSB-first packed bitmap. It
 	// can be passed directly to ssd1306.Dev.Write()
