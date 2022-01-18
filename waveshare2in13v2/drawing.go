@@ -73,24 +73,23 @@ func (o *drawOpts) spec() drawSpec {
 }
 
 // sendImage sends an image to the controller after setting up the registers.
-// The area is in bytes on the horizontal axis.
-func sendImage(ctrl controller, cmd byte, area image.Rectangle, img *image1bit.VerticalLSB) {
-	if area.Empty() {
+func (o *drawOpts) sendImage(ctrl controller, cmd byte, spec *drawSpec) {
+	if spec.MemRect.Empty() {
 		return
 	}
 
-	setMemoryArea(ctrl, area)
+	setMemoryArea(ctrl, spec.MemRect)
 
 	ctrl.sendCommand(cmd)
 
-	rowData := make([]byte, area.Dx())
+	rowData := make([]byte, spec.MemRect.Dx())
 
-	for y := area.Min.Y; y < area.Max.Y; y++ {
+	for y := spec.MemRect.Min.Y; y < spec.MemRect.Max.Y; y++ {
 		for x := 0; x < len(rowData); x++ {
 			rowData[x] = 0
 
 			for bit := 0; bit < 8; bit++ {
-				if img.BitAt(((area.Min.X+x)*8)+bit, y) {
+				if o.buffer.BitAt(((spec.MemRect.Min.X+x)*8)+bit, y) {
 					rowData[x] |= 0x80 >> bit
 				}
 			}
@@ -117,6 +116,6 @@ func drawImage(ctrl controller, opts *drawOpts) {
 
 	// Keep the two buffers in sync.
 	for _, cmd := range commands {
-		sendImage(ctrl, cmd, s.MemRect, opts.buffer)
+		opts.sendImage(ctrl, cmd, &s)
 	}
 }

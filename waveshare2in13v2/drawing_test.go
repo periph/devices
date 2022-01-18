@@ -63,18 +63,23 @@ func TestSendImage(t *testing.T) {
 	for _, tc := range []struct {
 		name string
 		cmd  byte
-		area image.Rectangle
-		img  *image1bit.VerticalLSB
+		opts drawOpts
 		want []record
 	}{
 		{
 			name: "empty",
+			opts: drawOpts{
+				buffer: image1bit.NewVerticalLSB(image.Rectangle{}),
+			},
 		},
 		{
 			name: "partial",
 			cmd:  writeRAMBW,
-			area: image.Rect(2, 20, 4, 40),
-			img:  image1bit.NewVerticalLSB(image.Rect(0, 0, 64, 64)),
+			opts: drawOpts{
+				devSize: image.Pt(64, 64),
+				dstRect: image.Rect(16, 20, 32, 40),
+				buffer:  image1bit.NewVerticalLSB(image.Rect(0, 0, 64, 64)),
+			},
 			want: []record{
 				{cmd: dataEntryModeSetting, data: []byte{0x3}},
 				{cmd: setRAMXAddressStartEndPosition, data: []byte{2, 4 - 1}},
@@ -90,12 +95,15 @@ func TestSendImage(t *testing.T) {
 		{
 			name: "partial non-aligned",
 			cmd:  writeRAMRed,
-			area: image.Rect(2, 4, 6, 8),
-			img: func() *image1bit.VerticalLSB {
-				img := image1bit.NewVerticalLSB(image.Rect(0, 0, 64, 64))
-				draw.Src.Draw(img, image.Rect(17, 4, 41, 8), &image.Uniform{image1bit.On}, image.Point{})
-				return img
-			}(),
+			opts: drawOpts{
+				devSize: image.Pt(100, 64),
+				dstRect: image.Rect(17, 4, 41, 8),
+				buffer: func() *image1bit.VerticalLSB {
+					img := image1bit.NewVerticalLSB(image.Rect(0, 0, 64, 64))
+					draw.Src.Draw(img, image.Rect(17, 4, 41, 8), &image.Uniform{image1bit.On}, image.Point{})
+					return img
+				}(),
+			},
 			want: []record{
 				{cmd: dataEntryModeSetting, data: []byte{0x3}},
 				{cmd: setRAMXAddressStartEndPosition, data: []byte{2, 6 - 1}},
@@ -111,12 +119,15 @@ func TestSendImage(t *testing.T) {
 		{
 			name: "full",
 			cmd:  writeRAMBW,
-			area: image.Rect(0, 0, 10, 120),
-			img: func() *image1bit.VerticalLSB {
-				img := image1bit.NewVerticalLSB(image.Rect(0, 0, 80, 120))
-				draw.Src.Draw(img, image.Rect(0, 0, 80, 120), &image.Uniform{image1bit.On}, image.Point{})
-				return img
-			}(),
+			opts: drawOpts{
+				devSize: image.Pt(80, 120),
+				dstRect: image.Rect(0, 0, 80, 120),
+				buffer: func() *image1bit.VerticalLSB {
+					img := image1bit.NewVerticalLSB(image.Rect(0, 0, 80, 120))
+					draw.Src.Draw(img, image.Rect(0, 0, 80, 120), &image.Uniform{image1bit.On}, image.Point{})
+					return img
+				}(),
+			},
 			want: []record{
 				{cmd: dataEntryModeSetting, data: []byte{0x3}},
 				{cmd: setRAMXAddressStartEndPosition, data: []byte{0, 10 - 1}},
@@ -133,7 +144,9 @@ func TestSendImage(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			var got fakeController
 
-			sendImage(&got, tc.cmd, tc.area, tc.img)
+			spec := tc.opts.spec()
+
+			tc.opts.sendImage(&got, tc.cmd, &spec)
 
 			if diff := cmp.Diff([]record(got), tc.want, cmpopts.EquateEmpty(), cmp.AllowUnexported(record{})); diff != "" {
 				t.Errorf("sendImage() difference (-got +want):\n%s", diff)
