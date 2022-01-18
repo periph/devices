@@ -77,6 +77,7 @@ type Dev struct {
 	rst  gpio.PinOut
 	busy gpio.PinIn
 
+	bounds image.Rectangle
 	buffer *image1bit.VerticalLSB
 	mode   PartialUpdate
 
@@ -152,11 +153,12 @@ func New(p spi.Port, dc, cs, rst gpio.PinOut, busy gpio.PinIn, opts *Opts) (*Dev
 	}
 
 	d := &Dev{
-		c:    c,
-		dc:   dc,
-		cs:   cs,
-		rst:  rst,
-		busy: busy,
+		c:      c,
+		dc:     dc,
+		cs:     cs,
+		rst:    rst,
+		busy:   busy,
+		bounds: image.Rect(0, 0, opts.Width, opts.Height),
 		buffer: image1bit.NewVerticalLSB(image.Rectangle{
 			Max: image.Pt((opts.Width+7)/8*8, opts.Height),
 		}),
@@ -241,7 +243,7 @@ func (d *Dev) ColorModel() color.Model {
 
 // Bounds returns the bounds for the configurated display.
 func (d *Dev) Bounds() image.Rectangle {
-	return image.Rect(0, 0, d.opts.Width, d.opts.Height)
+	return d.bounds
 }
 
 // Draw draws the given image to the display. Only the destination area is
@@ -281,9 +283,7 @@ func (d *Dev) Halt() error {
 
 // String returns a string containing configuration information.
 func (d *Dev) String() string {
-	bounds := d.Bounds()
-
-	return fmt.Sprintf("epd.Dev{%s, %s, Width: %d, Height: %d}", d.c, d.dc, bounds.Dx(), bounds.Dy())
+	return fmt.Sprintf("epd.Dev{%s, %s, Width: %d, Height: %d}", d.c, d.dc, d.bounds.Dx(), d.bounds.Dy())
 }
 
 // Sleep makes the controller enter deep sleep mode. It can be woken up by
