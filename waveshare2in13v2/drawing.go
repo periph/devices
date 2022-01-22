@@ -52,21 +52,21 @@ type drawOpts struct {
 
 type drawSpec struct {
 	// Destination on display in pixels, normalized to fit into actual size.
-	DstRect image.Rectangle
+	dstRect image.Rectangle
 
 	// Area to send to device; horizontally in bytes (thus aligned to
 	// 8 pixels), vertically in pixels.
-	MemRect image.Rectangle
+	memRect image.Rectangle
 }
 
 func (o *drawOpts) spec() drawSpec {
 	s := drawSpec{
-		DstRect: image.Rectangle{Max: o.devSize}.Intersect(o.dstRect),
+		dstRect: image.Rectangle{Max: o.devSize}.Intersect(o.dstRect),
 	}
 
-	s.MemRect = image.Rect(
-		s.DstRect.Min.X/8, s.DstRect.Min.Y,
-		(s.DstRect.Max.X+7)/8, s.DstRect.Max.Y,
+	s.memRect = image.Rect(
+		s.dstRect.Min.X/8, s.dstRect.Min.Y,
+		(s.dstRect.Max.X+7)/8, s.dstRect.Max.Y,
 	)
 
 	return s
@@ -74,22 +74,22 @@ func (o *drawOpts) spec() drawSpec {
 
 // sendImage sends an image to the controller after setting up the registers.
 func (o *drawOpts) sendImage(ctrl controller, cmd byte, spec *drawSpec) {
-	if spec.MemRect.Empty() {
+	if spec.memRect.Empty() {
 		return
 	}
 
-	setMemoryArea(ctrl, spec.MemRect)
+	setMemoryArea(ctrl, spec.memRect)
 
 	ctrl.sendCommand(cmd)
 
-	rowData := make([]byte, spec.MemRect.Dx())
+	rowData := make([]byte, spec.memRect.Dx())
 
-	for y := spec.MemRect.Min.Y; y < spec.MemRect.Max.Y; y++ {
+	for y := spec.memRect.Min.Y; y < spec.memRect.Max.Y; y++ {
 		for x := 0; x < len(rowData); x++ {
 			rowData[x] = 0
 
 			for bit := 0; bit < 8; bit++ {
-				if o.buffer.BitAt(((spec.MemRect.Min.X+x)*8)+bit, y) {
+				if o.buffer.BitAt(((spec.memRect.Min.X+x)*8)+bit, y) {
 					rowData[x] |= 0x80 >> bit
 				}
 			}
@@ -102,11 +102,11 @@ func (o *drawOpts) sendImage(ctrl controller, cmd byte, spec *drawSpec) {
 func drawImage(ctrl controller, opts *drawOpts) {
 	s := opts.spec()
 
-	if s.MemRect.Empty() {
+	if s.memRect.Empty() {
 		return
 	}
 
-	draw.Src.Draw(opts.buffer, s.DstRect, opts.src, opts.srcPts)
+	draw.Src.Draw(opts.buffer, s.dstRect, opts.src, opts.srcPts)
 
 	commands := opts.commands
 

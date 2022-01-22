@@ -32,8 +32,8 @@ func TestDrawSpec(t *testing.T) {
 				dstRect: image.Rect(17, 4, 25, 8),
 			},
 			want: drawSpec{
-				DstRect: image.Rect(17, 4, 25, 8),
-				MemRect: image.Rect(2, 4, 4, 8),
+				dstRect: image.Rect(17, 4, 25, 8),
+				memRect: image.Rect(2, 4, 4, 8),
 			},
 		},
 		{
@@ -44,15 +44,15 @@ func TestDrawSpec(t *testing.T) {
 				dstRect: image.Rect(-20, 50, 125, 300),
 			},
 			want: drawSpec{
-				DstRect: image.Rect(0, 50, 100, 200),
-				MemRect: image.Rect(0, 50, 13, 200),
+				dstRect: image.Rect(0, 50, 100, 200),
+				memRect: image.Rect(0, 50, 13, 200),
 			},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			got := tc.opts.spec()
 
-			if diff := cmp.Diff(got, tc.want, cmpopts.EquateEmpty()); diff != "" {
+			if diff := cmp.Diff(got, tc.want, cmp.AllowUnexported(drawSpec{})); diff != "" {
 				t.Errorf("spec() difference (-got +want):\n%s", diff)
 			}
 		})
