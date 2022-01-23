@@ -15,14 +15,25 @@ import (
 	"periph.io/x/devices/v3/ssd1306/image1bit"
 )
 
+func checkRectCanon(t *testing.T, got image.Rectangle) {
+	if diff := cmp.Diff(got, got.Canon()); diff != "" {
+		t.Errorf("Rectangle is not canonical (-got +want):\n%s", diff)
+	}
+}
+
 func TestDrawSpec(t *testing.T) {
-	for _, tc := range []struct {
+	type testCase struct {
 		name string
 		opts drawOpts
 		want drawSpec
-	}{
+	}
+
+	for _, tc := range []testCase{
 		{
 			name: "empty",
+			opts: drawOpts{
+				buffer: image1bit.NewVerticalLSB(image.Rectangle{}),
+			},
 		},
 		{
 			name: "smaller than display",
@@ -32,8 +43,9 @@ func TestDrawSpec(t *testing.T) {
 				dstRect: image.Rect(17, 4, 25, 8),
 			},
 			want: drawSpec{
-				DstRect: image.Rect(17, 4, 25, 8),
-				MemRect: image.Rect(2, 4, 4, 8),
+				bufferDstRect: image.Rect(17, 4, 25, 8),
+				memDstRect:    image.Rect(17, 4, 25, 8),
+				memRect:       image.Rect(2, 4, 4, 8),
 			},
 		},
 		{
@@ -44,15 +56,261 @@ func TestDrawSpec(t *testing.T) {
 				dstRect: image.Rect(-20, 50, 125, 300),
 			},
 			want: drawSpec{
-				DstRect: image.Rect(0, 50, 100, 200),
-				MemRect: image.Rect(0, 50, 13, 200),
+				bufferDstRect: image.Rect(0, 50, 100, 200),
+				memDstRect:    image.Rect(0, 50, 100, 200),
+				memRect:       image.Rect(0, 50, 13, 200),
 			},
 		},
+		func() testCase {
+			tc := testCase{
+				name: "origin top left full",
+				opts: drawOpts{
+					devSize: image.Pt(48, 96),
+					origin:  TopLeft,
+					buffer:  image1bit.NewVerticalLSB(image.Rect(0, 0, 6*8, 12*8)),
+					dstRect: image.Rect(0, 0, 48, 96),
+				},
+			}
+
+			tc.want.bufferDstRect.Max = image.Pt(48, 96)
+			tc.want.memDstRect.Max = image.Pt(48, 96)
+			tc.want.memRect.Max = image.Pt(6, 96)
+
+			return tc
+		}(),
+		func() testCase {
+			tc := testCase{
+				name: "origin top right, empty dest",
+				opts: drawOpts{
+					devSize: image.Pt(105, 50),
+					origin:  TopRight,
+					buffer:  image1bit.NewVerticalLSB(image.Rect(0, 0, 12*8, 8*8)),
+				},
+			}
+
+			tc.want.bufferDstOffset.Y = tc.opts.buffer.Bounds().Dy() - tc.opts.devSize.Y
+
+			return tc
+		}(),
+		func() testCase {
+			tc := testCase{
+				name: "origin top right",
+				opts: drawOpts{
+					devSize: image.Pt(100, 50),
+					origin:  TopRight,
+					buffer:  image1bit.NewVerticalLSB(image.Rect(0, 0, 12*8, 8*8)),
+					dstRect: image.Rect(0, 0, 20, 30),
+				},
+			}
+
+			tc.want.bufferDstOffset.Y = tc.opts.buffer.Bounds().Dy() - tc.opts.devSize.Y
+			tc.want.bufferDstRect = image.Rectangle{
+				Min: tc.want.bufferDstOffset,
+				Max: image.Point{
+					X: tc.opts.dstRect.Max.X,
+					Y: tc.want.bufferDstOffset.Y + tc.opts.dstRect.Max.Y,
+				},
+			}
+			tc.want.memDstRect = image.Rectangle{
+				Min: image.Point{
+					X: tc.opts.devSize.Y - tc.opts.dstRect.Max.Y,
+				},
+				Max: image.Point{
+					X: tc.opts.devSize.Y,
+					Y: tc.opts.dstRect.Max.X,
+				},
+			}
+			tc.want.memRect = image.Rectangle{
+				Min: image.Pt(2, tc.want.memDstRect.Min.Y),
+				Max: image.Pt(7, tc.want.memDstRect.Max.Y),
+			}
+
+			return tc
+		}(),
+		func() testCase {
+			tc := testCase{
+				name: "origin top right full",
+				opts: drawOpts{
+					devSize: image.Pt(48, 96),
+					origin:  TopRight,
+					buffer:  image1bit.NewVerticalLSB(image.Rect(0, 0, 6*8, 12*8)),
+					dstRect: image.Rect(0, 0, 48, 96),
+				},
+			}
+
+			tc.want.bufferDstRect.Max = image.Pt(48, 96)
+			tc.want.memDstRect.Max = image.Pt(96, 48)
+			tc.want.memRect.Max = image.Pt(12, 48)
+
+			return tc
+		}(),
+		func() testCase {
+			tc := testCase{
+				name: "origin top right with offset",
+				opts: drawOpts{
+					devSize: image.Pt(101, 83),
+					origin:  TopRight,
+					buffer:  image1bit.NewVerticalLSB(image.Rect(0, 0, 14*8, 11*8)),
+					dstRect: image.Rect(9, 17, 19, 27),
+				},
+			}
+
+			tc.want.bufferDstOffset.Y = tc.opts.buffer.Bounds().Dy() - tc.opts.devSize.Y
+			tc.want.bufferDstRect = image.Rectangle{
+				Min: image.Point{
+					X: tc.opts.dstRect.Min.X,
+					Y: tc.want.bufferDstOffset.Y + tc.opts.dstRect.Min.Y,
+				},
+				Max: image.Point{
+					X: tc.opts.dstRect.Max.X,
+					Y: tc.want.bufferDstOffset.Y + tc.opts.dstRect.Max.Y,
+				},
+			}
+			tc.want.memDstRect = image.Rectangle{
+				Min: image.Point{
+					X: tc.opts.devSize.Y - tc.opts.dstRect.Max.Y,
+					Y: tc.opts.dstRect.Min.X,
+				},
+				Max: image.Point{
+					X: tc.opts.devSize.Y - tc.opts.dstRect.Min.Y,
+					Y: tc.opts.dstRect.Max.X,
+				},
+			}
+			tc.want.memRect = image.Rectangle{
+				Min: image.Pt(7, tc.want.memDstRect.Min.Y),
+				Max: image.Pt(9, tc.want.memDstRect.Max.Y),
+			}
+
+			return tc
+		}(),
+		func() testCase {
+			tc := testCase{
+				name: "origin bottom right full",
+				opts: drawOpts{
+					devSize: image.Pt(48, 96),
+					origin:  BottomRight,
+					buffer:  image1bit.NewVerticalLSB(image.Rect(0, 0, 6*8, 12*8)),
+					dstRect: image.Rect(0, 0, 48, 96),
+				},
+			}
+
+			tc.want.bufferDstRect.Max = image.Pt(48, 96)
+			tc.want.memDstRect.Max = image.Pt(48, 96)
+			tc.want.memRect.Max = image.Pt(6, 96)
+
+			return tc
+		}(),
+		func() testCase {
+			tc := testCase{
+				name: "origin bottom right with offset",
+				opts: drawOpts{
+					devSize: image.Pt(75, 103),
+					origin:  BottomRight,
+					buffer:  image1bit.NewVerticalLSB(image.Rect(0, 0, 10*8, 14*8)),
+					dstRect: image.Rect(9, 17, 19, 49),
+				},
+			}
+
+			tc.want.bufferDstOffset = image.Point{
+				X: tc.opts.buffer.Bounds().Dx() - tc.opts.devSize.X,
+				Y: tc.opts.buffer.Bounds().Dy() - tc.opts.devSize.Y,
+			}
+			tc.want.bufferDstRect = image.Rectangle{
+				Min: image.Point{
+					X: tc.want.bufferDstOffset.X + tc.opts.dstRect.Min.X,
+					Y: tc.want.bufferDstOffset.Y + tc.opts.dstRect.Min.Y,
+				},
+				Max: image.Point{
+					X: tc.want.bufferDstOffset.X + tc.opts.dstRect.Max.X,
+					Y: tc.want.bufferDstOffset.Y + tc.opts.dstRect.Max.Y,
+				},
+			}
+			tc.want.memDstRect = image.Rectangle{
+				Min: image.Point{
+					X: tc.opts.devSize.X - tc.opts.dstRect.Max.X,
+					Y: tc.opts.devSize.Y - tc.opts.dstRect.Max.Y,
+				},
+				Max: image.Point{
+					X: tc.opts.devSize.X - tc.opts.dstRect.Min.X,
+					Y: tc.opts.devSize.Y - tc.opts.dstRect.Min.Y,
+				},
+			}
+			tc.want.memRect = image.Rectangle{
+				Min: image.Pt(7, tc.want.memDstRect.Min.Y),
+				Max: image.Pt(9, tc.want.memDstRect.Max.Y),
+			}
+
+			return tc
+		}(),
+		func() testCase {
+			tc := testCase{
+				name: "origin bottom left full",
+				opts: drawOpts{
+					devSize: image.Pt(48, 96),
+					origin:  BottomLeft,
+					buffer:  image1bit.NewVerticalLSB(image.Rect(0, 0, 6*8, 12*8)),
+					dstRect: image.Rect(0, 0, 48, 96),
+				},
+			}
+
+			tc.want.bufferDstRect.Max = image.Pt(48, 96)
+			tc.want.memDstRect.Max = image.Pt(96, 48)
+			tc.want.memRect.Max = image.Pt(12, 48)
+
+			return tc
+		}(),
+		func() testCase {
+			tc := testCase{
+				name: "origin bottom left with offset",
+				opts: drawOpts{
+					devSize: image.Pt(101, 81),
+					origin:  BottomLeft,
+					buffer:  image1bit.NewVerticalLSB(image.Rect(0, 0, 15*8, 11*8)),
+					dstRect: image.Rect(9, 17, 21, 49),
+				},
+			}
+
+			tc.want.bufferDstOffset = image.Point{
+				X: tc.opts.buffer.Bounds().Dx() - tc.opts.devSize.X,
+				Y: tc.opts.buffer.Bounds().Dy() - tc.opts.devSize.Y,
+			}
+			tc.want.bufferDstRect = image.Rectangle{
+				Min: image.Point{
+					X: tc.want.bufferDstOffset.X + tc.opts.dstRect.Min.X,
+					Y: tc.want.bufferDstOffset.Y + tc.opts.dstRect.Min.Y,
+				},
+				Max: image.Point{
+					X: tc.want.bufferDstOffset.X + tc.opts.dstRect.Max.X,
+					Y: tc.want.bufferDstOffset.Y + tc.opts.dstRect.Max.Y,
+				},
+			}
+			tc.want.memDstRect = image.Rectangle{
+				Min: image.Point{
+					X: tc.opts.dstRect.Min.Y,
+					Y: tc.opts.devSize.X - tc.opts.dstRect.Max.X,
+				},
+				Max: image.Point{
+					X: tc.opts.dstRect.Max.Y,
+					Y: tc.opts.devSize.X - tc.opts.dstRect.Min.X,
+				},
+			}
+			tc.want.memRect = image.Rectangle{
+				Min: image.Pt(2, tc.want.memDstRect.Min.Y),
+				Max: image.Pt(7, tc.want.memDstRect.Max.Y),
+			}
+
+			return tc
+		}(),
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			checkRectCanon(t, tc.opts.dstRect)
+
 			got := tc.opts.spec()
 
-			if diff := cmp.Diff(got, tc.want, cmpopts.EquateEmpty()); diff != "" {
+			checkRectCanon(t, got.bufferDstRect)
+			checkRectCanon(t, got.memRect)
+
+			if diff := cmp.Diff(got, tc.want, cmp.AllowUnexported(drawSpec{})); diff != "" {
 				t.Errorf("spec() difference (-got +want):\n%s", diff)
 			}
 		})
@@ -63,18 +321,23 @@ func TestSendImage(t *testing.T) {
 	for _, tc := range []struct {
 		name string
 		cmd  byte
-		area image.Rectangle
-		img  *image1bit.VerticalLSB
+		opts drawOpts
 		want []record
 	}{
 		{
 			name: "empty",
+			opts: drawOpts{
+				buffer: image1bit.NewVerticalLSB(image.Rectangle{}),
+			},
 		},
 		{
 			name: "partial",
 			cmd:  writeRAMBW,
-			area: image.Rect(2, 20, 4, 40),
-			img:  image1bit.NewVerticalLSB(image.Rect(0, 0, 64, 64)),
+			opts: drawOpts{
+				devSize: image.Pt(64, 64),
+				dstRect: image.Rect(16, 20, 32, 40),
+				buffer:  image1bit.NewVerticalLSB(image.Rect(0, 0, 64, 64)),
+			},
 			want: []record{
 				{cmd: dataEntryModeSetting, data: []byte{0x3}},
 				{cmd: setRAMXAddressStartEndPosition, data: []byte{2, 4 - 1}},
@@ -90,12 +353,15 @@ func TestSendImage(t *testing.T) {
 		{
 			name: "partial non-aligned",
 			cmd:  writeRAMRed,
-			area: image.Rect(2, 4, 6, 8),
-			img: func() *image1bit.VerticalLSB {
-				img := image1bit.NewVerticalLSB(image.Rect(0, 0, 64, 64))
-				draw.Src.Draw(img, image.Rect(17, 4, 41, 8), &image.Uniform{image1bit.On}, image.Point{})
-				return img
-			}(),
+			opts: drawOpts{
+				devSize: image.Pt(100, 64),
+				dstRect: image.Rect(17, 4, 41, 8),
+				buffer: func() *image1bit.VerticalLSB {
+					img := image1bit.NewVerticalLSB(image.Rect(0, 0, 64, 64))
+					draw.Src.Draw(img, image.Rect(17, 4, 41, 8), &image.Uniform{image1bit.On}, image.Point{})
+					return img
+				}(),
+			},
 			want: []record{
 				{cmd: dataEntryModeSetting, data: []byte{0x3}},
 				{cmd: setRAMXAddressStartEndPosition, data: []byte{2, 6 - 1}},
@@ -111,12 +377,15 @@ func TestSendImage(t *testing.T) {
 		{
 			name: "full",
 			cmd:  writeRAMBW,
-			area: image.Rect(0, 0, 10, 120),
-			img: func() *image1bit.VerticalLSB {
-				img := image1bit.NewVerticalLSB(image.Rect(0, 0, 80, 120))
-				draw.Src.Draw(img, image.Rect(0, 0, 80, 120), &image.Uniform{image1bit.On}, image.Point{})
-				return img
-			}(),
+			opts: drawOpts{
+				devSize: image.Pt(80, 120),
+				dstRect: image.Rect(0, 0, 80, 120),
+				buffer: func() *image1bit.VerticalLSB {
+					img := image1bit.NewVerticalLSB(image.Rect(0, 0, 80, 120))
+					draw.Src.Draw(img, image.Rect(0, 0, 80, 120), &image.Uniform{image1bit.On}, image.Point{})
+					return img
+				}(),
+			},
 			want: []record{
 				{cmd: dataEntryModeSetting, data: []byte{0x3}},
 				{cmd: setRAMXAddressStartEndPosition, data: []byte{0, 10 - 1}},
@@ -129,11 +398,166 @@ func TestSendImage(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "top left",
+			cmd:  writeRAMBW,
+			opts: drawOpts{
+				devSize: image.Pt(100, 40),
+				dstRect: image.Rect(20, 17-5, 44, 29+5),
+				origin:  TopLeft,
+				buffer: func() *image1bit.VerticalLSB {
+					img := image1bit.NewVerticalLSB(image.Rect(0, 0, 100, 40))
+					draw.Src.Draw(img, image.Rect(20, 17, 44, 29), &image.Uniform{image1bit.On}, image.Point{})
+					return img
+				}(),
+			},
+			want: []record{
+				{cmd: dataEntryModeSetting, data: []byte{0x3}},
+				{cmd: setRAMXAddressStartEndPosition, data: []byte{2, 5}},
+				{cmd: setRAMYAddressStartEndPosition, data: []byte{17 - 5, 0, 29 + 5 - 1, 0}},
+				{cmd: setRAMXAddressCounter, data: []byte{2}},
+				{cmd: setRAMYAddressCounter, data: []byte{12, 0}},
+				{
+					cmd: writeRAMBW,
+					data: append(
+						append(
+							bytes.Repeat([]byte{0x00, 0x00, 0x00, 0x00}, 5),
+							bytes.Repeat([]byte{0x0f, 0xff, 0xff, 0xf0}, 29-17)...),
+						bytes.Repeat([]byte{0x00, 0x00, 0x00, 0x00}, 5)...,
+					),
+				},
+			},
+		},
+		{
+			name: "top right",
+			cmd:  writeRAMBW,
+			opts: drawOpts{
+				devSize: image.Pt(64, 48),
+				dstRect: image.Rect(15-5, 16, 30+5, 40),
+				origin:  TopRight,
+				buffer: func() *image1bit.VerticalLSB {
+					img := image1bit.NewVerticalLSB(image.Rect(0, 0, 64, 48))
+					draw.Src.Draw(img, image.Rect(15, 20, 30, 36), &image.Uniform{image1bit.On}, image.Point{})
+					return img
+				}(),
+			},
+			want: []record{
+				{cmd: dataEntryModeSetting, data: []byte{0x3}},
+				{cmd: setRAMXAddressStartEndPosition, data: []byte{(48 - 40) / 8, ((48 - 16 + 7) / 8) - 1}},
+				{cmd: setRAMYAddressStartEndPosition, data: []byte{15 - 5, 0, (30 + 5) - 1, 0}},
+				{cmd: setRAMXAddressCounter, data: []byte{1}},
+				{cmd: setRAMYAddressCounter, data: []byte{10, 0}},
+				{
+					cmd: writeRAMBW,
+					data: append(
+						append(
+							bytes.Repeat([]byte{0x00, 0x00, 0x00}, 5),
+							bytes.Repeat([]byte{0x0f, 0xff, 0xf0}, 30-15)...),
+						bytes.Repeat([]byte{0x00, 0x00, 0x00}, 5)...,
+					),
+				},
+			},
+		},
+		{
+			name: "top right uneven size",
+			cmd:  writeRAMBW,
+			opts: drawOpts{
+				devSize: image.Pt(61, 53),
+				dstRect: image.Rect(15-5, 16, 30+5, 36),
+				origin:  TopRight,
+				buffer: func() *image1bit.VerticalLSB {
+					img := image1bit.NewVerticalLSB(image.Rect(0, 0, 64, 99))
+					yoff := img.Bounds().Dy() - 53 + 1
+					draw.Src.Draw(img, image.Rect(15, yoff+16, 30, yoff+32), &image.Uniform{image1bit.On}, image.Point{})
+					return img
+				}(),
+			},
+			want: []record{
+				{cmd: dataEntryModeSetting, data: []byte{0x3}},
+				{cmd: setRAMXAddressStartEndPosition, data: []byte{(53 - 32) / 8, ((53 - 16 + 7) / 8) - 1}},
+				{cmd: setRAMYAddressStartEndPosition, data: []byte{15 - 5, 0, (30 + 5) - 1, 0}},
+				{cmd: setRAMXAddressCounter, data: []byte{2}},
+				{cmd: setRAMYAddressCounter, data: []byte{10, 0}},
+				{
+					cmd: writeRAMBW,
+					data: append(
+						append(
+							bytes.Repeat([]byte{0x00, 0x00, 0x00}, 5),
+							bytes.Repeat([]byte{0x0f, 0xff, 0xf0}, 30-15)...),
+						bytes.Repeat([]byte{0x00, 0x00, 0x00}, 5)...,
+					),
+				},
+			},
+		},
+		{
+			name: "bottom right",
+			cmd:  writeRAMRed,
+			opts: drawOpts{
+				devSize: image.Pt(64, 48),
+				dstRect: image.Rect(16, 15-5, 40, 30+5),
+				origin:  BottomRight,
+				buffer: func() *image1bit.VerticalLSB {
+					img := image1bit.NewVerticalLSB(image.Rect(0, 0, 64, 48))
+					draw.Src.Draw(img, image.Rect(20, 15, 36, 30), &image.Uniform{image1bit.On}, image.Point{})
+					return img
+				}(),
+			},
+			want: []record{
+				{cmd: dataEntryModeSetting, data: []byte{0x3}},
+				{cmd: setRAMXAddressStartEndPosition, data: []byte{(64 - 40) / 8, ((64 - 16 + 7) / 8) - 1}},
+				{cmd: setRAMYAddressStartEndPosition, data: []byte{48 - (30 + 5), 0, 48 - (15 - 5) - 1, 0}},
+				{cmd: setRAMXAddressCounter, data: []byte{3}},
+				{cmd: setRAMYAddressCounter, data: []byte{48 - (30 + 5), 0}},
+				{
+					cmd: writeRAMRed,
+					data: append(
+						append(
+							bytes.Repeat([]byte{0x00, 0x00, 0x00}, 5),
+							bytes.Repeat([]byte{0x0f, 0xff, 0xf0}, 30-15)...),
+						bytes.Repeat([]byte{0x00, 0x00, 0x00}, 5)...,
+					),
+				},
+			},
+		},
+		{
+			name: "bottom left",
+			cmd:  writeRAMRed,
+			opts: drawOpts{
+				devSize: image.Pt(64, 48),
+				dstRect: image.Rect(15-5, 16, 30+5, 40),
+				origin:  BottomLeft,
+				buffer: func() *image1bit.VerticalLSB {
+					img := image1bit.NewVerticalLSB(image.Rect(0, 0, 64, 48))
+					draw.Src.Draw(img, image.Rect(15, 20, 30, 36), &image.Uniform{image1bit.On}, image.Point{})
+					return img
+				}(),
+			},
+			want: []record{
+				{cmd: dataEntryModeSetting, data: []byte{0x3}},
+				{cmd: setRAMXAddressStartEndPosition, data: []byte{16 / 8, ((40 + 7) / 8) - 1}},
+				{cmd: setRAMYAddressStartEndPosition, data: []byte{64 - (30 + 5), 0, 64 - (15 - 5) - 1, 0}},
+				{cmd: setRAMXAddressCounter, data: []byte{2}},
+				{cmd: setRAMYAddressCounter, data: []byte{64 - (30 + 5), 0}},
+				{
+					cmd: writeRAMRed,
+					data: append(
+						append(
+							bytes.Repeat([]byte{0x00, 0x00, 0x00}, 5),
+							bytes.Repeat([]byte{0x0f, 0xff, 0xf0}, 30-15)...),
+						bytes.Repeat([]byte{0x00, 0x00, 0x00}, 5)...,
+					),
+				},
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var got fakeController
 
-			sendImage(&got, tc.cmd, tc.area, tc.img)
+			checkRectCanon(t, tc.opts.dstRect)
+
+			spec := tc.opts.spec()
+
+			tc.opts.sendImage(&got, tc.cmd, &spec)
 
 			if diff := cmp.Diff([]record(got), tc.want, cmpopts.EquateEmpty(), cmp.AllowUnexported(record{})); diff != "" {
 				t.Errorf("sendImage() difference (-got +want):\n%s", diff)
@@ -150,6 +574,9 @@ func TestDrawImage(t *testing.T) {
 	}{
 		{
 			name: "empty",
+			opts: drawOpts{
+				buffer: image1bit.NewVerticalLSB(image.Rectangle{}),
+			},
 		},
 		{
 			name: "partial",

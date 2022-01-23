@@ -34,6 +34,28 @@ func TestNew(t *testing.T) {
 			wantBufferBounds: image.Rect(0, 0, 128, 250),
 			wantString:       "epd.Dev{playback, (0), Width: 122, Height: 250}",
 		},
+		{
+			name: "EPD2in13v2, top right",
+			opts: func() Opts {
+				opts := EPD2in13v2
+				opts.Origin = TopRight
+				return opts
+			}(),
+			wantBounds:       image.Rect(0, 0, 250, 122),
+			wantBufferBounds: image.Rect(0, 0, 250, 128),
+			wantString:       "epd.Dev{playback, (0), Width: 250, Height: 122}",
+		},
+		{
+			name: "EPD2in13v2, bottom left",
+			opts: func() Opts {
+				opts := EPD2in13v2
+				opts.Origin = BottomLeft
+				return opts
+			}(),
+			wantBounds:       image.Rect(0, 0, 250, 122),
+			wantBufferBounds: image.Rect(0, 0, 250, 128),
+			wantString:       "epd.Dev{playback, (0), Width: 250, Height: 122}",
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			dev, err := New(&spitest.Playback{}, &gpiotest.Pin{}, &gpiotest.Pin{}, &gpiotest.Pin{}, &gpiotest.Pin{

@@ -44,6 +44,7 @@ func setMemoryArea(ctrl controller, area image.Rectangle) {
 type drawOpts struct {
 	commands []byte
 	devSize  image.Point
+	origin   Corner
 	buffer   *image1bit.VerticalLSB
 	dstRect  image.Rectangle
 	src      image.Image
@@ -51,47 +52,142 @@ type drawOpts struct {
 }
 
 type drawSpec struct {
-	// Destination on display in pixels, normalized to fit into actual size.
-	DstRect image.Rectangle
+	// Amount by which buffer contents must be moved to align with the physical
+	// top-left corner of the display.
+	//
+	// TODO: The offset shifts the buffer contents to be aligned such that the
+	// translated position of the physical, on-display (0,0) location is at
+	// a multiple of 8 on the equivalent to the physical X axis. With a bit of
+	// additional work transfers for the TopRight and BottomLeft origins should
+	// not require per-pixel processing by exploiting image1bit.VerticalLSB's
+	// underlying pixel storage format.
+	bufferDstOffset image.Point
+
+	// Destination in buffer in pixels.
+	bufferDstRect image.Rectangle
+
+	// Destination in device RAM, rotated and shifted to match the origin.
+	memDstRect image.Rectangle
 
 	// Area to send to device; horizontally in bytes (thus aligned to
-	// 8 pixels), vertically in pixels.
-	MemRect image.Rectangle
+	// 8 pixels), vertically in pixels. Computed from memDstRect.
+	memRect image.Rectangle
 }
 
+// spec pre-computes the various offsets required for sending image updates to
+// the device.
 func (o *drawOpts) spec() drawSpec {
 	s := drawSpec{
-		DstRect: image.Rectangle{Max: o.devSize}.Intersect(o.dstRect),
+		bufferDstRect: image.Rectangle{Max: o.devSize}.Intersect(o.dstRect),
 	}
 
-	s.MemRect = image.Rect(
-		s.DstRect.Min.X/8, s.DstRect.Min.Y,
-		(s.DstRect.Max.X+7)/8, s.DstRect.Max.Y,
-	)
+	switch o.origin {
+	case TopRight:
+		s.bufferDstOffset.Y = o.buffer.Bounds().Dy() - o.devSize.Y
+	case BottomRight:
+		s.bufferDstOffset.Y = o.buffer.Bounds().Dy() - o.devSize.Y
+		s.bufferDstOffset.X = o.buffer.Bounds().Dx() - o.devSize.X
+	case BottomLeft:
+		s.bufferDstOffset.Y = o.buffer.Bounds().Dy() - o.devSize.Y
+		s.bufferDstOffset.X = o.buffer.Bounds().Dx() - o.devSize.X
+	}
+
+	if !s.bufferDstRect.Empty() {
+		switch o.origin {
+		case TopLeft:
+			s.memDstRect = s.bufferDstRect
+
+		case TopRight:
+			s.memDstRect.Min.X = o.devSize.Y - s.bufferDstRect.Max.Y
+			s.memDstRect.Max.X = o.devSize.Y - s.bufferDstRect.Min.Y
+
+			s.memDstRect.Min.Y = s.bufferDstRect.Min.X
+			s.memDstRect.Max.Y = s.bufferDstRect.Max.X
+
+		case BottomRight:
+			s.memDstRect.Min.X = o.devSize.X - s.bufferDstRect.Max.X
+			s.memDstRect.Max.X = o.devSize.X - s.bufferDstRect.Min.X
+
+			s.memDstRect.Min.Y = o.devSize.Y - s.bufferDstRect.Max.Y
+			s.memDstRect.Max.Y = o.devSize.Y - s.bufferDstRect.Min.Y
+
+		case BottomLeft:
+			s.memDstRect.Min.X = s.bufferDstRect.Min.Y
+			s.memDstRect.Max.X = s.bufferDstRect.Max.Y
+
+			s.memDstRect.Min.Y = o.devSize.X - s.bufferDstRect.Max.X
+			s.memDstRect.Max.Y = o.devSize.X - s.bufferDstRect.Min.X
+		}
+
+		s.bufferDstRect = s.bufferDstRect.Add(s.bufferDstOffset)
+
+		s.memRect.Min.X = s.memDstRect.Min.X / 8
+		s.memRect.Max.X = (s.memDstRect.Max.X + 7) / 8
+		s.memRect.Min.Y = s.memDstRect.Min.Y
+		s.memRect.Max.Y = s.memDstRect.Max.Y
+	}
 
 	return s
 }
 
 // sendImage sends an image to the controller after setting up the registers.
-// The area is in bytes on the horizontal axis.
-func sendImage(ctrl controller, cmd byte, area image.Rectangle, img *image1bit.VerticalLSB) {
-	if area.Empty() {
+func (o *drawOpts) sendImage(ctrl controller, cmd byte, spec *drawSpec) {
+	if spec.memRect.Empty() {
 		return
 	}
 
-	setMemoryArea(ctrl, area)
+	setMemoryArea(ctrl, spec.memRect)
 
 	ctrl.sendCommand(cmd)
 
-	rowData := make([]byte, area.Dx())
+	var posFor func(destY, destX, bit int) image.Point
 
-	for y := area.Min.Y; y < area.Max.Y; y++ {
-		for x := 0; x < len(rowData); x++ {
-			rowData[x] = 0
+	switch o.origin {
+	case TopLeft:
+		posFor = func(destY, destX, bit int) image.Point {
+			return image.Point{
+				X: destX + bit,
+				Y: destY,
+			}
+		}
+
+	case TopRight:
+		posFor = func(destY, destX, bit int) image.Point {
+			return image.Point{
+				X: destY,
+				Y: o.devSize.Y - destX - bit - 1,
+			}
+		}
+
+	case BottomRight:
+		posFor = func(destY, destX, bit int) image.Point {
+			return image.Point{
+				X: o.devSize.X - destX - bit - 1,
+				Y: o.devSize.Y - destY - 1,
+			}
+		}
+
+	case BottomLeft:
+		posFor = func(destY, destX, bit int) image.Point {
+			return image.Point{
+				X: o.devSize.X - destY - 1,
+				Y: destX + bit,
+			}
+		}
+	}
+
+	rowData := make([]byte, spec.memRect.Dx())
+
+	for destY := spec.memRect.Min.Y; destY < spec.memRect.Max.Y; destY++ {
+		for destX := 0; destX < len(rowData); destX++ {
+			rowData[destX] = 0
 
 			for bit := 0; bit < 8; bit++ {
-				if img.BitAt(((area.Min.X+x)*8)+bit, y) {
-					rowData[x] |= 0x80 >> bit
+				bufPos := posFor(destY, (spec.memRect.Min.X+destX)*8, bit)
+				bufPos = bufPos.Add(spec.bufferDstOffset)
+
+				if o.buffer.BitAt(bufPos.X, bufPos.Y) {
+					rowData[destX] |= 0x80 >> bit
 				}
 			}
 		}
@@ -103,11 +199,13 @@ func sendImage(ctrl controller, cmd byte, area image.Rectangle, img *image1bit.V
 func drawImage(ctrl controller, opts *drawOpts) {
 	s := opts.spec()
 
-	if s.MemRect.Empty() {
+	if s.memRect.Empty() {
 		return
 	}
 
-	draw.Src.Draw(opts.buffer, s.DstRect, opts.src, opts.srcPts)
+	// The buffer is kept in logical orientation. Rotation and alignment with
+	// the origin happens while sending the image data.
+	draw.Src.Draw(opts.buffer, s.bufferDstRect, opts.src, opts.srcPts)
 
 	commands := opts.commands
 
@@ -117,6 +215,6 @@ func drawImage(ctrl controller, opts *drawOpts) {
 
 	// Keep the two buffers in sync.
 	for _, cmd := range commands {
-		sendImage(ctrl, cmd, s.MemRect, opts.buffer)
+		opts.sendImage(ctrl, cmd, &s)
 	}
 }
