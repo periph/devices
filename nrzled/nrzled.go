@@ -81,10 +81,13 @@ func NewSPI(p spi.Port, opts *Opts) (*Dev, error) {
 	}
 	// 4 symbol bytes per byte, 3/4 bytes per pixel.
 	streamLen := 4 * (opts.Channels * opts.NumPixels)
-	// 3 bytes for latch. 24*400ns = 9600ns. In practice this could be skipped,
-	// as the overhead for SPI Tx() tear down and the next one is likely at least
-	// 10µs.
-	bufSize := streamLen + 3
+	// 3 bytes for latch. 24*400ns = 9600ns. In practice this could be skipped at
+	// the end as the overhead for SPI Tx() tear down and the next one is likely
+	// at least 10µs.
+	// In the front, we definitely want it, as SPIs might otherwise be high for
+	// quite a while while setting themselves up, causing the first symbol to be
+	// interpreted as a logical 1.
+	bufSize := 3 + streamLen + 3
 	if l, ok := p.(conn.Limits); ok {
 		if s := l.MaxTxSize(); s < bufSize {
 			return nil, errors.New("spi port buffer is too short for the specified number of pixels")
@@ -101,7 +104,7 @@ func NewSPI(p spi.Port, opts *Opts) (*Dev, error) {
 		numPixels: opts.NumPixels,
 		channels:  opts.Channels,
 		b:         gpiostream.BitStream{Freq: opts.Freq, Bits: buf, LSBF: false},
-		rawBuf:    buf[:streamLen],
+		rawBuf:    buf[3 : bufSize-3],
 		rect:      image.Rect(0, 0, opts.NumPixels, 1),
 	}, nil
 }
