@@ -28,9 +28,9 @@ jobs:
     runs-on: "${{matrix.os}}"
     name: "go${{matrix.gover}}.x on ${{matrix.os}}"
     steps:
-    - uses: actions/setup-go@v2
+    - uses: actions/setup-go@v3
       with:
-        go-version: "^${{matrix.gover}}.0"
+        go-version: "~${{matrix.gover}}.0"
 
       # Checkout and print debugging information.
     - name: Turn off git core.autocrlf
