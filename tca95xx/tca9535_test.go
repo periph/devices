@@ -49,9 +49,9 @@ func TestTCA9535_out(t *testing.T) {
 	if nil == p0 {
 		t.Fatal("p0 is nil")
 	}
-	p0.Out(gpio.Low)
-	p0.Out(gpio.High)
-	p0.Out(gpio.Low)
+	_ = p0.Out(gpio.Low)
+	_ = p0.Out(gpio.High)
+	_ = p0.Out(gpio.Low)
 }
 
 func TestTCA9535_in(t *testing.T) {
@@ -75,7 +75,7 @@ func TestTCA9535_in(t *testing.T) {
 
 	p0 := gpioreg.ByName("TCA9535_20_P0_0")
 
-	p0.In(gpio.Float, gpio.NoEdge)
+	_ = p0.In(gpio.Float, gpio.NoEdge)
 	l := p0.Read()
 	if l != gpio.High {
 		t.Errorf("Input should be High")
@@ -107,8 +107,8 @@ func TestTCA9535_inInverted(t *testing.T) {
 
 	p0 := gpioreg.ByName("TCA9535_20_P0_0").(Pin)
 
-	p0.In(gpio.Float, gpio.NoEdge)
-	p0.SetPolarityInverted(true)
+	_ = p0.In(gpio.Float, gpio.NoEdge)
+	_ = p0.SetPolarityInverted(true)
 	l := p0.Read()
 	if l != gpio.High {
 		t.Errorf("Input should be High")
@@ -126,7 +126,7 @@ func TestTCA9535_inInverted(t *testing.T) {
 func TestTCA9535_Tx(t *testing.T) {
 	tests := []struct {
 		description string
-		scenario    i2ctest.Playback
+		scenario    *i2ctest.Playback
 		output      bool
 		t           []byte
 		r           []byte
@@ -136,7 +136,7 @@ func TestTCA9535_Tx(t *testing.T) {
 			description: "working write 2 characters",
 			output:      true,
 			t:           []byte{0xa5, 0x5a},
-			scenario: i2ctest.Playback{
+			scenario: &i2ctest.Playback{
 				Ops: []i2ctest.IO{
 					// iodir is read on creation
 					{Addr: 0x20, W: []byte{0x06}, R: []byte{0xFF}},
@@ -162,7 +162,7 @@ func TestTCA9535_Tx(t *testing.T) {
 		}, {
 			description: "working read 2 characters",
 			r:           []byte{0xa5, 0x5a},
-			scenario: i2ctest.Playback{
+			scenario: &i2ctest.Playback{
 				Ops: []i2ctest.IO{
 					// iodir is read on creation
 					{Addr: 0x20, W: []byte{0x06}, R: []byte{0xFF}},
@@ -176,7 +176,7 @@ func TestTCA9535_Tx(t *testing.T) {
 			description: "Invalid, only r or w may be set.",
 			r:           []byte{0xa5, 0x5a},
 			t:           []byte{0xa5, 0x5a},
-			scenario: i2ctest.Playback{
+			scenario: &i2ctest.Playback{
 				Ops: []i2ctest.IO{
 					// iodir is read on creation
 					{Addr: 0x20, W: []byte{0x06}, R: []byte{0xFF}},
@@ -189,7 +189,7 @@ func TestTCA9535_Tx(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.description, func(t *testing.T) {
-			dev, err := New(&tc.scenario, TCA9535, uint16(0x20))
+			dev, err := New(tc.scenario, TCA9535, uint16(0x20))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -201,12 +201,12 @@ func TestTCA9535_Tx(t *testing.T) {
 			if tc.output {
 				// Set the port for output
 				for _, pin := range dev.Pins[0] {
-					pin.Out(gpio.Low)
+					_ = pin.Out(gpio.Low)
 				}
 			} else {
 				// Set the port for input
 				for _, pin := range dev.Pins[0] {
-					pin.In(gpio.Float, gpio.NoEdge)
+					_ = pin.In(gpio.Float, gpio.NoEdge)
 				}
 			}
 
@@ -248,39 +248,39 @@ func TestTCA9535_fixedValues(t *testing.T) {
 	}
 	defer dev.Close()
 
-	if conn.Half != dev.Conns[0].Duplex() {
+	if dev.Conns[0].Duplex() != conn.Half {
 		t.Errorf("Duplex() should return conn.Half")
 	}
 
-	if "TCA9535_20_P0" != dev.Conns[0].String() {
+	if dev.Conns[0].String() != "TCA9535_20_P0" {
 		t.Errorf("String() should return 'TCA9535_20_P0'")
 	}
 
-	if "TCA9535_20_P1" != dev.Conns[1].String() {
+	if dev.Conns[1].String() != "TCA9535_20_P1" {
 		t.Errorf("String() should return 'TCA9535_20_P1'")
 	}
 
-	if "TCA9535_20_P0_1" != dev.Pins[0][1].String() {
+	if dev.Pins[0][1].String() != "TCA9535_20_P0_1" {
 		t.Errorf("String() should return 'TCA9535_20_P0_1'")
 	}
 
-	if 1 != dev.Pins[0][1].Number() {
+	if dev.Pins[0][1].Number() != 1 {
 		t.Errorf("Number() should return '1'")
 	}
 
-	if 6 != dev.Pins[0][6].Number() {
+	if dev.Pins[0][6].Number() != 6 {
 		t.Errorf("Number() should return '6'")
 	}
 
-	if false != dev.Pins[0][6].WaitForEdge(10*time.Second) {
+	if dev.Pins[0][6].WaitForEdge(10*time.Second) != false {
 		t.Errorf("WaitForEdge() should return 'false'")
 	}
 
-	if gpio.Float != dev.Pins[0][5].Pull() {
+	if dev.Pins[0][5].Pull() != gpio.Float {
 		t.Errorf("Pull() should return 'gpio.Float'")
 	}
 
-	if gpio.Float != dev.Pins[0][5].DefaultPull() {
+	if dev.Pins[0][5].DefaultPull() != gpio.Float {
 		t.Errorf("DefaultPull() should return 'gpio.Float'")
 	}
 
