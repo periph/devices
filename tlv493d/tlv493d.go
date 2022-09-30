@@ -405,14 +405,16 @@ func (d *Dev) ReadContinuous(frequency physic.Frequency, precision Precision) (<
 				if err != nil {
 					// Try resetting the sensor to recover from errors
 					fmt.Println("Error reading from TLV493D sensor:", err)
-					if err := d.initialize(true); err != nil {
-						continue
+					if err := d.initialize(true); err == nil {
+						if err := d.SetMode(newMode); err != nil {
+							fmt.Println("Unable to reset TLV493D mode:", err)
+						} else {
+							fmt.Println("Sensor reset successfully")
+						}
 					}
-					d.SetMode(newMode)
-					fmt.Println("Sensor reset successfully")
-				} else {
-					reading <- value
+					continue
 				}
+				reading <- value
 			}
 		}
 	}(d.stop)
