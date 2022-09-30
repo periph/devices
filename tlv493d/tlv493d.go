@@ -185,7 +185,7 @@ func New(i i2c.Bus, opts *Opts) (*Dev, error) {
 		temperatureOffsetCompensation: opts.TemperatureOffsetCompensation,
 		registersBuffer:               make([]byte, numberOfReadRegisters),
 	}
-	if err := d.initialize(opts); err != nil {
+	if err := d.initialize(opts.Reset); err != nil {
 		return nil, err
 	}
 	return d, nil
@@ -204,7 +204,7 @@ func (d *Dev) Halt() error {
 	return d.SetMode(PowerDownMode)
 }
 
-func (d *Dev) initialize(opts *Opts) error {
+func (d *Dev) initialize(reset bool) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -215,7 +215,7 @@ func (d *Dev) initialize(opts *Opts) error {
 		return err
 	}
 
-	if opts.Reset {
+	if reset {
 		// Reset I2C address
 		var resetAddress byte = 0x00
 		if d.i2c.Addr == I2CAddr1 {
@@ -403,7 +403,12 @@ func (d *Dev) ReadContinuous(frequency physic.Frequency, precision Precision) (<
 			case <-t.C:
 				value, err := d.Read(precision)
 				if err != nil {
-					// In continuous mode, we'll ignore errors silently.
+					// Try resetting the sensor to recover from errors
+					fmt.Println("Error reading from TLV493D sensor:", err)
+					if err := d.initialize(true); err == nil {
+						d.SetMode(newMode)
+						fmt.Println("Sensor reset successfully")
+					}
 					continue
 				}
 				reading <- value
