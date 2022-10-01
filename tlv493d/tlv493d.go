@@ -7,6 +7,7 @@ package tlv493d
 import (
 	"errors"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -404,12 +405,11 @@ func (d *Dev) ReadContinuous(frequency physic.Frequency, precision Precision) (<
 				value, err := d.Read(precision)
 				if err != nil {
 					// Try resetting the sensor to recover from errors
-					fmt.Println("Error reading from TLV493D sensor:", err)
 					if err := d.initialize(true); err == nil {
 						if err := d.SetMode(newMode); err != nil {
-							fmt.Println("Unable to reset TLV493D mode:", err)
+							log.Println("Unable to reset TLV493D mode:", err)
 						} else {
-							fmt.Println("Sensor reset successfully")
+							log.Println("Sensor reset successfully")
 						}
 					}
 					continue
