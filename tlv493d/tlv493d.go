@@ -194,7 +194,7 @@ func New(i i2c.Bus, opts *Opts) (*Dev, error) {
 
 // String implements conn.Resource.
 func (d *Dev) String() string {
-	return "TLV493D"
+	return fmt.Sprintf("TLV493D{i2c:0x%x}", d.i2c.Addr)
 }
 
 // Halt implements conn.Resource.
