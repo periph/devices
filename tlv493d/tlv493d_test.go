@@ -52,7 +52,7 @@ func TestDev_String(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if s := d.String(); s != "TLV493D" {
+	if s := d.String(); s != "TLV493D{i2c:0x5e}" {
 		t.Fatal(s)
 	}
 	if err := d.Halt(); err != nil {
