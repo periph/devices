@@ -5,13 +5,13 @@
 // Package ina219 controls a Texas Instruments ina219 high side current,
 // voltage and power monitor IC over an i2c bus.
 //
-// Calibration
+// # Calibration
 //
 // Calibration is recommended for accurate current and power measurements.
 // Voltage measurements do not require sensor calibration. To calibrate, measure
 // the actual value of the shunt resistor.
 //
-// Datasheet
+// # Datasheet
 //
 // http://www.ti.com/lit/ds/symlink/ina219.pdf
 package ina219

@@ -4,9 +4,9 @@
 
 // Package pca9685 includes utilities to controls pca9685 module and servo motors.
 //
-// More details
+// # More details
 //
-// Datasheet
+// # Datasheet
 //
 // https://www.nxp.com/docs/en/data-sheet/PCA9685.pdf
 //

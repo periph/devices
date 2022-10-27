@@ -14,11 +14,11 @@
 // The DS18B20/DS18S20 alarm functionality and reading/writing the 2 alarm
 // bytes in the EEPROM are not supported.
 //
-// More details
+// # More details
 //
 // See https://periph.io/device/ds18b20/ for more details about the device.
 //
-// Datasheets
+// # Datasheets
 //
 // https://datasheets.maximintegrated.com/en/ds/DS18B20-PAR.pdf
 //

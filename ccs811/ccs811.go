@@ -294,16 +294,17 @@ func (d *Dev) SetBaseline(baseline []byte) error {
 // Sensing resistor's current is between 0-63uA, and voltage 0-1.65V.
 //
 // Status represents sensor's status register.
-// 		1001 0110
-// 		|||||||||
-// 		||||||| \- 1 = There is an error.
-// 		|||||| \- Reserved.
-// 		||||| \- Reserved.
-// 		|||| \- 1 = Data ready.
-// 		||| \- 1 = Valid application firmware loaded.
-// 		|| \- Reserved.
-// 		| \- Reserved.
-// 		 \- 0 = Firmware in boot mode, 1 Firmware in application mode.
+//
+//	1001 0110
+//	|||||||||
+//	||||||| \- 1 = There is an error.
+//	|||||| \- Reserved.
+//	||||| \- Reserved.
+//	|||| \- 1 = Data ready.
+//	||| \- 1 = Valid application firmware loaded.
+//	|| \- Reserved.
+//	| \- Reserved.
+//	 \- 0 = Firmware in boot mode, 1 Firmware in application mode.
 //
 // Error represents error state of the sensor if available, otherwise is nil.
 type SensorValues struct {

@@ -4,7 +4,7 @@
 
 // Package bh1750 controls a ROHM BH1750 ambient light sensor, over an i2c bus.
 //
-// Datasheet
+// # Datasheet
 //
 // http://cpre.kmutnb.ac.th/esl/learning/bh1750-light-sensor/bh1750fvi-e_datasheet.pdf
 package bh1750

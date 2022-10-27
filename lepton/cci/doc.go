@@ -8,7 +8,7 @@
 // This protocol controls and queries the camera but is not used to read the
 // images.
 //
-// Datasheet
+// # Datasheet
 //
 // https://www.flir.com/globalassets/imported-assets/document/flir-lepton-software-interface-description-document.pdf
 package cci

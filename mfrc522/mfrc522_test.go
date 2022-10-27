@@ -21,7 +21,8 @@ func fromBitString(t *testing.T, s string) (res byte) {
 }
 
 /*
-   C1 C2 C3
+	C1 C2 C3
+
 3 : 1  0  0
 2 : 0  0  1
 1 : 1  0  1
@@ -77,12 +78,12 @@ func TestBitCalc(t *testing.T) {
 }
 
 /*
-   C1 C2 C3
+	C1 C2 C3
+
 3 : 0  0  1
 2 : 0  0  0
 1 : 0  0  0
 0 : 0  0  0
-
 
 1 1 1 1 1 1 1 1
 0 0 0 0 0 1 1 1

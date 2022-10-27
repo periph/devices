@@ -99,11 +99,11 @@ func (d *Dev) SetBrightness(b Brightness) error {
 // P can be a dot or ':' following a digit. Otherwise it is likely
 // disconnected. Each byte is encoded as PGFEDCBA.
 //
-//     -A-
-//    F   B
-//     -G-
-//    E   C
-//     -D-   P
+//	 -A-
+//	F   B
+//	 -G-
+//	E   C
+//	 -D-   P
 func (d *Dev) Write(seg []byte) (int, error) {
 	if len(seg) > 6 {
 		return 0, errors.New("tm1637: up to 6 segment groups are supported")

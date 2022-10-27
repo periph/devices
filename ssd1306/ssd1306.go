@@ -113,7 +113,7 @@ type Opts struct {
 // The SSD1306 can operate at up to 3.3Mhz, which is much higher than I²C. This
 // permits higher refresh rates.
 //
-// Wiring
+// # Wiring
 //
 // Connect SDA to SPI_MOSI, SCK to SPI_CLK, CS to SPI_CS.
 //

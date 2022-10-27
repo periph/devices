@@ -4,7 +4,7 @@
 
 // Package mcp9808 controls a Microchip MCP9808 digital I²C temperature sensor.
 //
-// Features
+// # Features
 //
 // -40°C and +125°C Operating Range.
 //
@@ -12,7 +12,7 @@
 //
 // User-Programmable Temperature Alerts.
 //
-// Datasheet
+// # Datasheet
 //
 // http://ww1.microchip.com/downloads/en/DeviceDoc/25095A.pdf
 package mcp9808

@@ -4,7 +4,7 @@
 
 // Package inky drives an Inky pHAT, pHAT v2 or wHAT E ink display.
 //
-// Datasheet
+// # Datasheet
 //
 // Inky lacks a true datasheet, so the code here is derived from the reference
 // implementation by Pimoroni:

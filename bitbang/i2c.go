@@ -30,9 +30,9 @@ const SkipAddr uint16 = 0xFFFF
 // during ACK.
 //
 // It has two special features:
-// - Special address SkipAddr can be used to skip the address from being
-//   communicated
-// - An arbitrary speed can be used
+//   - Special address SkipAddr can be used to skip the address from being
+//     communicated
+//   - An arbitrary speed can be used
 func New(clk gpio.PinIO, data gpio.PinIO, f physic.Frequency) (*I2C, error) {
 	// Spec calls to idle at high. Page 8, section 3.1.1.
 	// Set SCL as pull-up.

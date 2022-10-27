@@ -148,7 +148,6 @@ func New(i i2c.Bus) (*Dev, error) {
 
 // Dev is the Lepton specific Command and Control Interface (CCI).
 //
-//
 // Dev can safely accessed concurrently via multiple goroutines.
 //
 // This interface is accessed via I²C and provides access to view and modify

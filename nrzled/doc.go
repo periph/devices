@@ -18,14 +18,14 @@
 // You may also need to increase your SPI buffer size to 12*num_pixels+3, or just max it out
 // with `spidev.bufsize=65536`. That should allopw you to buffer over 5400 Neopixels.
 //
-// Datasheet
+// # Datasheet
 //
 // This directory contains datasheets for ws2812, ws2812b, ucs190x and various
 // sk6812.
 //
 // https://github.com/cpldcpu/light_ws2812/tree/master/Datasheets
 //
-// UCS1903 datasheet
+// # UCS1903 datasheet
 //
 // http://www.bestlightingbuy.com/pdf/UCS1903%20datasheet.pdf
 //

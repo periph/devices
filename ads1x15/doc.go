@@ -5,7 +5,7 @@
 // Package ads1x15 controls ADS1015/ADS1115 Analog-Digital Converters (ADC) via
 // I²C interface.
 //
-// Datasheet
+// # Datasheet
 //
 // ADS1015: http://www.ti.com/product/ADS1015
 //

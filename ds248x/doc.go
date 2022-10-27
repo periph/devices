@@ -5,11 +5,11 @@
 // Package ds248x controls a Maxim DS2483 or DS2482-100 1-wire interface chip
 // over I²C.
 //
-// More details
+// # More details
 //
 // See https://periph.io/device/ds248x/ for more details about the device.
 //
-// Datasheets
+// # Datasheets
 //
 // https://www.maximintegrated.com/en/products/digital/one-wire/DS2483.html
 //

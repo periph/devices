@@ -5,11 +5,11 @@
 // Package ccs811 controls CCS811 Volatile Organic Compounds sensor via
 // I²C interface.
 //
-// Product page
+// # Product page
 //
 // https://ams.com/ccs811
 //
-// Datasheet
+// # Datasheet
 //
 // https://ams.com/documents/20143/36005/CCS811_DS000459_7-00.pdf
 package ccs811

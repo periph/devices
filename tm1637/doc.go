@@ -4,11 +4,11 @@
 
 // Package tm1637 controls a TM1637 device over GPIO pins.
 //
-// More details
+// # More details
 //
 // See https://periph.io/device/tm1637/ for more details about the device.
 //
-// Datasheet
+// # Datasheet
 //
 // http://olimex.cl/website_MCI/static/documents/Datasheet_TM1637.pdf
 package tm1637

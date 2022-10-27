@@ -6,14 +6,12 @@
 // from multiple vendors. The main features of this multiplexer is that its has
 // 8 channels and is capable of voltage level translation.
 //
-//
-// Adjusting the Bus CLK
+// # Adjusting the Bus CLK
 //
 // The bus clock is slaved to the master bus clock, different clock for each
 // port is currently not supported. The Maximum clock for this device is 400kHz.
 //
-//
-// Datasheet
+// # Datasheet
 //
 // https://www.nxp.com/docs/en/data-sheet/PCA9548A.pdf
 package pca9548

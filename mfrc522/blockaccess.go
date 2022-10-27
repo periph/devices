@@ -4,7 +4,7 @@
 
 // Package mfrc522 controls a Mifare RFID card reader.
 //
-// Datasheet
+// # Datasheet
 //
 // https://www.nxp.com/docs/en/data-sheet/MFRC522.pdf
 package mfrc522
@@ -33,25 +33,25 @@ const (
 // Every trail sector has the options for controlling the access to the trailing sector bits.
 // For example :
 //
-//  KeyA_R[Key]_W[Key]_BITS_R[Key]_W[Key]_KeyB_R[Key]_W[Key]
+//	KeyA_R[Key]_W[Key]_BITS_R[Key]_W[Key]_KeyB_R[Key]_W[Key]
 //
-//  - KeyA
-//    - could be Read by providing [Key] ( where [Key] could be KeyA or KeyB )
-//    - could be Written by Providing [Key] ( where [Key] is KeyA or KeyB )
-//  - access bits for the sector data (see above)
-//    - could be Read by providing [Key] ( where [Key] could be KeyA or KeyB )
-//    - could be Written by Providing [Key] ( where [Key] is KeyA or KeyB )
-//  - KeyB
-//    - could be Read by providing [Key] ( where [Key] could be KeyA or KeyB )
-//    - could be Written by Providing [Key] ( where [Key] is KeyA or KeyB )
+//	- KeyA
+//	  - could be Read by providing [Key] ( where [Key] could be KeyA or KeyB )
+//	  - could be Written by Providing [Key] ( where [Key] is KeyA or KeyB )
+//	- access bits for the sector data (see above)
+//	  - could be Read by providing [Key] ( where [Key] could be KeyA or KeyB )
+//	  - could be Written by Providing [Key] ( where [Key] is KeyA or KeyB )
+//	- KeyB
+//	  - could be Read by providing [Key] ( where [Key] could be KeyA or KeyB )
+//	  - could be Written by Providing [Key] ( where [Key] is KeyA or KeyB )
 //
-//  example:
+//	example:
 //
-//   KeyA_RN_WA_BITS_RA_WA_KeyB_RA_WA means
-//   - KeyA could not be read but could be overwriten if KeyA is provided
-//   - Access bits could be read and overwritten if KeyA is provided during the card authentication
-//   - KeyB could be read and overriten if KeyA is provided during the card authentication
-//  more on the matter: https://www.nxp.com/docs/en/data-sheet/MF1S50YYX_V1.pdf
+//	 KeyA_RN_WA_BITS_RA_WA_KeyB_RA_WA means
+//	 - KeyA could not be read but could be overwriten if KeyA is provided
+//	 - Access bits could be read and overwritten if KeyA is provided during the card authentication
+//	 - KeyB could be read and overriten if KeyA is provided during the card authentication
+//	more on the matter: https://www.nxp.com/docs/en/data-sheet/MF1S50YYX_V1.pdf
 const (
 	KeyA_RN_WA_BITS_RA_WN_KeyB_RA_WA        SectorTrailerAccess = 0x0
 	KeyA_RN_WN_BITS_RA_WN_KeyB_RA_WN        SectorTrailerAccess = 0x02

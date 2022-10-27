@@ -10,7 +10,7 @@
 // TODO(maruel): "dtoverlay=pwm" or "dtoverlay=pwm-2chan" works without having
 // to install anything, albeit with less pins supported.
 //
-// Warning
+// # Warning
 //
 // piblaster doesn't report what pins is controls so it is easy to misuse this
 // library.
@@ -56,7 +56,7 @@ var piblasterHandle io.WriteCloser
 
 func openPiblaster() error {
 	if piblasterHandle == nil {
-		f, err := os.OpenFile("/dev/pi-blaster", os.O_WRONLY|os.O_APPEND, 0644)
+		f, err := os.OpenFile("/dev/pi-blaster", os.O_WRONLY|os.O_APPEND, 0600)
 		if err != nil {
 			return err
 		}

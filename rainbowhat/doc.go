@@ -20,9 +20,9 @@
 //
 // Servo header (PWM)
 //
-// More details
+// # More details
 //
-// Product Page
+// # Product Page
 //
 // https://shop.pimoroni.com/products/rainbow-hat-for-android-things
 package rainbowhat

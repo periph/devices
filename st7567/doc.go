@@ -4,7 +4,7 @@
 
 // Package st7567 implements an interface to the single-chip dot matrix LCD
 //
-// Datasheet
+// # Datasheet
 //
 // https://www.newhavendisplay.com/appnotes/datasheets/LCDs/ST7567.pdf
 package st7567

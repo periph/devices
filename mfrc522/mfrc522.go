@@ -4,7 +4,7 @@
 
 // Package mfrc522 controls a Mifare RFID card reader.
 //
-// Datasheet
+// # Datasheet
 //
 // https://www.nxp.com/docs/en/data-sheet/MFRC522.pdf
 package mfrc522
@@ -80,10 +80,10 @@ func noop() {}
 
 // NewSPI creates and initializes the RFID card reader attached to SPI.
 //
-//  spiPort     the SPI device to use.
-//  resetPin    reset GPIO pin.
-//  irqPin      irq GPIO pin.
-//  configs     configuration options
+//	spiPort     the SPI device to use.
+//	resetPin    reset GPIO pin.
+//	irqPin      irq GPIO pin.
+//	configs     configuration options
 func NewSPI(spiPort spi.Port, resetPin gpio.PinOut, irqPin gpio.PinIn, configs ...configF) (*Dev, error) {
 	cfg := &config{
 		defaultTimeout: 30 * time.Second,
@@ -128,7 +128,7 @@ func (r *Dev) Halt() error {
 
 // SetAntennaGain configures antenna signal strength.
 //
-//  gain    signal strength from 0 to 7.
+//	gain    signal strength from 0 to 7.
 func (r *Dev) SetAntennaGain(gain int) error {
 	r.beforeCall()
 	defer r.afterCall()
@@ -141,7 +141,7 @@ func (r *Dev) SetAntennaGain(gain int) error {
 
 // ReadUID reads the 4-byte or 7-byte card UID with IRQ event timeout.
 //
-//  timeout   the operation timeout
+//	timeout   the operation timeout
 func (r *Dev) ReadUID(timeout time.Duration) (uid []byte, err error) {
 	r.beforeCall()
 	defer func() {
@@ -155,11 +155,11 @@ func (r *Dev) ReadUID(timeout time.Duration) (uid []byte, err error) {
 
 // ReadCard  reads the card sector/block with IRQ event timeout.
 //
-//  timeout   the operation timeout
-//  auth      the authentication mode.
-//  sector    the sector to authenticate on.
-//  block     the block within sector to authenticate.
-//  key       the key to be used for accessing the sector data.
+//	timeout   the operation timeout
+//	auth      the authentication mode.
+//	sector    the sector to authenticate on.
+//	block     the block within sector to authenticate.
+//	key       the key to be used for accessing the sector data.
 func (r *Dev) ReadCard(timeout time.Duration, auth byte, sector int, block int, key Key) (data []byte, err error) {
 	r.beforeCall()
 	defer func() {
@@ -185,10 +185,10 @@ func (r *Dev) ReadCard(timeout time.Duration, auth byte, sector int, block int, 
 
 // ReadAuth  reads the card authentication data with IRQ event timeout.
 //
-//  timeout    the operation timeout
-//  auth       authentication type
-//  sector     the sector to authenticate on.
-//  key        the key to be used for accessing the sector data.
+//	timeout    the operation timeout
+//	auth       authentication type
+//	sector     the sector to authenticate on.
+//	key        the key to be used for accessing the sector data.
 func (r *Dev) ReadAuth(timeout time.Duration, auth byte, sector int, key Key) (data []byte, err error) {
 	r.beforeCall()
 	defer func() {
@@ -215,12 +215,12 @@ func (r *Dev) ReadAuth(timeout time.Duration, auth byte, sector int, key Key) (d
 
 // WriteCard    writes the data into the card block with IRQ event timeout.
 //
-//  timeout     the operation timeout
-//  auth        the authentiction mode.
-//  sector      the sector on the card to write to.
-//  block       the block within the sector to write into.
-//  data        16 bytes if data to write
-//  key          the key used to authenticate the card - depends on the used auth method.
+//	timeout     the operation timeout
+//	auth        the authentiction mode.
+//	sector      the sector on the card to write to.
+//	block       the block within the sector to write into.
+//	data        16 bytes if data to write
+//	key          the key used to authenticate the card - depends on the used auth method.
 func (r *Dev) WriteCard(timeout time.Duration, auth byte, sector int, block int, data [16]byte, key Key) (err error) {
 	r.beforeCall()
 	defer func() {
@@ -247,13 +247,13 @@ func (r *Dev) WriteCard(timeout time.Duration, auth byte, sector int, block int,
 
 // WriteSectorTrail  writes the sector trail with sector access bits with IRQ event timeout.
 //
-//  timeout   operation timeout
-//  auth      authentication mode.
-//  sector    sector to set authentication.
-//  keyA      the key used for AuthA authentication scheme.
-//  keyB      the key used for AuthB authentication scheme.
-//  access    the block access structure.
-//  key       the current key used to authenticate the provided sector.
+//	timeout   operation timeout
+//	auth      authentication mode.
+//	sector    sector to set authentication.
+//	keyA      the key used for AuthA authentication scheme.
+//	keyB      the key used for AuthB authentication scheme.
+//	access    the block access structure.
+//	key       the current key used to authenticate the provided sector.
 func (r *Dev) WriteSectorTrail(timeout time.Duration, auth byte, sector int, keyA Key, keyB Key, access *BlocksAccess, key Key) (err error) {
 	r.beforeCall()
 	defer func() {
@@ -390,8 +390,8 @@ func (r *Dev) selectTag(serial []byte) (byte, error) {
 
 // readBlock reads the block from the card.
 //
-//  sector - card sector to read from
-//  block - the block within the sector (0-3 tor Mifare 4K)
+//	sector - card sector to read from
+//	block - the block within the sector (0-3 tor Mifare 4K)
 func (r *Dev) readBlock(sector int, block int) ([]byte, error) {
 	return r.read(calcBlockAddress(sector, block%3))
 }
@@ -469,8 +469,8 @@ func (r *Dev) write(blockAddr byte, data []byte) error {
 
 // preAccess  calculates CRC of the block address to be accessed and sends it to the device for verification.
 //
-//  blockAddr - the block address to access.
-//  cmd - command code to perform on the given block,
+//	blockAddr - the block address to access.
+//	cmd - command code to perform on the given block,
 func (r *Dev) preAccess(blockAddr byte, cmd byte) ([]byte, int, error) {
 	send := make([]byte, 4)
 	send[0] = cmd
@@ -487,7 +487,7 @@ func (r *Dev) preAccess(blockAddr byte, cmd byte) ([]byte, int, error) {
 
 // read  reads the block
 //
-//   blockAddr the address to read from the card.
+//	blockAddr the address to read from the card.
 func (r *Dev) read(blockAddr byte) ([]byte, error) {
 	data, _, err := r.preAccess(blockAddr, commands.PICC_READ)
 	if err != nil {

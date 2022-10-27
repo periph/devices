@@ -5,7 +5,7 @@
 // Package lirc implements InfraRed receiver support through native linux app
 // lirc.
 //
-// More details
+// # More details
 //
 // See https://periph.io/device/ir/ for more details about the driver, as it
 // requires host configuration.

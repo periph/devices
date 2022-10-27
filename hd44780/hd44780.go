@@ -4,7 +4,7 @@
 
 // Package hd44780 controls the Hitachi LCD display chipset HD-44780
 //
-// Datasheet
+// # Datasheet
 //
 // https://www.sparkfun.com/datasheets/LCD/HD44780.pdf
 package hd44780
@@ -33,6 +33,7 @@ type Dev struct {
 }
 
 // New creates and initializes the LCD device
+//
 //	data - references to data pins
 //	rs - rs pin
 //	e - strobe pin
@@ -88,6 +89,7 @@ func (r *Dev) Halt() error {
 }
 
 // SetCursor positions the cursor
+//
 //	line - screen line, 0-based
 //	column - column, 0-based
 func (r *Dev) SetCursor(line uint8, column uint8) error {
@@ -95,6 +97,7 @@ func (r *Dev) SetCursor(line uint8, column uint8) error {
 }
 
 // Print the data string
+//
 //	data string to display
 func (r *Dev) Print(data string) error {
 	for _, v := range []byte(data) {
@@ -106,6 +109,7 @@ func (r *Dev) Print(data string) error {
 }
 
 // WriteChar writes a single byte (character) at the cursor position.
+//
 //	data - character code
 func (r *Dev) WriteChar(data uint8) error {
 	if err := r.sendData(); err != nil {

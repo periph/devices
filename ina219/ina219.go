@@ -17,7 +17,7 @@ import (
 
 // Opts holds the configuration options.
 //
-// Slave Address
+// # Slave Address
 //
 // Depending which pins the A1, A0 pins are connected to will change the slave
 // address. Default configuration is address 0x40 (both pins to GND). For a full

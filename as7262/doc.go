@@ -6,7 +6,7 @@
 // interface. The as7262 features 6 spectral channels spaced at 450, 500, 550,
 // 570, 600, 650 nm and includes 2 integrated LED drivers.
 //
-// Datasheet
+// # Datasheet
 //
 // https://ams.com/documents/20143/36005/AS7262_DS000486_2-00.pdf
 package as7262

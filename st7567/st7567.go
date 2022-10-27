@@ -241,7 +241,7 @@ func (rr *RegulationResistor) String() string {
 	}
 }
 
-//RegulationRatio selects the regulation resistor ratio
+// RegulationRatio selects the regulation resistor ratio
 type RegulationRatio []RegulationResistor
 
 func (rrs *RegulationRatio) String() string {

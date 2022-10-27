@@ -4,14 +4,19 @@
 
 module periph.io/x/devices/v3
 
-go 1.14
+go 1.17
 
 require (
-	github.com/google/go-cmp v0.5.6
+	github.com/google/go-cmp v0.5.9
 	github.com/maruel/ansi256 v1.0.2
-	github.com/mattn/go-colorable v0.1.12
-	golang.org/x/image v0.0.0-20211028202545-6944b10bf410
-	golang.org/x/sys v0.0.0-20211210111614-af8b64212486 // indirect
-	periph.io/x/conn/v3 v3.6.10
-	periph.io/x/host/v3 v3.7.2
+	github.com/mattn/go-colorable v0.1.13
+	golang.org/x/image v0.1.0
+	periph.io/x/conn/v3 v3.7.0
+	periph.io/x/host/v3 v3.8.0
+)
+
+require (
+	github.com/jonboulle/clockwork v0.3.0 // indirect
+	github.com/mattn/go-isatty v0.0.16 // indirect
+	golang.org/x/sys v0.1.0 // indirect
 )

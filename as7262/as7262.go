@@ -85,17 +85,17 @@ func (s Spectrum) String() string {
 
 // Band has two types of measurement of relative spectral flux density.
 //
-// Value
+// # Value
 //
 // Value are the calibrated readings. The accuracy of the channel counts/μW/cm2
 // is ±12%.
 //
-// Counts
+// # Counts
 //
 // Counts are the raw readings, there are approximately 45 counts/μW/cm2 with a
 // gain of 16 (Gx16).
 //
-// Wavelength
+// # Wavelength
 //
 // Wavelength is the nominal center of a band, with a ±40nm bandwidth around the
 // center. Wavelengths for the as7262 are: 450nm, 500nm, 550nm, 570nm, 600nm and
@@ -114,13 +114,13 @@ func (b Band) String() string {
 // Sense preforms a reading of relative spectral radiance of all the sensor
 // bands.
 //
-// Led Drive Current
+// # Led Drive Current
 //
 // The AS7262 provides a current-limited integrated led drive circuit. Valid
 // limits for the drive current are 0mA, 12.5mA, 25mA, 50mA and 100mA. If non
 // valid values are given the next lowest valid value is used.
 //
-// Resolution
+// # Resolution
 //
 // For best resolution it is recommended that for a specific led drive
 // current that the senseTime or gain is increased until at least one of the

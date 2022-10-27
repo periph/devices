@@ -18,11 +18,11 @@
 // High. When set to Low (Ground), it enables the reset circuitry. It can be
 // used externally to this driver, if used, the driver must be reinstantiated.
 //
-// More details
+// # More details
 //
 // See https://periph.io/device/ssd1306/ for more details about the device.
 //
-// Datasheets
+// # Datasheets
 //
 // Product page:
 // http://www.solomon-systech.com/en/product/display-ic/oled-driver-controller/ssd1306/

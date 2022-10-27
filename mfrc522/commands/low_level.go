@@ -35,9 +35,9 @@ type AuthStatus byte
 
 // NewLowLevelSPI creates and initializes the RFID card reader attached to SPI.
 //
-//  spiPort - the SPI device to use.
-//  resetPin - reset GPIO pin.
-//  irqPin - irq GPIO pin.
+//	spiPort - the SPI device to use.
+//	resetPin - reset GPIO pin.
+//	irqPin - irq GPIO pin.
 func NewLowLevelSPI(spiPort spi.Port, resetPin gpio.PinOut, irqPin gpio.PinIn) (*LowLevel, error) {
 	if resetPin == nil {
 		return nil, wrapf("reset pin is not set")
@@ -233,11 +233,11 @@ func (r *LowLevel) ClearInterrupt() {
 
 // Auth authenticate the card fof the sector/block using the provided data.
 //
-// 	mode - the authentication mode.
-// 	sector - the sector to authenticate on.
-// 	block - the block within sector to authenticate.
-// 	sectorKey - the key to be used for accessing the sector data.
-// 	serial - the serial of the card.
+//	mode - the authentication mode.
+//	sector - the sector to authenticate on.
+//	block - the block within sector to authenticate.
+//	sectorKey - the key to be used for accessing the sector data.
+//	serial - the serial of the card.
 func (r *LowLevel) Auth(mode byte, blockAddress byte, sectorKey [6]byte, serial []byte) (AuthStatus, error) {
 	buffer := make([]byte, 2)
 	buffer[0] = mode
@@ -256,8 +256,8 @@ func (r *LowLevel) Auth(mode byte, blockAddress byte, sectorKey [6]byte, serial 
 
 // CardWrite the low-level interface to write some raw commands to the card.
 //
-// 	command - the command register
-// 	data - the data to write out to the card using the authenticated sector.
+//	command - the command register
+//	data - the data to write out to the card using the authenticated sector.
 func (r *LowLevel) CardWrite(command byte, data []byte) ([]byte, int, error) {
 	var backData []byte
 	backLength := -1

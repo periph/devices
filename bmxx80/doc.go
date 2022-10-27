@@ -5,11 +5,11 @@
 // Package bmxx80 controls a Bosch BMP180/BME280/BMP280 device over I²C, or SPI
 // for the BMx280.
 //
-// More details
+// # More details
 //
 // See https://periph.io/device/bmxx80/ for more details about the device.
 //
-// Datasheets
+// # Datasheets
 //
 // The URLs tend to rot, visit https://www.bosch-sensortec.com if they become
 // invalid.
@@ -28,7 +28,7 @@
 //
 // https://cdn-shop.adafruit.com/datasheets/BST-BMP180-DS000-09.pdf
 //
-// Notes on the BMP180 datasheet
+// # Notes on the BMP180 datasheet
 //
 // The results of the calculations in the algorithm on page 15 are partly
 // wrong. It looks like the original authors used non-integer calculations and

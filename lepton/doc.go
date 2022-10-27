@@ -4,11 +4,11 @@
 
 // Package lepton drives a FLIR Lepton Infra Red (IR) camera.
 //
-// More details
+// # More details
 //
 // See https://periph.io/device/lepton/ for more details about the device.
 //
-// Datasheet
+// # Datasheet
 //
 // https://www.flir.com/globalassets/imported-assets/document/lepton-engineering-datasheet---with-radiometry.pdf
 package lepton

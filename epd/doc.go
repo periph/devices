@@ -4,9 +4,9 @@
 
 // Package epd controls Waveshare e-paper series displays.
 //
-// More details
+// # More details
 //
-// Datasheets
+// # Datasheets
 //
 // https://www.waveshare.com/w/upload/e/e6/2.13inch_e-Paper_Datasheet.pdf
 //

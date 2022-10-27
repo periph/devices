@@ -4,7 +4,7 @@
 
 // Package mpu9250 MPU-9250 is a 9-axis MotionTracking device that combines a 3-axis gyroscope, 3-axis accelerometer, 3-axis magnetometer and a Digital Motion Processor™ (DMP)
 //
-// Datasheet
+// # Datasheet
 //
 // https://www.invensense.com/wp-content/uploads/2015/02/PS-MPU-9250A-01-v1.1.pdf
 // https://www.invensense.com/wp-content/uploads/2015/02/MPU-9250-Register-Map.pdf
@@ -390,16 +390,16 @@ func (m *MPU9250) SelfTest() (*SelfTestResult, error) {
 // improved stability. The clock source can be selected according to the
 // following table:
 //
-//  CLK_SEL | Clock Source
-//  --------+--------------------------------------
-//  0       | Internal oscillator
-//  1       | PLL with X Gyro reference
-//  2       | PLL with Y Gyro reference
-//  3       | PLL with Z Gyro reference
-//  4       | PLL with external 32.768kHz reference
-//  5       | PLL with external 19.2MHz reference
-//  6       | Reserved
-//  7       | Stops the clock and keeps the timing generator in reset
+//	CLK_SEL | Clock Source
+//	--------+--------------------------------------
+//	0       | Internal oscillator
+//	1       | PLL with X Gyro reference
+//	2       | PLL with Y Gyro reference
+//	3       | PLL with Z Gyro reference
+//	4       | PLL with external 32.768kHz reference
+//	5       | PLL with external 19.2MHz reference
+//	6       | Reserved
+//	7       | Stops the clock and keeps the timing generator in reset
 func (m *MPU9250) SetClockSource(src byte) error {
 	if src > 7 {
 		return wrapf("clock should be in range 0 .. 7")
@@ -412,10 +412,10 @@ func (m *MPU9250) SetClockSource(src byte) error {
 // The FS_SEL parameter allows setting the full-scale range of the gyro sensors,
 // as described in the table below.
 //
-//  0 = +/- 250 degrees/sec
-//  1 = +/- 500 degrees/sec
-//  2 = +/- 1000 degrees/sec
-//  3 = +/- 2000 degrees/sec
+//	0 = +/- 250 degrees/sec
+//	1 = +/- 500 degrees/sec
+//	2 = +/- 1000 degrees/sec
+//	3 = +/- 2000 degrees/sec
 func (m *MPU9250) SetGyroRange(rangeVal byte) error {
 	if rangeVal > 3 {
 		return wrapf("accepted values are in the range 0 .. 3")
@@ -434,10 +434,10 @@ func (m *MPU9250) GetGyroRange() (byte, error) {
 // The FS_SEL parameter allows setting the full-scale range of the accelerometer
 // sensors, as described in the table below.
 //
-//  0 = +/- 2g
-//  1 = +/- 4g
-//  2 = +/- 8g
-//  3 = +/- 16g
+//	0 = +/- 2g
+//	1 = +/- 4g
+//	2 = +/- 8g
+//	3 = +/- 16g
 func (m *MPU9250) SetAccelRange(rangeVal byte) error {
 	if (rangeVal >> 3) > 3 {
 		return wrapf("accepted values are in the range 0 .. 3")
@@ -642,24 +642,24 @@ func (m *MPU9250) GetMasterClockSpeed() (byte, error) {
 // MPU-60X0 internal 8MHz clock. It sets the I2C master clock speed according to
 // the following table:
 //
-//  I2C_MST_CLK | I2C Master Clock Speed | 8MHz Clock Divider
-//  ------------+------------------------+-------------------
-//  0           | 348kHz                 | 23
-//  1           | 333kHz                 | 24
-//  2           | 320kHz                 | 25
-//  3           | 308kHz                 | 26
-//  4           | 296kHz                 | 27
-//  5           | 286kHz                 | 28
-//  6           | 276kHz                 | 29
-//  7           | 267kHz                 | 30
-//  8           | 258kHz                 | 31
-//  9           | 500kHz                 | 16
-//  10          | 471kHz                 | 17
-//  11          | 444kHz                 | 18
-//  12          | 421kHz                 | 19
-//  13          | 400kHz                 | 20
-//  14          | 381kHz                 | 21
-//  15          | 364kHz                 | 22
+//	I2C_MST_CLK | I2C Master Clock Speed | 8MHz Clock Divider
+//	------------+------------------------+-------------------
+//	0           | 348kHz                 | 23
+//	1           | 333kHz                 | 24
+//	2           | 320kHz                 | 25
+//	3           | 308kHz                 | 26
+//	4           | 296kHz                 | 27
+//	5           | 286kHz                 | 28
+//	6           | 276kHz                 | 29
+//	7           | 267kHz                 | 30
+//	8           | 258kHz                 | 31
+//	9           | 500kHz                 | 16
+//	10          | 471kHz                 | 17
+//	11          | 444kHz                 | 18
+//	12          | 421kHz                 | 19
+//	13          | 400kHz                 | 20
+//	14          | 381kHz                 | 21
+//	15          | 364kHz                 | 22
 func (m *MPU9250) SetMasterClockSpeed(speed byte) error {
 	// TODO: Use physic.Frequency.
 	if speed > 15 {
@@ -948,7 +948,7 @@ func (m *MPU9250) GetSlave4MasterDelay() (byte, error) {
 // Rate. When a slave's access rate is decreased relative to the Sample Rate,
 // the slave is accessed every:
 //
-//     1 / (1 + I2C_MST_DLY) samples
+//	1 / (1 + I2C_MST_DLY) samples
 //
 // This base Sample Rate in turn is determined by SMPLRT_DIV (register 25) and
 // DLPF_CFG (register 26). Whether a slave's access rate is reduced relative to
@@ -1556,12 +1556,12 @@ func (m *MPU9250) SetAccelerationOffsetX(offset uint16) error {
 // (Register 28). For each full scale setting, the accelerometers' sensitivity
 // per LSB in ACCEL_xOUT is shown in the table below:
 //
-//  AFS_SEL | Full Scale Range | LSB Sensitivity
-//  --------+------------------+----------------
-//  0       | +/- 2g           | 8192 LSB/mg
-//  1       | +/- 4g           | 4096 LSB/mg
-//  2       | +/- 8g           | 2048 LSB/mg
-//  3       | +/- 16g          | 1024 LSB/mg
+//	AFS_SEL | Full Scale Range | LSB Sensitivity
+//	--------+------------------+----------------
+//	0       | +/- 2g           | 8192 LSB/mg
+//	1       | +/- 4g           | 4096 LSB/mg
+//	2       | +/- 8g           | 2048 LSB/mg
+//	3       | +/- 16g          | 1024 LSB/mg
 func (m *MPU9250) GetAcceleration() (*AccelerometerData, error) {
 	x, err := m.GetAccelerationX()
 	if err != nil {
@@ -1677,12 +1677,12 @@ func (m *MPU9250) GetRotationZ() (int16, error) {
 // (Register 27). For each full scale setting, the gyroscopes' sensitivity per
 // LSB in GYRO_xOUT is shown in the table below:
 //
-//  FS_SEL | Full Scale Range   | LSB Sensitivity
-//  -------+--------------------+----------------
-//  0      | +/- 250 degrees/s  | 131 LSB/deg/s
-//  1      | +/- 500 degrees/s  | 65.5 LSB/deg/s
-//  2      | +/- 1000 degrees/s | 32.8 LSB/deg/s
-//  3      | +/- 2000 degrees/s | 16.4 LSB/deg/s
+//	FS_SEL | Full Scale Range   | LSB Sensitivity
+//	-------+--------------------+----------------
+//	0      | +/- 250 degrees/s  | 131 LSB/deg/s
+//	1      | +/- 500 degrees/s  | 65.5 LSB/deg/s
+//	2      | +/- 1000 degrees/s | 32.8 LSB/deg/s
+//	3      | +/- 2000 degrees/s | 16.4 LSB/deg/s
 func (m *MPU9250) GetRotation() (*RotationData, error) {
 	x, err := m.GetRotationX()
 	if err != nil {

@@ -53,14 +53,14 @@ var BitModel = color.ModelFunc(convert)
 // pixels high with LSB first. So the first byte represents the following
 // pixels, with lowest bit being the top left pixel.
 //
-//   0 x x x x x x x
-//   1 x x x x x x x
-//   2 x x x x x x x
-//   3 x x x x x x x
-//   4 x x x x x x x
-//   5 x x x x x x x
-//   6 x x x x x x x
-//   7 x x x x x x x
+//	0 x x x x x x x
+//	1 x x x x x x x
+//	2 x x x x x x x
+//	3 x x x x x x x
+//	4 x x x x x x x
+//	5 x x x x x x x
+//	6 x x x x x x x
+//	7 x x x x x x x
 //
 // It is designed specifically to work with SSD1306 OLED display controller.
 type VerticalLSB struct {

@@ -9,7 +9,7 @@
 // The cap1xxx devices are a 3/5/6/8/14 channel capacitive touch sensor with
 // 2/3/6/8/11 LED drivers.
 //
-// Datasheet
+// # Datasheet
 //
 // 3 sensors, 3 LEDs:
 // http://ww1.microchip.com/downloads/en/DeviceDoc/CAP1133.pdf

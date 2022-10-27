@@ -5,7 +5,7 @@
 // Package hx711 implements an interface to the 24-bits HX711 analog to digital
 // converter.
 //
-// Datasheet
+// # Datasheet
 //
 // http://www.aviaic.com/Download/hx711F_EN.pdf.pdf
 package hx711
