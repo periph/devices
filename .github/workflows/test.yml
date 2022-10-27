@@ -226,7 +226,7 @@ jobs:
     - name: "Check: go mod tidy doesn't modify files"
       if: always()
       run: |
-        go mod tidy
+        go mod tidy -compat=1.17
         TOUCHED=$(git status --porcelain --ignored)
         if ! test -z "$TOUCHED"; then
           echo "go mod tidy was not clean, please update:"
