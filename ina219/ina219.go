@@ -5,6 +5,7 @@
 package ina219
 
 import (
+	"unsafe"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -110,7 +111,7 @@ func (d *Dev) Sense() (PowerMonitor, error) {
 		return PowerMonitor{}, errReadShunt
 	}
 	// Least significant bit is 10µV.
-	pm.Shunt = physic.ElectricPotential(shunt) * 10 * physic.MicroVolt
+	pm.Shunt = physic.ElectricPotential(*((*int16)(unsafe.Pointer(&shunt)))) * 10 * physic.MicroVolt
 
 	bus, err := d.m.ReadUint16(busVoltageRegister)
 	if err != nil {
@@ -128,7 +129,7 @@ func (d *Dev) Sense() (PowerMonitor, error) {
 	if err != nil {
 		return PowerMonitor{}, errReadCurrent
 	}
-	pm.Current = physic.ElectricCurrent(current) * d.currentLSB
+	pm.Current = physic.ElectricCurrent(*((*int16)(unsafe.Pointer(&current)))) * d.currentLSB
 
 	power, err := d.m.ReadUint16(powerRegister)
 	if err != nil {
