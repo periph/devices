@@ -86,7 +86,7 @@ type DevImpression struct {
 
 	// Color Palette used to convert images to the 7 color.
 	Palette color.Palette
-	// Represantation of the pixels.
+	// Representation of the pixels.
 	Pix []uint8
 
 	// Saturation level used by the color palette.
