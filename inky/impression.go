@@ -118,15 +118,16 @@ func NewImpression(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinI
 
 	d := &DevImpression{
 		Dev: &Dev{
-			c:         c,
-			maxTxSize: maxTxSize,
-			dc:        dc,
-			r:         reset,
-			busy:      busy,
-			color:     o.ModelColor,
-			border:    o.BorderColor,
-			model:     o.Model,
-			variant:   o.DisplayVariant,
+			c:          c,
+			maxTxSize:  maxTxSize,
+			dc:         dc,
+			r:          reset,
+			busy:       busy,
+			color:      o.ModelColor,
+			border:     o.BorderColor,
+			model:      o.Model,
+			variant:    o.DisplayVariant,
+			pcbVariant: o.PCBVariant,
 		},
 		saturation: 50, // Looks good enough for most of the images.
 	}
@@ -195,11 +196,6 @@ func (d *DevImpression) SetSaturation(level uint) error {
 // SetBorder changes the border color. This will not take effect until the next Draw().
 func (d *DevImpression) SetBorder(c ImpressionColor) {
 	d.border = Color(c)
-}
-
-// SetPixel sets a pixel to the given color index.
-func (d *DevImpression) SetPixel(x, y int, color uint8) {
-	d.Pix[y*d.width+x] = color & 0x07
 }
 
 // Render renders the content of the Pix to the screen.
@@ -373,6 +369,7 @@ func (d *DevImpression) wait(dur time.Duration) {
 	d.busy.WaitForEdge(dur)
 }
 
+// ColorModel returns the device native color model.
 func (d *DevImpression) ColorModel() color.Model {
 	if d.Palette == nil {
 		d.Palette = d.blend()
@@ -380,6 +377,7 @@ func (d *DevImpression) ColorModel() color.Model {
 	return d.Palette
 }
 
+// At returns the color of the pixel at (x, y).
 func (d *DevImpression) At(x, y int) color.Color {
 	if d.Palette == nil {
 		d.Palette = d.blend()
@@ -387,6 +385,7 @@ func (d *DevImpression) At(x, y int) color.Color {
 	return d.Palette[d.Pix[y*d.width+x]]
 }
 
+// Set sets the pixel at (x, y) to the given color. This will not take effect until the next Draw().
 func (d *DevImpression) Set(x, y int, c color.Color) {
 	if d.Palette == nil {
 		d.Palette = d.blend()
@@ -394,6 +393,7 @@ func (d *DevImpression) Set(x, y int, c color.Color) {
 	d.Pix[y*d.width+x] = uint8(d.Palette.Index(c))
 }
 
+// Draw updates the display with the image.
 func (d *DevImpression) Draw(r image.Rectangle, src image.Image, sp image.Point) error {
 	if r != d.Bounds() {
 		return fmt.Errorf("partial updates are not supported")
