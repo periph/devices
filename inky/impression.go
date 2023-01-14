@@ -95,7 +95,7 @@ type DevImpression struct {
 	res int
 }
 
-// NewMulti opens a handle to an Inky Impression.
+// NewImpression opens a handle to an Inky Impression.
 func NewImpression(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, o *Opts) (*DevImpression, error) {
 	if o.ModelColor != Multi {
 		return nil, fmt.Errorf("unsupported color: %v", o.ModelColor)
