@@ -12,27 +12,27 @@ import (
 )
 
 var (
-	displayVariantMap = map[int]string{
-		0:  "",
-		1:  "Red pHAT (High-Temp)",
-		2:  "Yellow wHAT",
-		3:  "Black wHAT",
-		4:  "Black pHAT",
-		5:  "Yellow pHAT",
-		6:  "Red wHAT",
-		7:  "Red wHAT (High-Temp)",
-		8:  "Red wHAT",
-		9:  "",
-		10: "Black pHAT (SSD1608)",
-		11: "Red pHAT (SSD1608)",
-		12: "Yellow pHAT (SSD1608)",
-		13: "",
-		14: "7-Colour (UC8159)",
-		15: "7-Colour 640x400 (UC8159)",
-		16: "7-Colour 640x400 (UC8159)",
-		17: "Black wHAT (SSD1683)",
-		18: "Red wHAT (SSD1683)",
-		19: "Yellow wHAT (SSD1683)",
+	displayVariantMap = []string{
+		"",
+		"Red pHAT (High-Temp)",
+		"Yellow wHAT",
+		"Black wHAT",
+		"Black pHAT",
+		"Yellow pHAT",
+		"Red wHAT",
+		"Red wHAT (High-Temp)",
+		"Red wHAT",
+		"",
+		"Black pHAT (SSD1608)",
+		"Red pHAT (SSD1608)",
+		"Yellow pHAT (SSD1608)",
+		"",
+		"7-Colour (UC8159)",
+		"7-Colour 640x400 (UC8159)",
+		"7-Colour 640x400 (UC8159)",
+		"Black wHAT (SSD1683)",
+		"Red wHAT (SSD1683)",
+		"Yellow wHAT (SSD1683)",
 	}
 )
 
@@ -51,8 +51,8 @@ type Opts struct {
 	BorderColor Color
 
 	// Board information.
-	PCBVariant     float64
-	DisplayVariant int
+	PCBVariant     uint
+	DisplayVariant uint
 }
 
 // DetectOpts tries to read the device opts from EEPROM.
@@ -83,8 +83,8 @@ func DetectOpts(bus i2c.Bus) (*Opts, error) {
 	default:
 		return nil, fmt.Errorf("failed to get ops: color %v not supported", data[4])
 	}
-
-	options.PCBVariant = float64(data[5] / 10.0)
+	// PCB Variant is stored as a number in the eeprom but is actually corresponds a version string (12 -> 1.2)
+	options.PCBVariant = uint(data[5])
 
 	switch data[6] {
 	case 1, 4, 5:
@@ -101,7 +101,7 @@ func DetectOpts(bus i2c.Bus) (*Opts, error) {
 		return nil, fmt.Errorf("failed to get ops: display type %v not supported", data[6])
 	}
 
-	options.DisplayVariant = int(data[6])
+	options.DisplayVariant = uint(data[6])
 
 	return options, nil
 }

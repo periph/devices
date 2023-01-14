@@ -60,7 +60,7 @@ func Example() {
 	}
 }
 
-func ExampleImpression() {
+func ExampleNewImpression() {
 	path := flag.String("image", "", "Path to image file (600x448) to display")
 	flag.Parse()
 

@@ -50,34 +50,34 @@ var (
 )
 
 const (
-	UC8159PSR   = 0x00
-	UC8159PWR   = 0x01
-	UC8159POF   = 0x02
-	UC8159PFS   = 0x03
-	UC8159PON   = 0x04
-	UC8159BTST  = 0x06
-	UC8159DSLP  = 0x07
-	UC8159DTM1  = 0x10
-	UC8159DSP   = 0x11
-	UC8159DRF   = 0x12
-	UC8159IPC   = 0x13
-	UC8159PLL   = 0x30
-	UC8159TSC   = 0x40
-	UC8159TSE   = 0x41
-	UC8159TSW   = 0x42
-	UC8159TSR   = 0x43
-	UC8159CDI   = 0x50
-	UC8159LPD   = 0x51
-	UC8159TCON  = 0x60
-	UC8159TRES  = 0x61
-	UC8159DAM   = 0x65
-	UC8159REV   = 0x70
-	UC8159FLG   = 0x71
-	UC8159AMV   = 0x80
-	UC8159VV    = 0x81
-	UC8159VDCS  = 0x82
-	UC8159PWS   = 0xE3
-	UC8159TSSET = 0xE5
+	uc8159PSR   = 0x00
+	uc8159PWR   = 0x01
+	uc8159POF   = 0x02
+	uc8159PFS   = 0x03
+	uc8159PON   = 0x04
+	uc8159BTST  = 0x06
+	uc8159DSLP  = 0x07
+	uc8159DTM1  = 0x10
+	uc8159DSP   = 0x11
+	uc8159DRF   = 0x12
+	uc8159IPC   = 0x13
+	uc8159PLL   = 0x30
+	uc8159TSC   = 0x40
+	uc8159TSE   = 0x41
+	uc8159TSW   = 0x42
+	uc8159TSR   = 0x43
+	uc8159CDI   = 0x50
+	uc8159LPD   = 0x51
+	uc8159TCON  = 0x60
+	uc8159TRES  = 0x61
+	uc8159DAM   = 0x65
+	uc8159REV   = 0x70
+	uc8159FLG   = 0x71
+	uc8159AMV   = 0x80
+	uc8159VV    = 0x81
+	uc8159VDCS  = 0x82
+	uc8159PWS   = 0xE3
+	uc8159TSSET = 0xE5
 )
 
 // DevImpression is a handle to an Inky Impression.
@@ -90,7 +90,7 @@ type DevImpression struct {
 	Pix []uint8
 
 	// Saturation level used by the color palette.
-	saturation float64
+	saturation uint
 	// Resolution magic number used for resetting the panel.
 	res int
 }
@@ -101,7 +101,7 @@ func NewImpression(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinI
 		return nil, fmt.Errorf("unsupported color: %v", o.ModelColor)
 	}
 
-	c, err := p.Connect(3000*physic.KiloHertz, spi.Mode0, CS0Pin)
+	c, err := p.Connect(3000*physic.KiloHertz, spi.Mode0, cs0Pin)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to inky over spi: %v", err)
 	}
@@ -128,7 +128,7 @@ func NewImpression(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinI
 			model:     o.Model,
 			variant:   o.DisplayVariant,
 		},
-		saturation: 0.5, // Looks good enough for most of the images.
+		saturation: 50, // Looks good enough for most of the images.
 	}
 
 	switch o.Model {
@@ -155,7 +155,7 @@ func NewImpression(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinI
 
 // blend recalculates the palette based on the saturation level.
 func (d *DevImpression) blend() []color.Color {
-	sat := d.saturation
+	sat := float64(d.saturation / 100)
 
 	pr := []color.Color{}
 	for i := 0; i < 7; i++ {
@@ -176,14 +176,14 @@ func (d *DevImpression) blend() []color.Color {
 }
 
 // Saturation returns the current saturation level.
-func (d *DevImpression) Saturation() float64 {
+func (d *DevImpression) Saturation() uint {
 	return d.saturation
 }
 
 // SetSaturaton changes the saturation level. This will not take effect until the next Draw().
-func (d *DevImpression) SetSaturation(level float64) error {
-	if level < 0 && level > 1 {
-		return fmt.Errorf("saturation level needs to be between 0 and 1")
+func (d *DevImpression) SetSaturation(level uint) error {
+	if level > 100 {
+		return fmt.Errorf("saturation level needs to be between 0 and 100")
 	}
 	d.saturation = level
 	// so that caller can recalculate next time they need it.
@@ -244,7 +244,7 @@ func (d *DevImpression) reset() error {
 	binary.LittleEndian.PutUint16(tres[0:], uint16(d.width))
 	binary.LittleEndian.PutUint16(tres[2:], uint16(d.height))
 
-	if err := d.sendCommand(UC8159TRES, tres); err != nil {
+	if err := d.sendCommand(uc8159TRES, tres); err != nil {
 		return err
 	}
 
@@ -259,7 +259,7 @@ func (d *DevImpression) reset() error {
 	// 0b11 = 600x448
 	// 0b10 = 640x400
 	if err := d.sendCommand(
-		UC8159PSR,
+		uc8159PSR,
 		[]byte{
 			byte(d.res<<6) | 0b101111, // See above for more magic numbers
 			0x08,                      // display_colours == UC81597C
@@ -269,7 +269,7 @@ func (d *DevImpression) reset() error {
 
 	// Power Settings
 	if err := d.sendCommand(
-		UC8159PWR,
+		uc8159PWR,
 		[]byte{
 			(0x06 << 3) | // ??? - not documented in UC8159 datasheet
 				(0x01 << 2) | // SOURCE_INTERNAL_DC_DC
@@ -289,12 +289,12 @@ func (d *DevImpression) reset() error {
 	// PLL = 2MHz * (M / N)
 	// PLL = 2MHz * (7 / 4)
 	// PLL = 2,800,000 ???
-	if err := d.sendCommand(UC8159PLL, []byte{0x3C}); err != nil {
+	if err := d.sendCommand(uc8159PLL, []byte{0x3C}); err != nil {
 		return err
 	}
 	// 0b00111100
 	// Send the TSE register to the display
-	if err := d.sendCommand(UC8159TSE, []byte{0x00}); err != nil { // Color
+	if err := d.sendCommand(uc8159TSE, []byte{0x00}); err != nil { // Color
 		return err
 	}
 	// VCOM and Data Interval setting
@@ -304,31 +304,31 @@ func (d *DevImpression) reset() error {
 
 	cdi := make([]byte, 2)
 	binary.LittleEndian.PutUint16(cdi[0:], uint16(d.border<<5)|0x17) // 0b00110111
-	if err := d.sendCommand(UC8159CDI, cdi); err != nil {
+	if err := d.sendCommand(uc8159CDI, cdi); err != nil {
 		return err
 	}
 
 	// Gate/Source non-overlap period
 	// 0b11110000 = Source to Gate (0b0010 = 12nS, default)
 	// 0b00001111 = Gate to Source
-	if err := d.sendCommand(UC8159TCON, []byte{0x22}); err != nil { // 0b00100010
+	if err := d.sendCommand(uc8159TCON, []byte{0x22}); err != nil { // 0b00100010
 		return err
 	}
 
 	// Disable external flash
-	if err := d.sendCommand(UC8159DAM, []byte{0x00}); err != nil {
+	if err := d.sendCommand(uc8159DAM, []byte{0x00}); err != nil {
 		return err
 	}
 
 	// UC81597C
-	if err := d.sendCommand(UC8159PWS, []byte{0xAA}); err != nil {
+	if err := d.sendCommand(uc8159PWS, []byte{0xAA}); err != nil {
 		return err
 	}
 
 	// Power off sequence
 	// 0b00110000 = power off sequence of VDH and VDL, 0b00 = 1 frame (default)
 	// All other bits ignored?
-	if err := d.sendCommand(UC8159PFS, []byte{0x00}); err != nil { // PFS_1_FRAME
+	if err := d.sendCommand(uc8159PFS, []byte{0x00}); err != nil { // PFS_1_FRAME
 		return err
 	}
 
@@ -340,21 +340,21 @@ func (d *DevImpression) update(pix []uint8) error {
 		return err
 	}
 
-	if err := d.sendCommand(UC8159DTM1, pix); err != nil {
+	if err := d.sendCommand(uc8159DTM1, pix); err != nil {
 		return err
 	}
 
-	if err := d.sendCommand(UC8159PON, nil); err != nil {
+	if err := d.sendCommand(uc8159PON, nil); err != nil {
 		return err
 	}
 	d.wait(200 * time.Millisecond)
 
-	if err := d.sendCommand(UC8159DRF, nil); err != nil {
+	if err := d.sendCommand(uc8159DRF, nil); err != nil {
 		return err
 	}
 	d.wait(32 * time.Second)
 
-	if err := d.sendCommand(UC8159POF, nil); err != nil {
+	if err := d.sendCommand(uc8159POF, nil); err != nil {
 		return err
 	}
 	d.wait(200 * time.Millisecond)

@@ -1,9 +1,9 @@
 // Copyright 2023 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
+package inky
 
 //go:generate stringer -type=Model,Color,ImpressionColor -output types_string.go
-package inky
 
 import (
 	"fmt"
@@ -35,7 +35,7 @@ func (m *Model) Set(s string) error {
 	case "IMPRESSION57":
 		*m = IMPRESSION57
 	default:
-		return fmt.Errorf("unknown model %q: expected either PHAT or WHAT", s)
+		return fmt.Errorf("unknown model %q: expected PHAT, PHAT2, WHAT, IMPRESSION4 or IMPRESSION57", s)
 	}
 	return nil
 }
@@ -65,7 +65,7 @@ func (c *Color) Set(s string) error {
 	case "white":
 		*c = White
 	default:
-		return fmt.Errorf("unknown color %q: expected either black, red, yellow, white or multi", s)
+		return fmt.Errorf("unknown color %q: expected either black, red, yellow or white", s)
 	}
 	return nil
 }

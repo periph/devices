@@ -22,7 +22,7 @@ var _ display.Drawer = &Dev{}
 var _ conn.Resource = &Dev{}
 
 const (
-	CS0Pin = 8
+	cs0Pin = 8
 )
 
 var borderColor = map[Color]byte{
@@ -62,7 +62,9 @@ type Dev struct {
 	// Model being used.
 	model Model
 	// Variant  of the panel.
-	variant int
+	variant uint
+	// PCB Variant of the panel. Represents a version string as a number (12 -> 1.2).
+	pcbVariant uint
 }
 
 // New opens a handle to an Inky pHAT or wHAT.
@@ -71,7 +73,7 @@ func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, o *Opts
 		return nil, fmt.Errorf("unsupported color: %v", o.ModelColor)
 	}
 
-	c, err := p.Connect(488*physic.KiloHertz, spi.Mode0, CS0Pin)
+	c, err := p.Connect(488*physic.KiloHertz, spi.Mode0, cs0Pin)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to inky over spi: %v", err)
 	}
@@ -87,15 +89,16 @@ func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, o *Opts
 	}
 
 	d := &Dev{
-		c:         c,
-		maxTxSize: maxTxSize,
-		dc:        dc,
-		r:         reset,
-		busy:      busy,
-		color:     o.ModelColor,
-		border:    o.BorderColor,
-		model:     o.Model,
-		variant:   o.DisplayVariant,
+		c:          c,
+		maxTxSize:  maxTxSize,
+		dc:         dc,
+		r:          reset,
+		busy:       busy,
+		color:      o.ModelColor,
+		border:     o.BorderColor,
+		model:      o.Model,
+		variant:    o.DisplayVariant,
+		pcbVariant: o.PCBVariant,
 	}
 
 	switch o.Model {
@@ -137,9 +140,9 @@ func (d *Dev) SetModelColor(c Color) error {
 
 // String implements conn.Resource.
 func (d *Dev) String() string {
-	v, ok := displayVariantMap[d.variant]
-	if ok {
-		return v
+	index := int(d.variant)
+	if index < len(displayVariantMap) {
+		return displayVariantMap[index]
 	}
 	return "Inky pHAT"
 }
@@ -152,17 +155,17 @@ func (d *Dev) Width() int {
 	return d.width
 }
 
-// SetBorder changes the border color. This will not take effect until the next Draw().
+// SetFlipVertically flips the image horizontally.
 func (d *Dev) SetFlipVertically(f bool) {
 	d.flipVertically = f
 }
 
-// SetBorder changes the border color. This will not take effect until the next Draw().
+// SetFlipHorizontally flips the image horizontally.
 func (d *Dev) SetFlipHorizontally(f bool) {
 	d.flipHorizontally = f
 }
 
-// Halt implements conn.Resource
+// Halt implements conn.Resource.
 func (d *Dev) Halt() error {
 	return nil
 }
