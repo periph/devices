@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	displayVariantMap = []string{
+	displayVariantMap = [...]string{
 		"",
 		"Red pHAT (High-Temp)",
 		"Yellow wHAT",
