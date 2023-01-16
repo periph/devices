@@ -14,192 +14,22 @@ import (
 	"periph.io/x/conn/v3"
 	"periph.io/x/conn/v3/display"
 	"periph.io/x/conn/v3/gpio"
-	"periph.io/x/conn/v3/i2c"
 	"periph.io/x/conn/v3/physic"
 	"periph.io/x/conn/v3/spi"
 )
 
-// Color is used to define which model of inky is being used, and also for
-// setting the border color.
-type Color int
+var _ display.Drawer = &Dev{}
+var _ conn.Resource = &Dev{}
 
-// Valid Color.
 const (
-	Black Color = iota
-	Red
-	Yellow
-	White
+	cs0Pin = 8
 )
-
-func (c *Color) String() string {
-	switch *c {
-	case Black:
-		return "black"
-	case Red:
-		return "red"
-	case Yellow:
-		return "yellow"
-	case White:
-		return "white"
-	default:
-		return "unknown"
-	}
-}
-
-// Set sets the Color to a value represented by the string s. Set implements the flag.Value interface.
-func (c *Color) Set(s string) error {
-	switch s {
-	case "black":
-		*c = Black
-	case "red":
-		*c = Red
-	case "yellow":
-		*c = Yellow
-	case "white":
-		*c = White
-	default:
-		return fmt.Errorf("unknown color %q: expected either black, red, yellow or white", s)
-	}
-	return nil
-}
-
-// Model lists the supported e-ink display models.
-type Model int
-
-// Supported Model.
-const (
-	PHAT Model = iota
-	WHAT
-	PHAT2
-)
-
-func (m *Model) String() string {
-	switch *m {
-	case PHAT:
-		return "PHAT"
-	case PHAT2:
-		return "PHAT2"
-	case WHAT:
-		return "WHAT"
-	default:
-		return "Unknown"
-	}
-}
-
-// Set sets the Model to a value represented by the string s. Set implements the flag.Value interface.
-func (m *Model) Set(s string) error {
-	switch s {
-	case "PHAT":
-		*m = PHAT
-	case "PHAT2":
-		*m = PHAT2
-	case "WHAT":
-		*m = WHAT
-	default:
-		return fmt.Errorf("unknown model %q: expected either PHAT or WHAT", s)
-	}
-	return nil
-}
-
-// Opts is the options to specify which device is being controlled and its
-// default settings.
-type Opts struct {
-	// Model being used.
-	Model Model
-	// Model color.
-	ModelColor Color
-	// Initial border color. Will be set on the first Draw().
-	BorderColor Color
-}
-
-// DetectOpts tries to read the device opts from EEPROM.
-func DetectOpts(bus i2c.Bus) (*Opts, error) {
-	// Read data from EEPROM
-	data, err := readEep(bus)
-	if err != nil {
-		return nil, fmt.Errorf("failed to detect Inky board: %v", err)
-	}
-
-	options := new(Opts)
-
-	switch data[6] {
-	case 1, 4, 5:
-		options.Model = PHAT
-	case 10, 11, 12:
-		options.Model = PHAT2
-	case 2, 3, 6, 7, 8:
-		options.Model = WHAT
-	default:
-		return nil, fmt.Errorf("failed to get ops: display type not supported")
-	}
-
-	switch data[4] {
-	case 1:
-		options.ModelColor = Black
-		options.BorderColor = Black
-	case 2:
-		options.ModelColor = Red
-		options.BorderColor = Red
-	case 3:
-		options.ModelColor = Yellow
-		options.BorderColor = Yellow
-	default:
-		return nil, fmt.Errorf("failed to get ops: color not supported")
-	}
-
-	return options, nil
-}
 
 var borderColor = map[Color]byte{
 	Black:  0x00,
 	Red:    0x73,
 	Yellow: 0x33,
 	White:  0x31,
-}
-
-// New opens a handle to an Inky pHAT or wHAT.
-func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, o *Opts) (*Dev, error) {
-	if o.ModelColor != Black && o.ModelColor != Red && o.ModelColor != Yellow {
-		return nil, fmt.Errorf("unsupported color: %v", o.ModelColor)
-	}
-
-	c, err := p.Connect(488*physic.KiloHertz, spi.Mode0, 8)
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to inky over spi: %v", err)
-	}
-
-	// Get the maxTxSize from the conn if it implements the conn.Limits interface,
-	// otherwise use 4096 bytes.
-	maxTxSize := 0
-	if limits, ok := c.(conn.Limits); ok {
-		maxTxSize = limits.MaxTxSize()
-	}
-	if maxTxSize == 0 {
-		maxTxSize = 4096 // Use a conservative default.
-	}
-
-	d := &Dev{
-		c:         c,
-		maxTxSize: maxTxSize,
-		dc:        dc,
-		r:         reset,
-		busy:      busy,
-		color:     o.ModelColor,
-		border:    o.BorderColor,
-	}
-
-	switch o.Model {
-	case PHAT:
-		d.bounds = image.Rect(0, 0, 104, 212)
-		d.flipVertically = true
-	case PHAT2:
-		d.bounds = image.Rect(0, 0, 122, 250)
-		d.flipVertically = true
-	case WHAT:
-		d.bounds = image.Rect(0, 0, 400, 300)
-	}
-
-	return d, nil
 }
 
 // Dev is a handle to an Inky.
@@ -217,11 +47,80 @@ type Dev struct {
 	bounds image.Rectangle
 	// Whether this model needs the image flipped vertically.
 	flipVertically bool
-
+	// Whether this model needs the image flipped horizontally.
+	flipHorizontally bool
 	// Color of device screen (red, yellow or black).
 	color Color
 	// Modifiable color of border.
 	border Color
+
+	// Width of the panel.
+	width int
+	// Height of the panel.
+	height int
+
+	// Model being used.
+	model Model
+	// Variant  of the panel.
+	variant uint
+	// PCB Variant of the panel. Represents a version string as a number (12 -> 1.2).
+	pcbVariant uint
+}
+
+// New opens a handle to an Inky pHAT or wHAT.
+func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, o *Opts) (*Dev, error) {
+	if o.ModelColor != Black && o.ModelColor != Red && o.ModelColor != Yellow {
+		return nil, fmt.Errorf("unsupported color: %v", o.ModelColor)
+	}
+
+	c, err := p.Connect(488*physic.KiloHertz, spi.Mode0, cs0Pin)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to inky over spi: %v", err)
+	}
+
+	// Get the maxTxSize from the conn if it implements the conn.Limits interface,
+	// otherwise use 4096 bytes.
+	maxTxSize := 0
+	if limits, ok := c.(conn.Limits); ok {
+		maxTxSize = limits.MaxTxSize()
+	}
+	if maxTxSize == 0 {
+		maxTxSize = 4096 // Use a conservative default.
+	}
+
+	d := &Dev{
+		c:          c,
+		maxTxSize:  maxTxSize,
+		dc:         dc,
+		r:          reset,
+		busy:       busy,
+		color:      o.ModelColor,
+		border:     o.BorderColor,
+		model:      o.Model,
+		variant:    o.DisplayVariant,
+		pcbVariant: o.PCBVariant,
+	}
+
+	switch o.Model {
+	case PHAT:
+		d.width = 104
+		d.height = 212
+		d.flipVertically = true
+	case PHAT2:
+		d.width = 122
+		d.height = 250
+		d.flipVertically = true
+	case WHAT:
+		d.width = 400
+		d.height = 300
+	}
+	// Prefer the passed in values via Opts.
+	if o.Width == 0 && o.Height == 0 {
+		d.width = o.Width
+		d.height = o.Height
+	}
+	d.bounds = image.Rect(0, 0, d.width, d.height)
+	return d, nil
 }
 
 // SetBorder changes the border color. This will not take effect until the next Draw().
@@ -241,10 +140,32 @@ func (d *Dev) SetModelColor(c Color) error {
 
 // String implements conn.Resource.
 func (d *Dev) String() string {
+	index := int(d.variant)
+	if index < len(displayVariantMap) {
+		return displayVariantMap[index]
+	}
 	return "Inky pHAT"
 }
 
-// Halt implements conn.Resource
+func (d *Dev) Height() int {
+	return d.height
+}
+
+func (d *Dev) Width() int {
+	return d.width
+}
+
+// SetFlipVertically flips the image horizontally.
+func (d *Dev) SetFlipVertically(f bool) {
+	d.flipVertically = f
+}
+
+// SetFlipHorizontally flips the image horizontally.
+func (d *Dev) SetFlipHorizontally(f bool) {
+	d.flipHorizontally = f
+}
+
+// Halt implements conn.Resource.
 func (d *Dev) Halt() error {
 	return nil
 }
@@ -461,19 +382,3 @@ func pack(bits []bool) ([]byte, error) {
 	}
 	return ret, nil
 }
-
-func readEep(bus i2c.Bus) ([]byte, error) {
-	// Inky uses SMBus, specify read registry with data
-	write := []byte{0x00, 0x00}
-
-	data := make([]byte, 29)
-
-	if err := bus.Tx(0x50, write, data); err != nil {
-		return nil, err
-	}
-
-	return data, nil
-}
-
-var _ display.Drawer = &Dev{}
-var _ conn.Resource = &Dev{}
