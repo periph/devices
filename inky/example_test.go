@@ -75,7 +75,7 @@ func ExampleNewImpression() {
 		log.Fatal(err)
 	}
 
-	if _, err := host.Init(); err != nil {
+	if _, err = host.Init(); err != nil {
 		log.Fatal(err)
 	}
 
