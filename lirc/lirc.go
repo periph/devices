@@ -64,7 +64,7 @@ func (c *Conn) Close() error {
 // Emit implements ir.IR.
 func (c *Conn) Emit(remote string, key ir.Key) error {
 	// http://www.lirc.org/html/lircd.html#lbAH
-	_, err := fmt.Fprintf(c.w, "SEND_ONCE %s %s", remote, key)
+	_, err := fmt.Fprintf(c.w, "SEND_ONCE %s %s\n", remote, key)
 	return err
 }
 
