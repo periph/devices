@@ -15,7 +15,7 @@ import (
 
 	"periph.io/x/conn/v3/spi/spireg"
 	"periph.io/x/devices/v3/ssd1306/image1bit"
-	"periph.io/x/devices/v3/waveshare2in13v3"
+	"periph.io/x/devices/v3/waveshare2in13v4"
 	"periph.io/x/host/v3"
 )
 
@@ -32,7 +32,7 @@ func Example() {
 	}
 	defer b.Close()
 
-	dev, err := waveshare2in13v3.NewHat(b, &waveshare2in13v3.EPD2in13v3) // Display config and size
+	dev, err := waveshare2in13v4.NewHat(b, &waveshare2in13v4.EPD2in13v4) // Display config and size
 	if err != nil {
 		log.Fatalf("Failed to initialize driver: %v", err)
 	}
@@ -72,7 +72,7 @@ func Example_other() {
 	}
 	defer b.Close()
 
-	dev, err := waveshare2in13v3.NewHat(b, &waveshare2in13v3.EPD2in13v3) // Display config and size
+	dev, err := waveshare2in13v4.NewHat(b, &waveshare2in13v4.EPD2in13v4) // Display config and size
 	if err != nil {
 		log.Fatalf("Failed to initialize driver: %v", err)
 	}
