@@ -214,35 +214,6 @@ type Acceleration struct {
 	Z int16
 }
 
-// sum returns the sum of the accelerations on the three axes
-func (a Acceleration) sum() int64 {
-	return int64(a.X) + int64(a.Y) + int64(a.Z)
-}
-
-// diff returns the absolute difference between the two Acceleration
-func (a Acceleration) diff(b Acceleration) Acceleration {
-	diff := Acceleration{
-		X: a.X - b.X,
-		Y: a.Y - b.Y,
-		Z: a.Z - b.Z,
-	}
-	if diff.X < 0 {
-		diff.X = -diff.X
-	}
-	if diff.Y < 0 {
-		diff.Y = -diff.Y
-	}
-	if diff.Z < 0 {
-		diff.Z = -diff.Z
-	}
-	return diff
-}
-
-// isZero returns true if the Acceleration is zero
-func (a Acceleration) isZero() bool {
-	return a.X == 0 && a.Y == 0 && a.Z == 0
-}
-
 // String returns a string representation of the Acceleration
 func (a Acceleration) String() string {
 	return fmt.Sprintf("X:%d Y:%d Z:%d", a.X, a.Y, a.Z)
