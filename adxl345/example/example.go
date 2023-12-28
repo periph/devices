@@ -32,6 +32,8 @@ func Example() {
 		panic(err)
 	}
 
+	fmt.Println(d.String())
+
 	// use a ticker to read the acceleration values every 200ms
 	ticker := time.NewTicker(30 * time.Millisecond)
 	defer ticker.Stop()
