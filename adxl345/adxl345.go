@@ -79,12 +79,13 @@ type Opts struct {
 // Dev is a driver for the ADXL345 accelerometer
 // It uses the SPI interface to communicate with the device.
 type Dev struct {
-	name string
-	s    spi.Conn
+	name        string
+	s           spi.Conn
+	sensitivity Sensitivity
 }
 
 func (d *Dev) String() string {
-	return fmt.Sprintf("ADXL345{Sensitivity:%d}", d.Sensitivity())
+	return fmt.Sprintf("ADXL345{Sensitivity:%d}", d.sensitivity)
 }
 
 // New creates a new ADXL345 Dev or returns an error.
@@ -115,7 +116,7 @@ func New(p spi.Port, o *Opts) (*Dev, error) {
 		}
 	}
 	// Verify that the device is an ADXL345.
-	rx, _ := d.RawReadRegister(DeviceID)
+	rx, _ := d.ReadRaw(DeviceID)
 	if rx[1] != o.ExpectedDeviceID {
 		return nil, fmt.Errorf("wrong device connected should be an adxl345  should be\"%#x\" rx0=\"%#x\" rx1=\"%#x\"", o.ExpectedDeviceID, rx[0], rx[1])
 	}
@@ -128,26 +129,22 @@ func (d *Dev) setSensitivity(sensitivity Sensitivity) error {
 	switch sensitivity {
 	case S2G, S4G, S8G, S16G:
 		// Write to the DataFormat register
-		return d.WriteRegister(DataFormat, byte(sensitivity))
+		d.sensitivity = sensitivity
+		return d.Write(DataFormat, byte(sensitivity))
 	default:
 		return fmt.Errorf("invalid sensitivity: %d. Valid values are 2, 4, 8, 16", sensitivity)
 	}
 }
 
-func (d *Dev) Sensitivity() Sensitivity {
-	rx, _ := d.RawReadRegister(DataFormat)
-	return Sensitivity(rx[1])
-}
-
 // TurnOn turns on the measurement mode of the ADXL345.
 // This is required before reading data from the device.
 func (d *Dev) TurnOn() error {
-	return d.WriteRegister(PowerCtl, 0x08)
+	return d.Write(PowerCtl, 0x08)
 }
 
 // TurnOff turns off the measurement mode of the ADXL345.
 func (d *Dev) TurnOff() error {
-	return d.WriteRegister(PowerCtl, 0x00)
+	return d.Write(PowerCtl, 0x00)
 }
 
 // Update reads the acceleration values from the ADXL345.
@@ -168,25 +165,22 @@ func (d *Dev) Update() Acceleration {
 // The ADXL345 combines both registers to deliver 16-bit output for each acceleration axis.
 // A similar approach is used for the Y and Z axes. This technique provides higher precision in the measurements.
 func (d *Dev) readAndCombine(reg1, reg2 byte) int16 {
-	low, _ := d.ReadRegister(reg1)
-	high, _ := d.ReadRegister(reg2)
+	low, _ := d.Read(reg1)
+	high, _ := d.Read(reg2)
 	return int16(uint16(high)<<8) | int16(low)
 }
 
-// ReadRegister reads a 16-bit value from the specified register address.
-func (d *Dev) ReadRegister(regAddress byte) (int16, error) {
-	// Send a two-byte sequence:
-	// - The first byte contains the address with bit 7 set high to indicate read op
-	// - The second byte is a "don't care" value, usually zero
-	tx := []byte{regAddress | 0x80, 0x00}
-	rx := make([]byte, len(tx))
-	err := d.s.Tx(tx, rx)
-	r := int16(binary.LittleEndian.Uint16(rx))
-	return r, err
+// Read reads a 16-bit value from the specified register address.
+func (d *Dev) Read(regAddress byte) (int16, error) {
+	rx, err := d.ReadRaw(regAddress)
+	if err != nil {
+		return 0, err
+	}
+	return int16(binary.LittleEndian.Uint16(rx)), nil
 }
 
-// RawReadRegister reads a []byte value from the specified register address.
-func (d *Dev) RawReadRegister(regAddress byte) ([]byte, error) {
+// ReadRaw reads a []byte value from the specified register address.
+func (d *Dev) ReadRaw(regAddress byte) ([]byte, error) {
 	// Send a two-byte sequence:
 	// - The first byte contains the address with bit 7 set high to indicate read op
 	// - The second byte is a "don't care" value, usually zero
@@ -196,8 +190,8 @@ func (d *Dev) RawReadRegister(regAddress byte) ([]byte, error) {
 	return rx, err
 }
 
-// WriteRegister writes a 1 byte value to the specified register address.
-func (d *Dev) WriteRegister(regAddress byte, value byte) error {
+// Write writes a 1 byte value to the specified register address.
+func (d *Dev) Write(regAddress byte, value byte) error {
 	// Prepare a 2-byte buffer with the register address and the desired value.
 	tx := []byte{regAddress, value}
 	// Prepare a receiving buffer of the same size as the transmit buffer.
