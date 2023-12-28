@@ -7,10 +7,15 @@ import (
 	"periph.io/x/conn/v3/spi"
 )
 
+type Sensitivity byte
+
 const (
 	DeviceID = 0x00 // Device ID, expected to be 0xE5 when using ADXL345
 
-	// 0x01 to 0x1C  are reserved for future use
+	S2G  Sensitivity = 0x00 // Sensitivity at 2g
+	S4G  Sensitivity = 0x01 // Sensitivity at 4g
+	S8G  Sensitivity = 0x02 // Sensitivity at 8g
+	S16G Sensitivity = 0x03 // Sensitivity at 16g
 
 	ThreshTap        = 0x1D // Tap threshold
 	OfsX             = 0x1E // X-axis offset
@@ -60,13 +65,15 @@ var (
 )
 
 var DefaultOpts = Opts{
-	TurnOnOnStart: true,
-	ExpectedDevid: 0xE5,
+	TurnOnOnStart:    true,
+	ExpectedDeviceID: 0xE5,
+	Sensitivity:      S2G,
 }
 
 type Opts struct {
-	TurnOnOnStart bool // Turn on the device in measurement mode on start.
-	ExpectedDevid byte // Expected device ID used to verify that the device is an ADXL345.
+	TurnOnOnStart    bool        // Turn on the device in measurement mode on start.
+	ExpectedDeviceID byte        // Expected device ID used to verify that the device is an ADXL345.
+	Sensitivity      Sensitivity // Sensitivity of the device (2G, 4G, 8G, 16G)
 }
 
 // Dev is a driver for the ADXL345 accelerometer
@@ -77,7 +84,7 @@ type Dev struct {
 }
 
 func (d *Dev) String() string {
-	return fmt.Sprintf("ADXL345")
+	return fmt.Sprintf("ADXL345{Sensitivity:%d}", d.Sensitivity())
 }
 
 // New creates a new ADXL345 Dev or returns an error.
@@ -101,12 +108,35 @@ func New(p spi.Port, o *Opts) (*Dev, error) {
 			return nil, err
 		}
 	}
+	if o.Sensitivity != S2G { // default
+		err = d.setSensitivity(o.Sensitivity)
+		if err != nil {
+			return nil, err
+		}
+	}
 	// Verify that the device is an ADXL345.
 	rx, _ := d.RawReadRegister(DeviceID)
-	if rx[1] != o.ExpectedDevid {
-		return nil, fmt.Errorf("wrong device connected should be an adxl345  should be\"%#x\" rx0=\"%#x\" rx1=\"%#x\"", o.ExpectedDevid, rx[0], rx[1])
+	if rx[1] != o.ExpectedDeviceID {
+		return nil, fmt.Errorf("wrong device connected should be an adxl345  should be\"%#x\" rx0=\"%#x\" rx1=\"%#x\"", o.ExpectedDeviceID, rx[0], rx[1])
 	}
 	return d, nil
+}
+
+// SetSensitivity sets the sensitivity of the ADXL345.
+// The sensitivity parameter should be one of 2, 4, 8, or 16, representing ±2g, ±4g, ±8g, or ±16g respectively.
+func (d *Dev) setSensitivity(sensitivity Sensitivity) error {
+	switch sensitivity {
+	case S2G, S4G, S8G, S16G:
+		// Write to the DataFormat register
+		return d.WriteRegister(DataFormat, byte(sensitivity))
+	default:
+		return fmt.Errorf("invalid sensitivity: %d. Valid values are 2, 4, 8, 16", sensitivity)
+	}
+}
+
+func (d *Dev) Sensitivity() Sensitivity {
+	rx, _ := d.RawReadRegister(DataFormat)
+	return Sensitivity(rx[1])
 }
 
 // TurnOn turns on the measurement mode of the ADXL345.
