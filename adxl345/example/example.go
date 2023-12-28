@@ -1,7 +1,3 @@
-// Copyright 2023 The Periph Authors. All rights reserved.
-// Use of this source code is governed under the Apache License, Version 2.0
-// that can be found in the LICENSE file.
-
 package example
 
 import (
@@ -30,12 +26,11 @@ func Example() {
 
 	defer p.Close()
 
-	d, err := adxl345.NewSpi(p, &adxl345.DefaultOpts)
+	o := adxl345.DefaultOpts
+	d, err := adxl345.New(p, &o)
 	if err != nil {
 		panic(err)
 	}
-
-	fmt.Println(d.String())
 
 	// use a ticker to read the acceleration values every 200ms
 	ticker := time.NewTicker(30 * time.Millisecond)
