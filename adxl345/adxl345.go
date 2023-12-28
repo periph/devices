@@ -85,7 +85,7 @@ type Dev struct {
 }
 
 func (d *Dev) String() string {
-	return fmt.Sprintf("ADXL345{Sensitivity:%d}", d.sensitivity)
+	return fmt.Sprintf("ADXL345{Sensitivity:%s}", d.sensitivity)
 }
 
 // New creates a new ADXL345 Dev or returns an error.
@@ -212,4 +212,19 @@ type Acceleration struct {
 // String returns a string representation of the Acceleration
 func (a Acceleration) String() string {
 	return fmt.Sprintf("X:%d Y:%d Z:%d", a.X, a.Y, a.Z)
+}
+
+func (s Sensitivity) String() string {
+	switch s {
+	case S2G:
+		return "+/-2g"
+	case S4G:
+		return "+/-4g"
+	case S8G:
+		return "+/-8g"
+	case S16G:
+		return "+/-16g"
+	default:
+		return "unsupported"
+	}
 }
