@@ -1,8 +1,13 @@
+// Copyright 2023 The Periph Authors. All rights reserved.
+// Use of this source code is governed under the Apache License, Version 2.0
+// that can be found in the LICENSE file.
+
 package adxl345
 
 import (
 	"encoding/binary"
 	"fmt"
+	"periph.io/x/conn/v3/mmr"
 	"periph.io/x/conn/v3/physic"
 	"periph.io/x/conn/v3/spi"
 )
@@ -85,6 +90,7 @@ type Opts struct {
 // Dev is a driver for the ADXL345 accelerometer
 // It uses the SPI interface to communicate with the device.
 type Dev struct {
+	c    mmr.Dev16
 	name string
 	s    spi.Conn
 	// The sensitivity of the device (2G, 4G, 8G, 16G)
@@ -174,6 +180,7 @@ func (d *Dev) Update() Acceleration {
 func (d *Dev) ReadAndCombine(reg1, reg2 byte) int16 {
 	low, _ := d.Read(reg1)
 	high, _ := d.Read(reg2)
+
 	return int16(uint16(high)<<8) | int16(low)
 }
 
