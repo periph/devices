@@ -9,13 +9,11 @@ import (
 
 type Sensitivity byte
 
+// The following constants are register used by the ADXL345
+// Check the table 19 of the datasheet for more details.
+// https://www.analog.com/media/en/technical-documentation/data-sheets/ADXL345.pdf
 const (
 	DeviceID = 0x00 // Device ID, expected to be 0xE5 when using ADXL345
-
-	S2G  Sensitivity = 0x00 // Sensitivity at 2g
-	S4G  Sensitivity = 0x01 // Sensitivity at 4g
-	S8G  Sensitivity = 0x02 // Sensitivity at 8g
-	S16G Sensitivity = 0x03 // Sensitivity at 16g
 
 	ThreshTap        = 0x1D // Tap threshold
 	OfsX             = 0x1E // X-axis offset
@@ -57,21 +55,29 @@ const (
 
 )
 
-// DefaultSpiFrequency is the default SPI frequency used to communicate with the device.
+// Sensitivity constants represents the sensitivity of the ADXL345.
+// The ADXL345 supports 4 sensitivity settings, ±2g, ±4g, ±8g, and ±16g, with the default being ±2g.
+// Sensitivity is an option that can be set at initialization in Opts.
+// You can set the sensitivity of the ADXL345 with the DataFormat register.
+const (
+	S2G  Sensitivity = 0x00 // Sensitivity at 2g
+	S4G  Sensitivity = 0x01 // Sensitivity at 4g
+	S8G  Sensitivity = 0x02 // Sensitivity at 8g
+	S16G Sensitivity = 0x03 // Sensitivity at 16g
+)
+
 var (
-	SpiFrequency = physic.KiloHertz * 50
+	SpiFrequency = physic.MegaHertz * 2
 	SpiMode      = spi.Mode3 // Defines the base clock signal, along with the polarity and phase of the data signal.
 	SpiBits      = 8
 )
 
 var DefaultOpts = Opts{
-	TurnOnOnStart:    true,
 	ExpectedDeviceID: 0xE5,
 	Sensitivity:      S2G,
 }
 
 type Opts struct {
-	TurnOnOnStart    bool        // Turn on the device in measurement mode on start.
 	ExpectedDeviceID byte        // Expected device ID used to verify that the device is an ADXL345.
 	Sensitivity      Sensitivity // Sensitivity of the device (2G, 4G, 8G, 16G)
 }
@@ -79,8 +85,10 @@ type Opts struct {
 // Dev is a driver for the ADXL345 accelerometer
 // It uses the SPI interface to communicate with the device.
 type Dev struct {
-	name        string
-	s           spi.Conn
+	name string
+	s    spi.Conn
+	// The sensitivity of the device (2G, 4G, 8G, 16G)
+	// Set to 2G by default, can be changed in the Opts at initialization.
 	sensitivity Sensitivity
 }
 
@@ -103,11 +111,9 @@ func New(p spi.Port, o *Opts) (*Dev, error) {
 		name: "ADXL345",
 		s:    c,
 	}
-	if o.TurnOnOnStart {
-		err = d.TurnOn()
-		if err != nil {
-			return nil, err
-		}
+	err = d.TurnOn()
+	if err != nil {
+		return nil, err
 	}
 	if o.Sensitivity != S2G { // default
 		err = d.setSensitivity(o.Sensitivity)
@@ -173,7 +179,9 @@ func (d *Dev) ReadAndCombine(reg1, reg2 byte) int16 {
 
 // Read reads a 16-bit value from the specified register address.
 func (d *Dev) Read(regAddress byte) (int16, error) {
-	rx, err := d.ReadRaw(regAddress)
+	tx := []byte{regAddress | 0x80, 0x00}
+	rx := make([]byte, len(tx))
+	err := d.s.Tx(tx, rx)
 	if err != nil {
 		return 0, err
 	}

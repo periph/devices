@@ -26,8 +26,7 @@ func Example() {
 
 	defer p.Close()
 
-	o := adxl345.DefaultOpts
-	d, err := adxl345.New(p, &o)
+	d, err := adxl345.New(p, &adxl345.DefaultOpts)
 	if err != nil {
 		panic(err)
 	}
