@@ -217,7 +217,13 @@ func (d *Dev) Write(regAddress byte, value byte) error {
 	return err
 }
 
-// Acceleration represents the acceleration on the three axes
+// Acceleration represents the acceleration on the three axes X,Y,Z.
+// The sensitivity can be set to different levels: ±2g, ±4g, ±8g, or ±16g. (S2G, S4G, S8G, S16G)
+// The output are 16-bit integers, so the device measures between -32768 and +32767 for each axis.
+// For example, if the sensitivity is set to ±2g and you're getting a reading of 16384 on the X axis, that would correspond to 1g of acceleration along the X axis.
+// To convert the raw values to a physical unit (like g or m/s²), you would need to know the sensitivity setting of your device.
+// For instance, if your sensitivity is set to ±2g, the conversion factor would be 2 / 32768 = 0.000061g per count.
+// So, you would multiply the raw acceleration values by this factor to get the acceleration in `g`.
 type Acceleration struct {
 	X int16
 	Y int16
@@ -229,6 +235,7 @@ func (a Acceleration) String() string {
 	return fmt.Sprintf("X:%d Y:%d Z:%d", a.X, a.Y, a.Z)
 }
 
+// Sensitivity returns the sensitivity of the device as a human-readable string.
 func (s Sensitivity) String() string {
 	switch s {
 	case S2G:
