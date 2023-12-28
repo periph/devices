@@ -152,19 +152,20 @@ func (d *Dev) TurnOff() error {
 // This is a simple synchronous implementation.
 func (d *Dev) Update() Acceleration {
 	return Acceleration{
-		X: d.readAndCombine(DataX0, DataX1),
-		Y: d.readAndCombine(DataY0, DataY1),
-		Z: d.readAndCombine(DataZ0, DataZ1),
+		X: d.ReadAndCombine(DataX0, DataX1),
+		Y: d.ReadAndCombine(DataY0, DataY1),
+		Z: d.ReadAndCombine(DataZ0, DataZ1),
 	}
 }
 
-// readAndCombine combines two registers to form a 16-bit value.
-// Example:
-// `DATAX0` is the address of the lower byte (LSB, least significant byte) of the X-axis data
-// `DATAX1` is the address of the upper byte (MSB, most significant byte) of the X-axis data
+// ReadAndCombine combines two registers to form a 16-bit value.
+// The ADXL345 uses two 8-bit registers to store the output data for each axis.
+// X := d.ReadAndCombine(DataX0, DataX1) where:
+// `DataX0` is the address of the lower byte (LSB, least significant byte)
+// `DataX1` is the address of the upper byte (MSB, most significant byte)
 // The ADXL345 combines both registers to deliver 16-bit output for each acceleration axis.
 // A similar approach is used for the Y and Z axes. This technique provides higher precision in the measurements.
-func (d *Dev) readAndCombine(reg1, reg2 byte) int16 {
+func (d *Dev) ReadAndCombine(reg1, reg2 byte) int16 {
 	low, _ := d.Read(reg1)
 	high, _ := d.Read(reg2)
 	return int16(uint16(high)<<8) | int16(low)
