@@ -7,7 +7,6 @@ package adxl345
 import (
 	"encoding/binary"
 	"fmt"
-	"periph.io/x/conn/v3/mmr"
 	"periph.io/x/conn/v3/physic"
 	"periph.io/x/conn/v3/spi"
 )
@@ -90,7 +89,6 @@ type Opts struct {
 // Dev is a driver for the ADXL345 accelerometer
 // It uses the SPI interface to communicate with the device.
 type Dev struct {
-	c    mmr.Dev16
 	name string
 	s    spi.Conn
 	// The sensitivity of the device (2G, 4G, 8G, 16G)
@@ -102,12 +100,12 @@ func (d *Dev) String() string {
 	return fmt.Sprintf("ADXL345{Sensitivity:%s}", d.sensitivity)
 }
 
-// New creates a new ADXL345 Dev or returns an error.
+// NewSpi creates a new ADXL345 Dev with a spi connection or returns an error.
 // The bus and chip parameters define the SPI bus and chip select to use.
 // The SPI s is configured.
 // The device is turned on.
 // The device is verified to be an ADXL345.
-func New(p spi.Port, o *Opts) (*Dev, error) {
+func NewSpi(p spi.Port, o *Opts) (*Dev, error) {
 	// Convert the spi.Port into a spi.Conn so it can be used for communication.
 	c, err := p.Connect(SpiFrequency, SpiMode, SpiBits)
 	if err != nil {

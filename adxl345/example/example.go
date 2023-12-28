@@ -30,7 +30,7 @@ func Example() {
 
 	defer p.Close()
 
-	d, err := adxl345.New(p, &adxl345.DefaultOpts)
+	d, err := adxl345.NewSpi(p, &adxl345.DefaultOpts)
 	if err != nil {
 		panic(err)
 	}
