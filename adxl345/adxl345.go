@@ -11,6 +11,7 @@ import (
 	"periph.io/x/conn/v3/spi"
 )
 
+// Sensitivity represents the sensitivity of the Accelerometer.
 type Sensitivity byte
 
 // The following constants are register used by the ADXL345
@@ -70,6 +71,13 @@ const (
 	S16G Sensitivity = 0x03 // Sensitivity at 16g
 )
 
+// Currently tested  devices
+
+const (
+	AdxlXXX = 0x00 // No specific expectation
+	Adxl345 = 0xE5 // Expecting an Adxl345
+)
+
 var (
 	SpiFrequency = physic.MegaHertz * 2
 	SpiMode      = spi.Mode3 // Defines the base clock signal, along with the polarity and phase of the data signal.
@@ -77,7 +85,7 @@ var (
 )
 
 var DefaultOpts = Opts{
-	ExpectedDeviceID: 0xE5,
+	ExpectedDeviceID: AdxlXXX, // No specific expectation by default
 	Sensitivity:      S2G,
 }
 
@@ -97,7 +105,7 @@ type Dev struct {
 }
 
 func (d *Dev) String() string {
-	return fmt.Sprintf("ADXL345{Sensitivity:%s}", d.sensitivity)
+	return fmt.Sprintf("%s{Sensitivity:%s}", d.name, d.sensitivity)
 }
 
 // NewSpi creates a new ADXL345 Dev with a spi connection or returns an error.
@@ -112,8 +120,7 @@ func NewSpi(p spi.Port, o *Opts) (*Dev, error) {
 		return nil, err
 	}
 	d := &Dev{
-		name: "ADXL345",
-		s:    c,
+		s: c,
 	}
 	err = d.TurnOn()
 	if err != nil {
@@ -125,12 +132,18 @@ func NewSpi(p spi.Port, o *Opts) (*Dev, error) {
 			return nil, err
 		}
 	}
-	// Verify that the device is an ADXL345.
+	// Verify that the device Id
 	rx, _ := d.ReadRaw(DeviceID)
-	if rx[1] != o.ExpectedDeviceID {
-		return nil, fmt.Errorf("wrong device connected should be an adxl345  should be\"%#x\" rx0=\"%#x\" rx1=\"%#x\"", o.ExpectedDeviceID, rx[0], rx[1])
+	switch rx[1] {
+	case Adxl345:
+		d.name = "adxl345"
+		return d, nil
+	case o.ExpectedDeviceID:
+		d.name = fmt.Sprintf("expected%#x", o.ExpectedDeviceID)
+		return d, nil
+	default:
+		return nil, fmt.Errorf("unrecognized device expected=\"%#x\" found=\"%#x\" ", o.ExpectedDeviceID, rx[0])
 	}
-	return d, nil
 }
 
 // SetSensitivity sets the sensitivity of the ADXL345.
@@ -245,6 +258,6 @@ func (s Sensitivity) String() string {
 	case S16G:
 		return "+/-16g"
 	default:
-		return "unsupported"
+		return fmt.Sprintf("unknown sensitivity: %#x", s)
 	}
 }
