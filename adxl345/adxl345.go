@@ -7,6 +7,8 @@ package adxl345
 import (
 	"encoding/binary"
 	"fmt"
+	"periph.io/x/conn/v3"
+	"periph.io/x/conn/v3/i2c"
 	"periph.io/x/conn/v3/physic"
 	"periph.io/x/conn/v3/spi"
 )
@@ -74,7 +76,7 @@ const (
 // Currently tested  devices
 
 const (
-	AdxlXXX = 0x00 // No specific expectation
+	AdxlXXX = 0x01 // No specific expectation. For non-detected devices the response is 0x00
 	Adxl345 = 0xE5 // Expecting an Adxl345
 )
 
@@ -97,22 +99,44 @@ type Opts struct {
 // Dev is a driver for the ADXL345 accelerometer
 // It uses the SPI interface to communicate with the device.
 type Dev struct {
-	name string
-	s    spi.Conn
+	c     conn.Conn
+	name  string
+	isSPI bool
 	// The sensitivity of the device (2G, 4G, 8G, 16G)
 	// Set to 2G by default, can be changed in the Opts at initialization.
 	sensitivity Sensitivity
 }
 
-func (d *Dev) String() string {
-	return fmt.Sprintf("%s{Sensitivity:%s}", d.name, d.sensitivity)
+func (d *Dev) Mode() string {
+	if d.isSPI {
+		return "SPI"
+	} else {
+		return "I²C"
+	}
 }
 
-// NewSpi creates a new ADXL345 Dev with a spi connection or returns an error.
-// The bus and chip parameters define the SPI bus and chip select to use.
-// The SPI s is configured.
-// The device is turned on.
-// The device is verified to be an ADXL345.
+func (d *Dev) String() string {
+	return fmt.Sprintf("%s{Sensitivity:%s, Mode:%s}", d.name, d.sensitivity, d.Mode())
+}
+
+// NewI2C returns an object that communicates over I²C to ADXL345
+// accelerometer.
+//
+// The device is automatically turned on and the sensitivity is set to the Opts.Sensitivity.
+func NewI2C(b i2c.Bus, addr uint16, opts *Opts) (*Dev, error) {
+	d := &Dev{
+		c:     &i2c.Dev{Bus: b, Addr: addr},
+		isSPI: false}
+	if err := d.makeDev(opts); err != nil {
+		return nil, err
+	}
+	return d, nil
+}
+
+// NewSpi returns an object that communicates over spi to ADXL345
+// accelerometer.
+//
+// The device is automatically turned on and the sensitivity is set to the Opts.Sensitivity.
 func NewSpi(p spi.Port, o *Opts) (*Dev, error) {
 	// Convert the spi.Port into a spi.Conn so it can be used for communication.
 	c, err := p.Connect(SpiFrequency, SpiMode, SpiBits)
@@ -120,29 +144,42 @@ func NewSpi(p spi.Port, o *Opts) (*Dev, error) {
 		return nil, err
 	}
 	d := &Dev{
-		s: c,
+		c:     c,
+		isSPI: true,
 	}
-	err = d.TurnOn()
+	err = d.makeDev(o)
 	if err != nil {
 		return nil, err
+	}
+	return d, nil
+}
+
+// makeDev turns on with the expected sensitivity and verifies if it is a supported device.
+func (d *Dev) makeDev(o *Opts) error {
+	err := d.TurnOn()
+	if err != nil {
+		return err
 	}
 	if o.Sensitivity != S2G { // default
 		err = d.setSensitivity(o.Sensitivity)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 	// Verify that the device Id
-	rx, _ := d.ReadRaw(DeviceID)
-	switch rx[1] {
+	rx, err := d.Read(DeviceID)
+	if err != nil {
+		return fmt.Errorf("unable to read the deviceID \"%s\"", err.Error())
+	}
+	switch byte(rx & 0xff) {
 	case Adxl345:
 		d.name = "adxl345"
-		return d, nil
+		return nil
 	case o.ExpectedDeviceID:
 		d.name = fmt.Sprintf("expected%#x", o.ExpectedDeviceID)
-		return d, nil
+		return nil
 	default:
-		return nil, fmt.Errorf("unrecognized device expected=\"%#x\" found=\"%#x\" ", o.ExpectedDeviceID, rx[0])
+		return fmt.Errorf("unrecognized device expected=\"%#02x\" or \"%#02x\"found=\"%#02x\" ", o.ExpectedDeviceID, Adxl345, rx)
 	}
 }
 
@@ -175,57 +212,42 @@ func (d *Dev) TurnOff() error {
 // This is a simple synchronous implementation.
 func (d *Dev) Update() Acceleration {
 	return Acceleration{
-		X: d.ReadAndCombine(DataX0, DataX1),
-		Y: d.ReadAndCombine(DataY0, DataY1),
-		Z: d.ReadAndCombine(DataZ0, DataZ1),
+		X: d.readAndCombine(DataX0, DataX1),
+		Y: d.readAndCombine(DataY0, DataY1),
+		Z: d.readAndCombine(DataZ0, DataZ1),
 	}
 }
 
-// ReadAndCombine combines two registers to form a 16-bit value.
+// readAndCombine combines two registers to form a 16-bit value.
 // The ADXL345 uses two 8-bit registers to store the output data for each axis.
-// X := d.ReadAndCombine(DataX0, DataX1) where:
+// X := d.readAndCombine(DataX0, DataX1) where:
 // `DataX0` is the address of the lower byte (LSB, least significant byte)
 // `DataX1` is the address of the upper byte (MSB, most significant byte)
 // The ADXL345 combines both registers to deliver 16-bit output for each acceleration axis.
 // A similar approach is used for the Y and Z axes. This technique provides higher precision in the measurements.
-func (d *Dev) ReadAndCombine(reg1, reg2 byte) int16 {
+func (d *Dev) readAndCombine(reg1, reg2 byte) int16 {
 	low, _ := d.Read(reg1)
 	high, _ := d.Read(reg2)
-
 	return int16(uint16(high)<<8) | int16(low)
 }
 
 // Read reads a 16-bit value from the specified register address.
 func (d *Dev) Read(regAddress byte) (int16, error) {
+	// Send a two-byte sequence:
+	// - The first byte contains the address with bit 7 set high to indicate read op
+	// - The second byte is a "don't care" value, usually zero
 	tx := []byte{regAddress | 0x80, 0x00}
 	rx := make([]byte, len(tx))
-	err := d.s.Tx(tx, rx)
+	err := d.c.Tx(tx, rx)
 	if err != nil {
 		return 0, err
 	}
 	return int16(binary.LittleEndian.Uint16(rx)), nil
 }
 
-// ReadRaw reads a []byte value from the specified register address.
-func (d *Dev) ReadRaw(regAddress byte) ([]byte, error) {
-	// Send a two-byte sequence:
-	// - The first byte contains the address with bit 7 set high to indicate read op
-	// - The second byte is a "don't care" value, usually zero
-	tx := []byte{regAddress | 0x80, 0x00}
-	rx := make([]byte, len(tx))
-	err := d.s.Tx(tx, rx)
-	return rx, err
-}
-
 // Write writes a 1 byte value to the specified register address.
 func (d *Dev) Write(regAddress byte, value byte) error {
-	// Prepare a 2-byte buffer with the register address and the desired value.
-	tx := []byte{regAddress, value}
-	// Prepare a receiving buffer of the same size as the transmit buffer.
-	rx := make([]byte, len(tx))
-	// Perform the transfer. We expect the SPI device to write back an acknowledgement.
-	err := d.s.Tx(tx, rx)
-	return err
+	return d.c.Tx([]byte{regAddress, value}, nil)
 }
 
 // Acceleration represents the acceleration on the three axes X,Y,Z.
