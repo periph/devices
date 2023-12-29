@@ -167,11 +167,13 @@ func (d *Dev) makeDev(o *Opts) error {
 		}
 	}
 	// Verify that the device Id
-	rx, err := d.Read(DeviceID)
+	tx := []byte{DeviceID | 0x80, 0x00}
+	rx := make([]byte, len(tx))
+	err = d.c.Tx(tx, rx)
 	if err != nil {
 		return fmt.Errorf("unable to read the deviceID \"%s\"", err.Error())
 	}
-	switch byte(rx & 0xff) {
+	switch rx[1] {
 	case Adxl345:
 		d.name = "adxl345"
 		return nil
