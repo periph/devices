@@ -13,14 +13,16 @@ import (
 	"time"
 )
 
-// I2C uses an adxl345 device connected by I²C.
+var I2CAddr uint16 = 0x53
+
+// ExampleNewI2C uses an adxl345 device connected by I²C.
+// You can set the I²C address by setting I2CAddr (default is 0x53).
 // it reads the acceleration values every 30ms for 30 seconds.
 // You can i use `i2dctools`  to find the I²C bus number
 // e.g : sudo apt-get install i2c-tools
 //
 //	sudo i2cdetect -y 1
-func I2C(addr uint16) {
-
+func ExampleNewI2C() {
 	mustInitHost()
 
 	// Use i2creg  to find the first available  I²C bus.
@@ -33,16 +35,16 @@ func I2C(addr uint16) {
 
 	defer p.Close()
 
-	d, err := NewI2C(p, addr, &DefaultOpts)
+	d, err := NewI2C(p, I2CAddr, &DefaultOpts)
 	if err != nil {
 		panic(err)
 	}
 	measure(d, 30*time.Second)
 }
 
-// Spi uses an adxl345 device connected by SPI.
+// ExampleNewSpi uses an adxl345 device connected by SPI.
 // it reads the acceleration values every 30ms for 30 seconds.
-func Spi() {
+func ExampleNewSpi() {
 
 	mustInitHost()
 
