@@ -208,7 +208,7 @@ func calculateCRC8(data []byte) uint8 {
 		crc ^= b
 		for i := 0; i < 8; i++ {
 			if crc&0x80 != 0 {
-				crc = (crc << 1) ^ crc8Polynomial // 0x07 is the polynomial
+				crc = (crc << 1) ^ crc8Polynomial
 			} else {
 				crc <<= 1
 			}
