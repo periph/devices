@@ -13,26 +13,26 @@ import (
 	"time"
 )
 
-const DeviceAddress = 0x38
+const deviceAddress = 0x38
 
 const (
-	CmdStatus     byte = 0x71
-	CmdInitialize byte = 0xBE
-	CmdMeasure    byte = 0xAC
-	CmdSoftReset  byte = 0xBA
+	cmdStatus     byte = 0x71
+	cmdInitialize byte = 0xBE
+	cmdMeasure    byte = 0xAC
+	cmdSoftReset  byte = 0xBA
 )
 
 const (
-	BitBusy        byte = 1 << 7
-	BitInitialized byte = 1 << 3
+	bitBusy        byte = 1 << 7
+	bitInitialized byte = 1 << 3
 )
 
 var (
-	ArgsInitialize = []byte{CmdInitialize, 0x08, 0x00}
-	ArgsMeasure    = []byte{CmdMeasure, 0x33, 0x00}
+	argsInitialize = []byte{cmdInitialize, 0x08, 0x00}
+	argsMeasure    = []byte{cmdMeasure, 0x33, 0x00}
 )
 
-const CRC8Polynomial = uint8(0b00110001) // p(x) = x^8 + x^5 + x^4 + 1. x^8 is omitted due to byte size
+const crc8Polynomial = uint8(0b00110001) // p(x) = x^8 + x^5 + x^4 + 1. x^8 is omitted due to byte size
 
 type Dev struct {
 	opts Opts
@@ -44,7 +44,7 @@ type Dev struct {
 
 // Opts holds the configuration options for the device.
 type Opts struct {
-	// MeasurementReadTimeout is the timeout for reading a single measurement. The timeout only applies after the measurement triggering which itself takes 80ms. Default is 150ms. Leave 0 to use default.
+	// MeasurementReadTimeout is the timeout for reading a single measurement. The timeout only applies after the measurement triggering which itself takes 80ms. Default is 150ms. 0 means no timeout.
 	MeasurementReadTimeout time.Duration
 	// MeasurementWaitInterval is the interval between subsequent sensor value reads. This applies only if the measurement is not finished after the initial 80ms wait. Do not confuse this interval with SenseContinuous. Default is 10ms. Leave 0 to use default.
 	MeasurementWaitInterval time.Duration
@@ -59,20 +59,17 @@ var DefaultOpts = Opts{
 	ValidateData:            true,
 }
 
-// NewI2C returns an object that communicates over I²C to AHT20
-// environmental sensor. The sensor will be calibrated if it is not already. The Opts can be nil.
+// NewI2C returns an object that communicates over I²C to AHT20 environmental sensor. The sensor
+// will be calibrated and initialized if it is not already. The Opts can be nil.
 func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
 	if opts == nil {
 		opts = &DefaultOpts
-	}
-	if opts.MeasurementReadTimeout <= 0 {
-		opts.MeasurementReadTimeout = 150 * time.Millisecond
 	}
 	if opts.MeasurementWaitInterval <= 0 {
 		opts.MeasurementWaitInterval = 10 * time.Millisecond
 	}
 
-	d := &Dev{d: &i2c.Dev{Bus: b, Addr: DeviceAddress}, opts: *opts}
+	d := &Dev{d: &i2c.Dev{Bus: b, Addr: deviceAddress}, opts: *opts}
 	if err, initialized := d.isInitialized(); err != nil {
 		return nil, errors.Join(fmt.Errorf("could read sensor status"), err)
 	} else if !initialized {
@@ -83,20 +80,24 @@ func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
 	return d, nil
 }
 
-// Sense implements physic.SenseEnv.
+// Sense implements physic.SenseEnv. It returns the current temperature and humidity, the pressure
+// is always 0 since the AH20 does not measure pressure. The measurement takes at least 80ms. If the
+// configured timeout is reached, a ReadTimeoutError is returned. If the data is corrupt, a
+// DataCorruptionError is returned. If the sensor is not initialized, a NotInitializedError is
+// returned.
 func (d *Dev) Sense(e *physic.Env) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
 	// trigger measurement
-	if err := d.d.Tx(ArgsMeasure, nil); err != nil {
+	if err := d.d.Tx(argsMeasure, nil); err != nil {
 		return err
 	}
 	time.Sleep(80 * time.Millisecond) // wait for 80ms according to datasheet
 
 	end := time.Now().Add(d.opts.MeasurementReadTimeout)
 	data := make([]byte, 7)
-	for time.Now().Before(end) {
+	for d.opts.MeasurementReadTimeout <= 0 || time.Now().Before(end) {
 
 		// read measurement
 		if err := d.d.Tx(nil, data); err != nil {
@@ -105,9 +106,9 @@ func (d *Dev) Sense(e *physic.Env) error {
 			return &DataCorruptionError{}
 		}
 
-		if data[0]&BitInitialized == 0 {
+		if data[0]&bitInitialized == 0 {
 			return &NotInitializedError{}
-		} else if data[0]&BitBusy == 0 {
+		} else if data[0]&bitBusy == 0 {
 			hRaw := uint32(data[1])<<12 | uint32(data[2])<<4 | uint32(data[3])>>4
 			tRaw := (uint32(data[3])&0xF)<<16 | uint32(data[4])<<8 | uint32(data[5])
 
@@ -164,7 +165,7 @@ func (d *Dev) Precision(e *physic.Env) {
 
 // SoftReset resets the sensor. It includes a reboot and a re-calibration.
 func (d *Dev) SoftReset() error {
-	if err := d.d.Tx([]byte{CmdSoftReset}, nil); err != nil {
+	if err := d.d.Tx([]byte{cmdSoftReset}, nil); err != nil {
 		return err
 	}
 	time.Sleep(20 * time.Millisecond) // wait for 20ms according to datasheet
@@ -186,14 +187,14 @@ func (d *Dev) Halt() error {
 
 func (d *Dev) isInitialized() (error, bool) {
 	var data byte
-	if err := d.d.Tx([]byte{CmdStatus}, []byte{data}); err != nil {
+	if err := d.d.Tx([]byte{cmdStatus}, []byte{data}); err != nil {
 		return err, false
 	}
-	return nil, data&0x08 == 1
+	return nil, data&bitInitialized == 1
 }
 
 func (d *Dev) initialize() error {
-	if err := d.d.Tx(ArgsInitialize, nil); err != nil {
+	if err := d.d.Tx(argsInitialize, nil); err != nil {
 		return err
 	}
 	time.Sleep(10 * time.Millisecond) // wait for 10ms according to datasheet
@@ -207,7 +208,7 @@ func calculateCRC8(data []byte) uint8 {
 		crc ^= b
 		for i := 0; i < 8; i++ {
 			if crc&0x80 != 0 {
-				crc = (crc << 1) ^ CRC8Polynomial // 0x07 is the polynomial
+				crc = (crc << 1) ^ crc8Polynomial // 0x07 is the polynomial
 			} else {
 				crc <<= 1
 			}
