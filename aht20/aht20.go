@@ -5,7 +5,6 @@
 package aht20
 
 import (
-	"errors"
 	"fmt"
 	"periph.io/x/conn/v3/i2c"
 	"periph.io/x/conn/v3/physic"
@@ -65,16 +64,17 @@ func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
 	if opts == nil {
 		opts = &DefaultOpts
 	}
-	if opts.MeasurementWaitInterval <= 0 {
-		opts.MeasurementWaitInterval = 10 * time.Millisecond
+	d := &Dev{d: &i2c.Dev{Bus: b, Addr: deviceAddress}, opts: *opts}
+
+	if d.opts.MeasurementWaitInterval <= 0 {
+		d.opts.MeasurementWaitInterval = 10 * time.Millisecond
 	}
 
-	d := &Dev{d: &i2c.Dev{Bus: b, Addr: deviceAddress}, opts: *opts}
 	if err, initialized := d.isInitialized(); err != nil {
-		return nil, errors.Join(fmt.Errorf("could read sensor status"), err)
+		return nil, fmt.Errorf("%w; could read sensor status", err)
 	} else if !initialized {
 		if err := d.initialize(); err != nil {
-			return nil, errors.Join(fmt.Errorf("could not calibrate sensor"), err)
+			return nil, fmt.Errorf("%w; could not calibrate sensor", err)
 		}
 	}
 	return d, nil
