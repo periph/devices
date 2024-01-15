@@ -105,9 +105,10 @@ func (d *Dev) Sense(e *physic.Env) error {
 		}
 
 		// validate data
-		dataCrc := calculateCRC8(data[0:6])
-		if d.opts.ValidateData && dataCrc != data[6] {
-			return &DataCorruptionError{Received: data[6], Calculated: dataCrc}
+		if d.opts.ValidateData {
+			if dataCrc := calculateCRC8(data[:6]); dataCrc != data[6] {
+				return &DataCorruptionError{Received: data[6], Calculated: dataCrc}
+			}
 		}
 
 		// check if measurement is ready
