@@ -102,10 +102,15 @@ func (d *Dev) Sense(e *physic.Env) error {
 		// read measurement
 		if err := d.d.Tx(nil, data); err != nil {
 			return err
-		} else if d.opts.ValidateData && calculateCRC8(data[0:6]) != data[6] {
-			return &DataCorruptionError{}
 		}
 
+		// validate data
+		dataCrc := calculateCRC8(data[0:6])
+		if d.opts.ValidateData && dataCrc != data[6] {
+			return &DataCorruptionError{Received: data[6], Calculated: dataCrc}
+		}
+
+		// check if measurement is ready
 		if data[0]&bitInitialized == 0 {
 			return &NotInitializedError{}
 		} else if data[0]&bitBusy == 0 {
@@ -122,7 +127,7 @@ func (d *Dev) Sense(e *physic.Env) error {
 		time.Sleep(d.opts.MeasurementWaitInterval) // wait until measurement is ready
 	}
 
-	return &ReadTimeoutError{}
+	return &ReadTimeoutError{Timeout: d.opts.MeasurementReadTimeout}
 }
 
 // SenseContinuous implements physic.SenseEnv. It returns a channel that will

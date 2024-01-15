@@ -1,5 +1,10 @@
 package aht20
 
+import (
+	"fmt"
+	"time"
+)
+
 // NotInitializedError is returned when the sensor is not initialized but a measurement is requested.
 type NotInitializedError struct{}
 
@@ -8,15 +13,23 @@ func (e *NotInitializedError) Error() string {
 }
 
 // ReadTimeoutError is returned when the sensor does not finish a measurement in time.
-type ReadTimeoutError struct{}
+type ReadTimeoutError struct {
+	// Timeout is the configured timeout.
+	Timeout time.Duration
+}
 
 func (e *ReadTimeoutError) Error() string {
-	return "Read timeout. AHT20 did not finish measurement in time."
+	return fmt.Sprintf("Read timeout after %s. AHT20 did not finish measurement in time.", e.Timeout)
 }
 
 // DataCorruptionError is returned when the data from the sensor does not match the CRC8 hash.
-type DataCorruptionError struct{}
+type DataCorruptionError struct {
+	// Calculated is the calculated CRC8 hash using the received data bytes.
+	Calculated uint8
+	// Received is the CRC8 hash received from the sensor.
+	Received uint8
+}
 
 func (e *DataCorruptionError) Error() string {
-	return "Data is corrupt. The CRC8 hashes did not match."
+	return fmt.Sprintf("Data is corrupt. The CRC8 hashes did not match. Calculated: 0x%X, Received: 0x%X", e.Calculated, e.Received)
 }
