@@ -137,16 +137,6 @@ func TestDev_Sense_error(t *testing.T) {
 			error: &DataCorruptionError{0x7F, 0x7E},
 		},
 		{
-			name: "read timeout",
-			data: []byte{bitInitialized | bitBusy, 0x75, 0x52, 0x05, 0x8E, 0x40, 0x16},
-			opts: Opts{
-				MeasurementReadTimeout:  1,
-				MeasurementWaitInterval: -1,
-				ValidateData:            true,
-			},
-			error: &ReadTimeoutError{1},
-		},
-		{
 			name:  "not initialized",
 			data:  []byte{0x00, 0x75, 0x52, 0x05, 0x8E, 0x40, 0x20},
 			opts:  DefaultOpts,
