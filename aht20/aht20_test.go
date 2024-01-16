@@ -9,7 +9,6 @@ import (
 	"periph.io/x/conn/v3/i2c/i2ctest"
 	"periph.io/x/conn/v3/physic"
 	"testing"
-	"time"
 )
 
 const byteStatusInitialized = bitInitialized | 0x10
@@ -139,10 +138,10 @@ func TestDev_Sense_error(t *testing.T) {
 		},
 		{
 			name: "read timeout",
-			data: []byte{byteStatusInitialized, 0x75, 0x52, 0x05, 0x8E, 0x40, 0x7F},
+			data: []byte{bitInitialized | bitBusy, 0x75, 0x52, 0x05, 0x8E, 0x40, 0x16},
 			opts: Opts{
 				MeasurementReadTimeout:  1,
-				MeasurementWaitInterval: 10 * time.Millisecond,
+				MeasurementWaitInterval: -1,
 				ValidateData:            true,
 			},
 			error: &ReadTimeoutError{1},
