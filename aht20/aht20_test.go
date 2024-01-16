@@ -125,7 +125,6 @@ func TestDev_Sense_error(t *testing.T) {
 	type TestCase struct {
 		name  string
 		data  []byte
-		opts  Opts
 		error error
 	}
 
@@ -133,13 +132,11 @@ func TestDev_Sense_error(t *testing.T) {
 		{
 			name:  "data corrupt",
 			data:  []byte{byteStatusInitialized, 0x75, 0x52, 0x05, 0x8E, 0x40, 0x7E},
-			opts:  DefaultOpts,
 			error: &DataCorruptionError{0x7F, 0x7E},
 		},
 		{
 			name:  "not initialized",
 			data:  []byte{0x00, 0x75, 0x52, 0x05, 0x8E, 0x40, 0x20},
-			opts:  DefaultOpts,
 			error: &NotInitializedError{},
 		},
 	}
@@ -154,7 +151,7 @@ func TestDev_Sense_error(t *testing.T) {
 					{Addr: deviceAddress, R: tc.data},
 				},
 			}
-			dev := Dev{d: &i2c.Dev{Bus: &bus, Addr: deviceAddress}, opts: tc.opts}
+			dev := Dev{d: &i2c.Dev{Bus: &bus, Addr: deviceAddress}, opts: DefaultOpts}
 			e := physic.Env{}
 			if err := dev.Sense(&e); err == nil {
 				t.Fatal("expected error")
