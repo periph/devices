@@ -70,10 +70,10 @@ func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
 		d.opts.MeasurementWaitInterval = 10 * time.Millisecond
 	}
 
-	if err, initialized := d.isInitialized(); err != nil {
+	if err, initialized := d.IsInitialized(); err != nil {
 		return nil, fmt.Errorf("%w; could read sensor status", err)
 	} else if !initialized {
-		if err := d.initialize(); err != nil {
+		if err := d.Initialize(); err != nil {
 			return nil, fmt.Errorf("%w; could not calibrate sensor", err)
 		}
 	}
@@ -191,15 +191,17 @@ func (d *Dev) Halt() error {
 	return nil
 }
 
-func (d *Dev) isInitialized() (error, bool) {
-	var data byte
-	if err := d.d.Tx([]byte{cmdStatus}, []byte{data}); err != nil {
+// IsInitialized returns true if the sensor is initialized (calibrated)
+func (d *Dev) IsInitialized() (error, bool) {
+	data := make([]byte, 1)
+	if err := d.d.Tx([]byte{cmdStatus}, data); err != nil {
 		return err, false
 	}
-	return nil, data&bitInitialized == 1
+	return nil, (data[0] & bitInitialized) != 0
 }
 
-func (d *Dev) initialize() error {
+// Initialize calibrates the sensor. It takes 10ms.
+func (d *Dev) Initialize() error {
 	if err := d.d.Tx(argsInitialize, nil); err != nil {
 		return err
 	}
