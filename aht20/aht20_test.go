@@ -139,7 +139,7 @@ func TestDev_Sense_error(t *testing.T) {
 		},
 		{
 			name: "read timeout",
-			data: []byte{0x00, 0x75, 0x52, 0x05, 0x8E, 0x40, 0x7F},
+			data: []byte{byteStatusInitialized, 0x75, 0x52, 0x05, 0x8E, 0x40, 0x7F},
 			opts: Opts{
 				MeasurementReadTimeout:  1,
 				MeasurementWaitInterval: 10 * time.Millisecond,
