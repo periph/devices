@@ -174,3 +174,17 @@ func TestDev_SoftReset(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestDev_Precision(t *testing.T) {
+	dev := Dev{d: &i2c.Dev{Bus: &i2ctest.Playback{}, Addr: deviceAddress}, opts: DefaultOpts}
+	var env physic.Env
+	dev.Precision(&env)
+
+	if env.Temperature == 0 {
+		t.Fatal("expected temperature precision")
+	} else if env.Pressure != 0 {
+		t.Fatal("expected no pressure precision")
+	} else if env.Humidity == 0 {
+		t.Fatal("expected humidity precision")
+	}
+}
