@@ -5,6 +5,7 @@ import (
 	"periph.io/x/conn/v3/i2c/i2ctest"
 	"periph.io/x/conn/v3/physic"
 	"testing"
+	"time"
 )
 
 const byteStatusInitialized = bitInitialized | 0x10
@@ -46,7 +47,7 @@ func TestNewI2C(t *testing.T) {
 	}
 }
 
-func TestDev_IsInitialized(t *testing.T) {
+func TestDev_IsInitialized_true(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Read status
@@ -58,6 +59,21 @@ func TestDev_IsInitialized(t *testing.T) {
 		t.Fatal(err)
 	} else if !initialized {
 		t.Fatal("expected initialized")
+	}
+}
+
+func TestDev_IsInitialized_false(t *testing.T) {
+	bus := i2ctest.Playback{
+		Ops: []i2ctest.IO{
+			// Read status
+			{Addr: deviceAddress, W: []byte{cmdStatus}, R: []byte{0x00}},
+		},
+	}
+	dev := Dev{d: &i2c.Dev{Bus: &bus, Addr: deviceAddress}, opts: DefaultOpts}
+	if err, initialized := dev.IsInitialized(); err != nil {
+		t.Fatal(err)
+	} else if initialized {
+		t.Fatal("expected not initialized")
 	}
 }
 
@@ -74,7 +90,7 @@ func TestDev_Initialize(t *testing.T) {
 	}
 }
 
-func TestDev_Sense(t *testing.T) {
+func TestDev_Sense_successful(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Trigger measurement
@@ -99,6 +115,60 @@ func TestDev_Sense(t *testing.T) {
 	}
 	if err := bus.Close(); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestDev_Sense_error(t *testing.T) {
+	type TestCase struct {
+		name  string
+		data  []byte
+		opts  Opts
+		error error
+	}
+
+	testCases := []TestCase{
+		{
+			name:  "data corrupt",
+			data:  []byte{byteStatusInitialized, 0x75, 0x52, 0x05, 0x8E, 0x40, 0x7E},
+			opts:  DefaultOpts,
+			error: &DataCorruptionError{0x7F, 0x7E},
+		},
+		{
+			name: "read timeout",
+			data: []byte{0x00, 0x75, 0x52, 0x05, 0x8E, 0x40, 0x7F},
+			opts: Opts{
+				MeasurementReadTimeout:  1,
+				MeasurementWaitInterval: 10 * time.Millisecond,
+				ValidateData:            true,
+			},
+			error: &ReadTimeoutError{1},
+		},
+		{
+			name:  "not initialized",
+			data:  []byte{0x00, 0x75, 0x52, 0x05, 0x8E, 0x40, 0x20},
+			opts:  DefaultOpts,
+			error: &NotInitializedError{},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			bus := i2ctest.Playback{
+				Ops: []i2ctest.IO{
+					// Trigger measurement
+					{Addr: deviceAddress, W: argsMeasure},
+					// Read measurement
+					{Addr: deviceAddress, R: tc.data},
+				},
+			}
+			dev := Dev{d: &i2c.Dev{Bus: &bus, Addr: deviceAddress}, opts: tc.opts}
+			e := physic.Env{}
+			if err := dev.Sense(&e); err == nil {
+				t.Fatal("expected error")
+			} else if err.Error() != tc.error.Error() {
+				t.Fatalf("expected error %s, got %s", tc.error, err)
+			}
+		})
 	}
 }
 
