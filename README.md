@@ -46,11 +46,3 @@ examples!
 Ruel](https://github.com/maruel). The full list of contributors is in
 [AUTHORS](https://github.com/periph/devices/blob/main/AUTHORS) and
 [CONTRIBUTORS](https://github.com/periph/devices/blob/main/CONTRIBUTORS).
-
-
-## Disclaimer
-
-This is not an official Google product (experimental or otherwise), it
-is just code that happens to be owned by Google.
-
-This project is not affiliated with the Go project.
