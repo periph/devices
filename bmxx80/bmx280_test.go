@@ -7,7 +7,7 @@ package bmxx80
 import (
 	"errors"
 	"flag"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"testing"
@@ -1028,7 +1028,7 @@ func (s *spiFail) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn
 func TestMain(m *testing.M) {
 	flag.Parse()
 	if !testing.Verbose() {
-		log.SetOutput(ioutil.Discard)
+		log.SetOutput(io.Discard)
 	}
 	os.Exit(m.Run())
 }

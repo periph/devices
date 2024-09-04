@@ -138,9 +138,12 @@ type Opts struct {
 	// Humidity sensing is only supported on BME280. The value is ignored on other
 	// devices.
 	Humidity Oversampling
-	// Filter is only used while using SenseContinuous() and is only supported on
-	// BMx280.
+	// Filter is only used while using SenseContinuous() or with a pre-set standby duration
+	// It is only supported on BMx280.
 	Filter Filter
+	// Standby Used with Filter to control the time between samples.
+	// If this is set we enable the filter on device creation and set the device mode to normal instead of sleep.
+	Standby time.Duration
 }
 
 func (o *Opts) delayTypical280() time.Duration {
@@ -236,17 +239,20 @@ func (d *Dev) Sense(e *physic.Env) error {
 	}
 
 	if d.is280 {
-		err := d.writeCommands([]byte{
-			// ctrl_meas
-			0xF4, byte(d.opts.Temperature)<<5 | byte(d.opts.Pressure)<<2 | byte(forced),
-		})
-		if err != nil {
-			return d.wrap(err)
-		}
-		doSleep(d.measDelay)
-		for idle := false; !idle; {
-			if idle, err = d.isIdle280(); err != nil {
+		// Skip setting mode to forced if we are already in normal mode
+		if d.opts.Filter == NoFilter || d.opts.Standby == 0 {
+			err := d.writeCommands([]byte{
+				// ctrl_meas
+				0xF4, byte(d.opts.Temperature)<<5 | byte(d.opts.Pressure)<<2 | byte(forced),
+			})
+			if err != nil {
 				return d.wrap(err)
+			}
+			doSleep(d.measDelay)
+			for idle := false; !idle; {
+				if idle, err = d.isIdle280(); err != nil {
+					return d.wrap(err)
+				}
 			}
 		}
 		return d.sense280(e)
@@ -388,6 +394,14 @@ func (d *Dev) makeDev(opts *Opts) error {
 			}
 		}
 		d.cal280 = newCalibration(tph[:], h[:])
+		standbyDuration := s1s
+		filter := NoFilter
+		startingMode := sleep
+		if d.opts.Filter != NoFilter && d.opts.Standby != 0 {
+			standbyDuration = chooseStandby(d.isBME, d.opts.Standby)
+			filter = d.opts.Filter
+			startingMode = normal
+		}
 		var b []byte
 		if d.isBME {
 			b = []byte{
@@ -398,9 +412,9 @@ func (d *Dev) makeDev(opts *Opts) error {
 				// ctrl_hum
 				0xF2, byte(d.opts.Humidity),
 				// config
-				0xF5, byte(s1s)<<5 | byte(NoFilter)<<2,
+				0xF5, byte(standbyDuration)<<5 | byte(filter)<<2,
 				// As per page 25, ctrl_meas must be re-written last.
-				0xF4, byte(d.opts.Temperature)<<5 | byte(d.opts.Pressure)<<2 | byte(sleep),
+				0xF4, byte(d.opts.Temperature)<<5 | byte(d.opts.Pressure)<<2 | byte(startingMode),
 			}
 		} else {
 			// BMP280 doesn't have humidity to control.
@@ -410,9 +424,9 @@ func (d *Dev) makeDev(opts *Opts) error {
 				// into normal but was not Halt'ed.
 				0xF4, byte(d.opts.Temperature)<<5 | byte(d.opts.Pressure)<<2 | byte(sleep),
 				// config
-				0xF5, byte(s1s)<<5 | byte(NoFilter)<<2,
+				0xF5, byte(standbyDuration)<<5 | byte(filter)<<2,
 				// As per page 25, ctrl_meas must be re-written last.
-				0xF4, byte(d.opts.Temperature)<<5 | byte(d.opts.Pressure)<<2 | byte(sleep),
+				0xF4, byte(d.opts.Temperature)<<5 | byte(d.opts.Pressure)<<2 | byte(startingMode),
 			}
 		}
 		return d.writeCommands(b)
