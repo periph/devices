@@ -273,20 +273,11 @@ func TestDrawWritesSequenceImageToSpi(t *testing.T) {
 		for x := 0; x < width; x++ {
 			r := c
 			c++
-			if c > 255 {
-				c = 0
-			}
 			// Blue is set before Green on purpose to avoid having a straight sequence.
 			b := c
 			c++
-			if c > 255 {
-				c = 0
-			}
 			g := c
 			c++
-			if c > 255 {
-				c = 0
-			}
 			clr := color.RGBA{r, g, b, 255}
 			img.Set(x, y, clr)
 		}
