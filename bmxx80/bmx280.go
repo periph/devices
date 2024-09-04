@@ -75,7 +75,7 @@ const (
 // measurements are done.
 type standby uint8
 
-// Possible standby values, these determines the refresh rate.
+// Possible standby values, these determine the refresh rate.
 const (
 	s500us   standby = 0
 	s10msBME standby = 6

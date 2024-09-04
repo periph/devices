@@ -32,6 +32,6 @@
 //
 // The results of the calculations in the algorithm on page 15 are partly
 // wrong. It looks like the original authors used non-integer calculations and
-// some nubers were rounded. Take the results of the calculations with a grain
+// some numbers were rounded. Take the results of the calculations with a grain
 // of salt.
 package bmxx80
