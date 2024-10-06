@@ -167,13 +167,12 @@ func twosComplement(value uint16) uint16 {
 
 // countToTemperature returns the temperature from the raw device count.
 func countToTemperature(bytes []byte) physic.Temperature {
+	var t physic.Temperature
 	count := (uint16(bytes[0]) << 4) | (uint16(bytes[1]) >> 4)
 	negative := (count & (1 << 11)) > 0
+
 	if negative {
 		count = twosComplement(count) + 1
-	}
-	var t physic.Temperature
-	if negative {
 		t = physic.ZeroCelsius - (physic.Temperature(count) * _DEGREES_RESOLUTION)
 	} else {
 		t = physic.ZeroCelsius + (physic.Temperature(count) * _DEGREES_RESOLUTION)
