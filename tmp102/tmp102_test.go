@@ -111,18 +111,18 @@ func TestString(t *testing.T) {
 func TestSetAlertMode(t *testing.T) {
 	ops := make([]i2ctest.IO, 0)
 	ops = append(ops, []i2ctest.IO{
-		i2ctest.IO{Addr: addr, W: []byte{_REGISTER_CONFIGURATION}, R: []byte{0x00, 0x00}}, // Read the device config.
-		i2ctest.IO{Addr: addr, W: []byte{_REGISTER_CONFIGURATION, 0x00, 0x80}},            // Set the device config.
-		i2ctest.IO{Addr: addr, W: []byte{_REGISTER_RANGE_LOW}, R: []byte{0x4b, 0}},        // Read the low limit register
-		i2ctest.IO{Addr: addr, W: []byte{_REGISTER_RANGE_HIGH}, R: []byte{0x50, 0}},       // Read the High Limit Register
-		i2ctest.IO{Addr: addr, W: []byte{_REGISTER_RANGE_LOW, 0x4b, 0x80}},                // Set the read of the low limit to 75C
-		i2ctest.IO{Addr: addr, W: []byte{_REGISTER_RANGE_HIGH, 0x4f, 0x80}},               // Set the read of the high limit to 80C
-		i2ctest.IO{Addr: addr, W: []byte{_REGISTER_CONFIGURATION, 0x02, 0x00}},            // Add 1/2 Degree C to the range low
-		i2ctest.IO{Addr: addr, W: []byte{_REGISTER_CONFIGURATION}, R: []byte{0x02, 0}},    // Read the confugration register.
-		i2ctest.IO{Addr: addr, W: []byte{_REGISTER_RANGE_LOW}, R: []byte{0x4b, 0x80}},     // Read the low temp register
-		i2ctest.IO{Addr: addr, W: []byte{_REGISTER_RANGE_HIGH}, R: []byte{0x4f, 0x80}},    // Read the high temp register
-		i2ctest.IO{Addr: addr, W: []byte{_REGISTER_RANGE_LOW, 0x4b, 0x00}},                // write it back to 75C
-		i2ctest.IO{Addr: addr, W: []byte{_REGISTER_RANGE_HIGH, 0x50, 0x00}},               // set it back to 80C
+		{Addr: addr, W: []byte{_REGISTER_CONFIGURATION}, R: []byte{0x00, 0x00}}, // Read the device config.
+		{Addr: addr, W: []byte{_REGISTER_CONFIGURATION, 0x00, 0x80}},            // Set the device config.
+		{Addr: addr, W: []byte{_REGISTER_RANGE_LOW}, R: []byte{0x4b, 0}},        // Read the low limit register
+		{Addr: addr, W: []byte{_REGISTER_RANGE_HIGH}, R: []byte{0x50, 0}},       // Read the High Limit Register
+		{Addr: addr, W: []byte{_REGISTER_RANGE_LOW, 0x4b, 0x80}},                // Set the read of the low limit to 75C
+		{Addr: addr, W: []byte{_REGISTER_RANGE_HIGH, 0x4f, 0x80}},               // Set the read of the high limit to 80C
+		{Addr: addr, W: []byte{_REGISTER_CONFIGURATION, 0x02, 0x00}},            // Add 1/2 Degree C to the range low
+		{Addr: addr, W: []byte{_REGISTER_CONFIGURATION}, R: []byte{0x02, 0}},    // Read the confugration register.
+		{Addr: addr, W: []byte{_REGISTER_RANGE_LOW}, R: []byte{0x4b, 0x80}},     // Read the low temp register
+		{Addr: addr, W: []byte{_REGISTER_RANGE_HIGH}, R: []byte{0x4f, 0x80}},    // Read the high temp register
+		{Addr: addr, W: []byte{_REGISTER_RANGE_LOW, 0x4b, 0x00}},                // write it back to 75C
+		{Addr: addr, W: []byte{_REGISTER_RANGE_HIGH, 0x50, 0x00}},               // set it back to 80C
 	}...)
 	pb := &i2ctest.Playback{Ops: ops, DontPanic: true, Count: 1}
 	defer pb.Close()
