@@ -110,8 +110,7 @@ func TestString(t *testing.T) {
 
 func TestSetAlertMode(t *testing.T) {
 	ops := make([]i2ctest.IO, 0)
-
-	for _, op := range []i2ctest.IO{
+	ops = append(ops, []i2ctest.IO{
 		i2ctest.IO{Addr: addr, W: []byte{_REGISTER_CONFIGURATION}, R: []byte{0x00, 0x00}}, // Read the device config.
 		i2ctest.IO{Addr: addr, W: []byte{_REGISTER_CONFIGURATION, 0x00, 0x80}},            // Set the device config.
 		i2ctest.IO{Addr: addr, W: []byte{_REGISTER_RANGE_LOW}, R: []byte{0x4b, 0}},        // Read the low limit register
@@ -124,9 +123,7 @@ func TestSetAlertMode(t *testing.T) {
 		i2ctest.IO{Addr: addr, W: []byte{_REGISTER_RANGE_HIGH}, R: []byte{0x4f, 0x80}},    // Read the high temp register
 		i2ctest.IO{Addr: addr, W: []byte{_REGISTER_RANGE_LOW, 0x4b, 0x00}},                // write it back to 75C
 		i2ctest.IO{Addr: addr, W: []byte{_REGISTER_RANGE_HIGH, 0x50, 0x00}},               // set it back to 80C
-	} {
-		ops = append(ops, op)
-	}
+	}...)
 	pb := &i2ctest.Playback{Ops: ops, DontPanic: true, Count: 1}
 	defer pb.Close()
 	record := &i2ctest.Record{Bus: pb}
