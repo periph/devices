@@ -11,6 +11,7 @@ import (
 	"image/color"
 	"image/draw"
 	"log"
+	"math"
 	"time"
 
 	"periph.io/x/conn/v3"
@@ -47,9 +48,23 @@ var (
 		{177, 106, 73, 255},  // Orange
 		{255, 255, 255, 255},
 	}
+
+	sc7 = []color.NRGBA{
+		{0, 0, 0, 0},         // Black
+		{217, 242, 255, 255}, // White
+		{3, 124, 76, 255},    // Green
+		{27, 46, 198, 255},   // Blue
+		{245, 80, 34, 255},   // Red
+		{255, 255, 68, 255},  // Yellow
+		{239, 121, 44, 255},  // Orange
+		{255, 255, 255, 255},
+	}
 )
 
 const (
+	ucSpeed = 3000 * physic.KiloHertz
+	acSpeed = 5000 * physic.KiloHertz
+
 	uc8159PSR   = 0x00
 	uc8159PWR   = 0x01
 	uc8159POF   = 0x02
@@ -78,6 +93,41 @@ const (
 	uc8159VDCS  = 0x82
 	uc8159PWS   = 0xE3
 	uc8159TSSET = 0xE5
+
+	ac073TC1PSR   = 0x00
+	ac073TC1PWR   = 0x01
+	ac073TC1POF   = 0x02
+	ac073TC1POFS  = 0x03
+	ac073TC1PON   = 0x04
+	ac073TC1BTST1 = 0x05
+	ac073TC1BTST2 = 0x06
+	ac073TC1DSLP  = 0x07
+	ac073TC1BTST3 = 0x08
+	ac073TC1DTM   = 0x10
+	ac073TC1DSP   = 0x11
+	ac073TC1DRF   = 0x12
+	ac073TC1IPC   = 0x13
+	ac073TC1PLL   = 0x30
+	ac073TC1TSC   = 0x40
+	ac073TC1TSE   = 0x41
+	ac073TC1TSW   = 0x42
+	ac073TC1TSR   = 0x43
+	ac073TC1CDI   = 0x50
+	ac073TC1LPD   = 0x51
+	ac073TC1TCON  = 0x60
+	ac073TC1TRES  = 0x61
+	ac073TC1DAM   = 0x65
+	ac073TC1REV   = 0x70
+	ac073TC1FLG   = 0x71
+	ac073TC1AMV   = 0x80
+	ac073TC1VV    = 0x81
+	ac073TC1VDCS  = 0x82
+	ac073TC1TVDCS = 0x84
+	ac073TC1AGID  = 0x86
+	ac073TC1CMDH  = 0xAA
+	ac073TC1CCSET = 0xE0
+	ac073TC1PWS   = 0xE3
+	ac073TC1TSSET = 0xE6
 )
 
 // DevImpression is a handle to an Inky Impression.
@@ -101,7 +151,11 @@ func NewImpression(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinI
 		return nil, fmt.Errorf("unsupported color: %v", o.ModelColor)
 	}
 
-	c, err := p.Connect(3000*physic.KiloHertz, spi.Mode0, cs0Pin)
+	cSpeed := ucSpeed
+	if o.Model == IMPRESSION73 {
+		cSpeed = acSpeed
+	}
+	c, err := p.Connect(cSpeed, spi.Mode0, cs0Pin)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to inky over spi: %v", err)
 	}
@@ -113,7 +167,11 @@ func NewImpression(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinI
 		maxTxSize = limits.MaxTxSize()
 	}
 	if maxTxSize == 0 {
-		maxTxSize = 4096 // Use a conservative default.
+		if o.Model == IMPRESSION73 {
+			maxTxSize = math.MaxInt // No chunking for AC073TC1 by default.
+		} else {
+			maxTxSize = 4096 // Use a conservative default.
+		}
 	}
 
 	d := &DevImpression{
@@ -141,6 +199,10 @@ func NewImpression(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinI
 		d.width = 600
 		d.height = 448
 		d.res = 0b11
+	case IMPRESSION73:
+		d.width = 800
+		d.height = 480
+		d.res = 0b11
 	}
 	// Prefer the passed in values via Opts.
 	if o.Width == 0 && o.Height == 0 {
@@ -160,10 +222,18 @@ func (d *DevImpression) blend() []color.Color {
 
 	pr := []color.Color{}
 	for i := 0; i < 7; i++ {
-		rs, gs, bs :=
-			uint8(float64(sc[i].R)*sat),
-			uint8(float64(sc[i].G)*sat),
-			uint8(float64(sc[i].B)*sat)
+		var rs, gs, bs uint8
+		if d.Dev.model == IMPRESSION73 {
+			rs, gs, bs =
+				uint8(float64(sc7[i].R)*sat),
+				uint8(float64(sc7[i].G)*sat),
+				uint8(float64(sc7[i].B)*sat)
+		} else {
+			rs, gs, bs =
+				uint8(float64(sc[i].R)*sat),
+				uint8(float64(sc[i].G)*sat),
+				uint8(float64(sc[i].B)*sat)
+		}
 
 		rd, gd, bd :=
 			uint8(float64(dsc[i].R)*(1.0-sat)),
@@ -224,12 +294,16 @@ func (d *DevImpression) Render() error {
 	return d.update(merged)
 }
 
-func (d *DevImpression) reset() error {
+func (d *DevImpression) cycleResetGPIO() error {
 	if err := d.r.Out(gpio.Low); err != nil {
 		return err
 	}
 	time.Sleep(100 * time.Millisecond)
-	if err := d.r.Out(gpio.High); err != nil {
+	return d.r.Out(gpio.High)
+}
+
+func (d *DevImpression) resetUC() error {
+	if err := d.cycleResetGPIO(); err != nil {
 		return err
 	}
 	d.wait(1 * time.Second)
@@ -331,8 +405,87 @@ func (d *DevImpression) reset() error {
 	return nil
 }
 
+func (d *DevImpression) resetAC() error {
+	if err := d.cycleResetGPIO(); err != nil {
+		return err
+	}
+	time.Sleep(100 * time.Millisecond)
+	if err := d.cycleResetGPIO(); err != nil {
+		return err
+	}
+	d.wait(1 * time.Second)
+
+	// Sending init commands to display
+	if err := d.sendCommand(ac073TC1CMDH, []byte{0x49, 0x55, 0x20, 0x08, 0x09, 0x18}); err != nil {
+		return err
+	}
+	if err := d.sendCommand(ac073TC1PWR, []byte{0x3F, 0x00, 0x32, 0x2A, 0x0E, 0x2A}); err != nil {
+		return err
+	}
+	if err := d.sendCommand(ac073TC1PSR, []byte{0x5F, 0x69}); err != nil {
+		return err
+	}
+	if err := d.sendCommand(ac073TC1POFS, []byte{0x00, 0x54, 0x00, 0x44}); err != nil {
+		return err
+	}
+	if err := d.sendCommand(ac073TC1BTST1, []byte{0x40, 0x1F, 0x1F, 0x2C}); err != nil {
+		return err
+	}
+	if err := d.sendCommand(ac073TC1BTST2, []byte{0x6F, 0x1F, 0x16, 0x25}); err != nil {
+		return err
+	}
+	if err := d.sendCommand(ac073TC1BTST3, []byte{0x6F, 0x1F, 0x1F, 0x22}); err != nil {
+		return err
+	}
+	if err := d.sendCommand(ac073TC1IPC, []byte{0x00, 0x04}); err != nil {
+		return err
+	}
+	if err := d.sendCommand(ac073TC1PLL, []byte{0x02}); err != nil {
+		return err
+	}
+	if err := d.sendCommand(ac073TC1TSE, []byte{0x00}); err != nil {
+		return err
+	}
+	if err := d.sendCommand(ac073TC1CDI, []byte{0x3F}); err != nil {
+		return err
+	}
+	if err := d.sendCommand(ac073TC1TCON, []byte{0x02, 0x00}); err != nil {
+		return err
+	}
+	if err := d.sendCommand(ac073TC1TRES, []byte{0x03, 0x20, 0x01, 0xE0}); err != nil {
+		return err
+	}
+	if err := d.sendCommand(ac073TC1VDCS, []byte{0x1E}); err != nil {
+		return err
+	}
+	if err := d.sendCommand(ac073TC1TVDCS, []byte{0x00}); err != nil {
+		return err
+	}
+	if err := d.sendCommand(ac073TC1AGID, []byte{0x00}); err != nil {
+		return err
+	}
+	if err := d.sendCommand(ac073TC1PWS, []byte{0x2F}); err != nil {
+		return err
+	}
+	if err := d.sendCommand(ac073TC1CCSET, []byte{0x00}); err != nil {
+		return err
+	}
+	if err := d.sendCommand(ac073TC1TSSET, []byte{0x00}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (d *DevImpression) update(pix []uint8) error {
-	if err := d.reset(); err != nil {
+	if d.model == IMPRESSION73 {
+		return d.updateAC(pix)
+	}
+	return d.updateUC(pix)
+}
+
+func (d *DevImpression) updateUC(pix []uint8) error {
+	if err := d.resetUC(); err != nil {
 		return err
 	}
 
@@ -354,6 +507,44 @@ func (d *DevImpression) update(pix []uint8) error {
 		return err
 	}
 	d.wait(200 * time.Millisecond)
+
+	return nil
+}
+
+func (d *DevImpression) updateAC(pix []uint8) error {
+	if err := d.resetAC(); err != nil {
+		return err
+	}
+
+	// TODO there has to be a better way to force the white colour to be used instead of clear...
+	buf := make([]byte, len(pix))
+	for i := range pix {
+		if pix[i]&0xF == 7 {
+			buf[i] = (pix[i] & 0xF0) + 1
+		}
+		if pix[i]&0xF0 == 0x70 {
+			buf[i] = (pix[i] & 0xF) + 0x10
+		}
+	}
+
+	if err := d.sendCommand(ac073TC1DTM, buf); err != nil {
+		return err
+	}
+
+	if err := d.sendCommand(ac073TC1PON, nil); err != nil {
+		return err
+	}
+	d.wait(400 * time.Millisecond)
+
+	if err := d.sendCommand(ac073TC1DRF, []byte{0x00}); err != nil {
+		return err
+	}
+	d.wait(45 * time.Second) // 41 seconds in testing
+
+	if err := d.sendCommand(ac073TC1POF, []byte{0x00}); err != nil {
+		return err
+	}
+	d.wait(400 * time.Millisecond)
 
 	return nil
 }
