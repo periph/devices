@@ -94,7 +94,11 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) (err error) {
 	if len(*dcName) != 0 {
 		dc = gpioreg.ByName(*dcName)
 	}
-	opts := ssd1306.Opts{W: *w, H: *h, Rotated: *rotated}
+	opts := ssd1306.Opts{W: *w, H: *h}
+	if *rotated {
+		opts.MirrorHorizontal = true
+		opts.MirrorVertical = true
+	}
 	if !*record {
 		return s.run(i2cBus, spiPort, dc, &opts)
 	}
