@@ -84,11 +84,13 @@ const (
 
 // DefaultOpts is the recommended default options.
 var DefaultOpts = Opts{
-	W:             128,
-	H:             64,
-	Rotated:       false,
-	Sequential:    false,
-	SwapTopBottom: false,
+	W:                128,
+	H:                64,
+	Rotated:          false,
+	MirrorVertical:   false,
+	MirrorHorizontal: false,
+	Sequential:       false,
+	SwapTopBottom:    false,
 }
 
 // Opts defines the options for the device.
@@ -96,11 +98,21 @@ type Opts struct {
 	W int
 	H int
 	// Rotated determines if the display is rotated by 180°.
+	//
+	// Deprecated: Use MirrorVertical and MirrorHorizontal instead.
 	Rotated bool
 	// Sequential corresponds to the Sequential/Alternative COM pin configuration
 	// in the OLED panel hardware. Try toggling this if half the rows appear to be
 	// missing on your display.
 	Sequential bool
+	// MirrorVertical corresponds to the COM remap configuration in the OLED panel
+	// hardware. Try toggling this if the display is flipped vertically.
+	// Overwrites Rotated.
+	MirrorVertical bool
+	// MirrorHorizontal corresponds to the SEG remap configuration in the OLED panel
+	// hardware. Try toggling this if the display is flipped horizontally.
+	// Overwrites Rotated.
+	MirrorHorizontal bool
 	// SwapTopBottom corresponds to the Left/Right remap COM pin configuration in
 	// the OLED panel hardware. Try toggling this if the top and bottom halves of
 	// your display are swapped.
@@ -352,6 +364,12 @@ func getInitCmd(opts *Opts) []byte {
 	if opts.Rotated {
 		// Change order both horizontally and vertically.
 		comScan = 0xC0
+		columnAddr = byte(0xA0)
+	}
+	if opts.MirrorVertical {
+		comScan = byte(0xC0)
+	}
+	if opts.MirrorHorizontal {
 		columnAddr = byte(0xA0)
 	}
 	// See page 40.
