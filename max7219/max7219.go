@@ -290,10 +290,6 @@ func (d *Dev) writeChars(bytes []byte) error {
 		copy(x, d.glyphs[0x20])
 		w[ix] = x
 	}
-	limit := len(bytes)
-	if limit > len(w) {
-		limit = len(w)
-	}
 	charPos := len(bytes) - 1
 	for ix := d.units - 1; ix >= 0 && charPos >= 0; ix-- {
 		w[ix] = d.glyphs[bytes[charPos]]

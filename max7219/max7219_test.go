@@ -217,9 +217,9 @@ func TestCommand(t *testing.T) {
 	defer pb.Close()
 	record := &spitest.Record{}
 
-	dev, err := NewSPI(record, 4, 8)
+	dev, _ := NewSPI(record, 4, 8)
 	record.Ops = make([]conntest.IO, 0)
-	err = dev.SetIntensity(0x0b)
+	err := dev.SetIntensity(0x0b)
 
 	if err != nil {
 		t.Error(err)

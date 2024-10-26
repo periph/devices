@@ -51,6 +51,8 @@ func Example() {
 		dev.SetGlyphs(max7219.CP437Glyphs, true)
 		dev.SetDecode(max7219.DecodeNone)
 		dev.ScrollChars([]byte("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"), 1, 100*time.Millisecond)
+	} else {
+		dev.SetDecode(max7219.DecodeB)
 	}
 
 	// display a count
