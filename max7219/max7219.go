@@ -12,7 +12,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"sync"
 	"time"
 
 	"periph.io/x/conn/v3/physic"
@@ -52,7 +51,6 @@ const (
 // Type for a Maxim MAX7219/MAX7221 device.
 type Dev struct {
 	conn spi.Conn
-	mu   sync.Mutex
 	// decode mode for all data registers
 	decode DecodeMode
 	// units is the number of 7219 units daisy-chained together.
@@ -88,7 +86,6 @@ func (d *Dev) init() {
 		{_REGISTER_SCAN_LIMIT, d.digits - 1},
 		{_REGISTER_SHUTDOWN, 0x01}}
 
-	d.mu.Lock()
 	for _, cmd := range initCommands {
 		err := d.sendCommand(cmd[0], cmd[1])
 		if err != nil {
@@ -96,7 +93,6 @@ func (d *Dev) init() {
 			break
 		}
 	}
-	d.mu.Unlock()
 	if d.units == 1 {
 		_ = d.SetDecode(DecodeB)
 	} else {
@@ -123,12 +119,13 @@ func (d *Dev) sendCommand(register, data byte) error {
 // of Max7219 chips daisy-chained together. numDigits is the number of digits
 // displayed.
 func NewSPI(p spi.Port, units, numDigits int) (*Dev, error) {
-	if numDigits <= 0 {
-		return nil, errors.New("invalid value for number of digits")
-	}
 	if units <= 0 {
-		return nil, errors.New("invalid value for number of cascaded units")
+		return nil, errors.New("max7219: invalid value for number of cascaded units")
 	}
+	if numDigits <= 0 || numDigits > 8 {
+		return nil, errors.New("max7219: invalid value for number of digits")
+	}
+
 	// It works in Mode0, Mode2 and Mode3.
 	c, err := p.Connect(10*physic.MegaHertz, spi.Mode0, 8)
 	if err != nil {
@@ -242,8 +239,6 @@ func (d *Dev) ScrollChars(data []byte, scrollCount int, updateInterval time.Dura
 // just writing digits, you just need 0-9 and whatever punctuation marks you
 // need.
 func (d *Dev) SetGlyphs(glyphs [][]byte, reverse bool) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
 	if reverse {
 		d.glyphs = reverseGlyphs(glyphs)
 	} else {
@@ -256,8 +251,6 @@ func (d *Dev) SetGlyphs(glyphs [][]byte, reverse bool) {
 // for more detailed information.
 func (d *Dev) SetDecode(mode DecodeMode) error {
 	d.decode = mode
-	d.mu.Lock()
-	defer d.mu.Unlock()
 	return d.sendCommand(_REGISTER_DECODE_MODE, byte(mode))
 }
 
@@ -272,8 +265,6 @@ func (d *Dev) SetIntensity(intensity byte) error {
 // and  the intensity to maximum. If you're using multiple units, you should be
 // aware  of the current draw, and limit how long you leave this on.
 func (d *Dev) TestDisplay(on bool) error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
 	if on {
 		return d.sendCommand(_REGISTER_DISPLAY_TEST, 1)
 	} else {
@@ -354,8 +345,6 @@ func (d *Dev) Write(bytes []byte) error {
 		// single-unit numeric display.
 		var digit = d.digits
 		w := make([]byte, 2)
-		d.mu.Lock()
-		defer d.mu.Unlock()
 		for _, val := range bytes {
 			w[0] = digit
 			w[1] = val
@@ -396,12 +385,9 @@ func (d *Dev) Write(bytes []byte) error {
 // value on the display. It will work for either matrixes (with a glyph set)
 // or numeric displays.
 func (d *Dev) WriteInt(value int) error {
-	var digits int
-	if d.decode == DecodeNone {
-		// This is a matrix
-		digits = d.units
-	} else {
-		digits = d.units * int(d.digits)
+	digits := d.units
+	if d.decode != DecodeNone {
+		digits *= int(d.digits)
 	}
 	return d.Write([]byte(fmt.Sprintf("%*d", digits, value)))
 }
@@ -413,8 +399,6 @@ func (d *Dev) WriteInt(value int) error {
 // to the next in a chain.
 func (d *Dev) WriteCascadedUnits(bytes [][]byte) error {
 	matrixCount := len(bytes)
-	d.mu.Lock()
-	defer d.mu.Unlock()
 	for rasterLine := 0; rasterLine < int(d.digits); rasterLine++ {
 		w := make([]byte, 0)
 		for matrix := matrixCount - 1; matrix >= 0; matrix-- {
@@ -447,8 +431,6 @@ func (d *Dev) WriteCascadedUnit(offset int, data []byte) error {
 			}
 
 		}
-		d.mu.Lock()
-		defer d.mu.Unlock()
 		err := d.conn.Tx(w, nil)
 		if err != nil {
 			return err

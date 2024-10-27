@@ -9,7 +9,6 @@ import (
 	"log"
 	"time"
 
-	"periph.io/x/conn/v3/driver/driverreg"
 	"periph.io/x/conn/v3/spi/spireg"
 	"periph.io/x/devices/v3/max7219"
 	"periph.io/x/host/v3"
@@ -18,14 +17,11 @@ import (
 // basic test program. To do a numeric display, set matrix to false and
 // matrixUnits to 1.
 func Example() {
-	var matrix = false
+	// basic test program. To do a numeric display, set matrix to false and
+	// matrixUnits to 1.
+	matrix := false
 	matrixUnits := 1
-	var err error
-	_, err = host.Init()
-	if err != nil {
-		log.Fatal(err)
-	}
-	if _, err = driverreg.Init(); err != nil {
+	if _, err := host.Init(); err != nil {
 		log.Fatal(err)
 	}
 
@@ -54,8 +50,6 @@ func Example() {
 	} else {
 		dev.SetDecode(max7219.DecodeB)
 	}
-
-	// display a count
 	for i := -128; i < 128; i++ {
 		dev.WriteInt(i)
 		time.Sleep(100 * time.Millisecond)
