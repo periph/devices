@@ -1107,8 +1107,7 @@ const (
 //		// The reading is less than about 2.4 V.
 //	}
 func (d *Dev) GetAnalogReading(pin Pin) (uint16, error) {
-	offset := OffsetAnalogReadingSCL + 2*offset(pin)
-	return d.getVar16(offset)
+	return d.getVar16(OffsetAnalogReadingSCL + 2*offset(pin))
 }
 
 // IsDigitalReading gets a digital reading from the specified pin.
