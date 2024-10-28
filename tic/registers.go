@@ -43,25 +43,25 @@ func (d *Dev) getVar32(offset Offset) (uint32, error) {
 
 // commandQuick sends a command without additional data.
 func (d *Dev) commandQuick(cmd command) error {
-	writeBuf := []byte{uint8(cmd)}
-	err := d.c.Tx(writeBuf, nil)
+	writeBuf := [1]byte{uint8(cmd)}
+	err := d.c.Tx(writeBuf[:], nil)
 	return err
 }
 
 // commandW7 sends a command with a 7 bit value. The MSB of val is ignored.
 func (d *Dev) commandW7(cmd command, val uint8) error {
-	writeBuf := []byte{byte(cmd), val & 0x7F}
-	err := d.c.Tx(writeBuf, nil)
+	writeBuf := [2]byte{byte(cmd), val & 0x7F}
+	err := d.c.Tx(writeBuf[:], nil)
 	return err
 }
 
 // commandW32 sends a command with a 32 bit value.
 func (d *Dev) commandW32(cmd command, val uint32) error {
-	writeBuf := make([]byte, 5)
+	writeBuf := [5]byte{byte(cmd)}
 	writeBuf[0] = byte(cmd)
 	binary.LittleEndian.PutUint32(writeBuf[1:], val) // write the uint32 value
 
-	err := d.c.Tx(writeBuf, nil)
+	err := d.c.Tx(writeBuf[:], nil)
 	return err
 }
 
@@ -70,8 +70,8 @@ func (d *Dev) getSegment(
 	cmd command, offset Offset, length uint,
 ) ([]byte, error) {
 	// Transmit command and offset value
-	writeBuf := []byte{byte(cmd), byte(offset)}
-	err := d.c.Tx(writeBuf, nil)
+	writeBuf := [2]byte{byte(cmd), byte(offset)}
+	err := d.c.Tx(writeBuf[:], nil)
 	if err != nil {
 		return nil, err
 	}
