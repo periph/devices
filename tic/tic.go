@@ -359,19 +359,29 @@ func (d *Dev) SetMaxDecel(decel uint32) error {
 type StepMode uint8
 
 const (
+	// StepModeFull is 1 microstep per step.
 	StepModeFull StepMode = 0
+	// StepModeHalf is 2 microsteps per step.
 	StepModeHalf StepMode = 1
-
-	StepModeMicrostep1      StepMode = 0 // Full step
-	StepModeMicrostep2      StepMode = 1 // 1/2 step
-	StepModeMicrostep4      StepMode = 2 // 1/4 step
-	StepModeMicrostep8      StepMode = 3 // 1/8 step
-	StepModeMicrostep16     StepMode = 4 // 1/16 step
-	StepModeMicrostep32     StepMode = 5 // 1/32 step
-	StepModeMicrostep2_100p StepMode = 6 // 1/2 step (100% coil current)
-	StepModeMicrostep64     StepMode = 7 // 1/64 step
-	StepModeMicrostep128    StepMode = 8 // 1/128 step
-	StepModeMicrostep256    StepMode = 9 // 1/256 step
+	// StepModeMicrostep4 is 4 microsteps per step.
+	StepModeMicrostep4 StepMode = 2
+	// StepModeMicrostep8 is 8 microsteps per step.
+	StepModeMicrostep8 StepMode = 3
+	// StepModeMicrostep16 is 16 microsteps per step. Valid for Tic T834, Tic
+	// T825 and Tic 36v4 only.
+	StepModeMicrostep16 StepMode = 4
+	// StepModeMicrostep32 is 32 microsteps per step. Valid for Tic T834, Tic
+	// T825 and Tic 36v4 only.
+	StepModeMicrostep32 StepMode = 5
+	// StepModeMicrostep2_100p is 2 microsteps per step at 100% coil current.
+	// Valid for Tic T249 only.
+	StepModeMicrostep2_100p StepMode = 6
+	// StepModeMicrostep64 is 64 microsteps per step. Valid for Tic 36v4 only.
+	StepModeMicrostep64 StepMode = 7
+	// StepModeMicrostep128 is 128 microsteps per step. Valid for Tic 36v4 only.
+	StepModeMicrostep128 StepMode = 8
+	// StepModeMicrostep256 is 256 microsteps per step. Valid for Tic 36v4 only.
+	StepModeMicrostep256 StepMode = 9
 )
 
 // GetStepMode gets the current step mode of the stepper motor.
