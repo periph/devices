@@ -9,7 +9,7 @@ import (
 )
 
 // getVar8 reads an 8 bit value from the Tic at a given register offset.
-func (d *Dev) getVar8(offset Offset) (uint8, error) {
+func (d *Dev) getVar8(offset offset) (uint8, error) {
 	const length = 1
 	buffer, err := d.getSegment(cmdGetVariable, offset, length)
 	if err != nil {
@@ -20,7 +20,7 @@ func (d *Dev) getVar8(offset Offset) (uint8, error) {
 }
 
 // getVar16 reads a 16 bit value from the Tic at a given register offset.
-func (d *Dev) getVar16(offset Offset) (uint16, error) {
+func (d *Dev) getVar16(offset offset) (uint16, error) {
 	const length = 2
 	buffer, err := d.getSegment(cmdGetVariable, offset, length)
 	if err != nil {
@@ -31,7 +31,7 @@ func (d *Dev) getVar16(offset Offset) (uint16, error) {
 }
 
 // getVar32 reads a 32 bit value from the Tic at a given register offset.
-func (d *Dev) getVar32(offset Offset) (uint32, error) {
+func (d *Dev) getVar32(offset offset) (uint32, error) {
 	const length = 4
 	buffer, err := d.getSegment(cmdGetVariable, offset, length)
 	if err != nil {
@@ -67,7 +67,7 @@ func (d *Dev) commandW32(cmd command, val uint32) error {
 
 // getSegment sends a command and receives "length" bytes back.
 func (d *Dev) getSegment(
-	cmd command, offset Offset, length uint,
+	cmd command, offset offset, length uint,
 ) ([]byte, error) {
 	// Transmit command and offset value
 	writeBuf := [2]byte{byte(cmd), byte(offset)}

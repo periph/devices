@@ -1107,7 +1107,7 @@ const (
 //		// The reading is less than about 2.4 V.
 //	}
 func (d *Dev) GetAnalogReading(pin Pin) (uint16, error) {
-	offset := OffsetAnalogReadingSCL + 2*Offset(pin)
+	offset := OffsetAnalogReadingSCL + 2*offset(pin)
 	return d.getVar16(offset)
 }
 
@@ -1252,7 +1252,7 @@ func (d *Dev) GetLastHPDriverErrors() (uint8, error) {
 // This library does not attempt to interpret the settings and say what they
 // mean. If you are interested in how the settings are encoded in the Tic's
 // EEPROM, see the "Settings reference" section of the Tic user's guide.
-func (d *Dev) GetSetting(offset Offset, length uint) ([]uint8, error) {
+func (d *Dev) GetSetting(offset offset, length uint) ([]uint8, error) {
 	if length > 15 {
 		return nil, errors.New("maximum length exceeded")
 	}
@@ -1260,50 +1260,50 @@ func (d *Dev) GetSetting(offset Offset, length uint) ([]uint8, error) {
 	return d.getSegment(cmdGetSetting, offset, length)
 }
 
-// Offset represents where settings are stored in the Tic's EEPROM memory. See
+// offset represents where settings are stored in the Tic's EEPROM memory. See
 // the "Variable reference" section of the Tic user's guide for details.
-type Offset uint8
+type offset uint8
 
 const (
-	OffsetOperationState        Offset = 0x00 // uint8 return type
-	OffsetMiscFlags1            Offset = 0x01 // uint8 return type
-	OffsetErrorStatus           Offset = 0x02 // uint16 return type
-	OffsetErrorsOccurred        Offset = 0x04 // uint32 return type
-	OffsetPlanningMode          Offset = 0x09 // uint8 return type
-	OffsetTargetPosition        Offset = 0x0A // int32 return type
-	OffsetTargetVelocity        Offset = 0x0E // int32 return type
-	OffsetStartingSpeed         Offset = 0x12 // uint32 return type
-	OffsetSpeedMax              Offset = 0x16 // uint32 return type
-	OffsetDecelMax              Offset = 0x1A // uint32 return type
-	OffsetAccelMax              Offset = 0x1E // uint32 return type
-	OffsetCurrentPosition       Offset = 0x22 // int32 return type
-	OffsetCurrentVelocity       Offset = 0x26 // int32 return type
-	OffsetActingTargetPosition  Offset = 0x2A // int32 return type
-	OffsetTimeSinceLastStep     Offset = 0x2E // uint32 return type
-	OffsetDeviceReset           Offset = 0x32 // uint8 return type
-	OffsetVoltageIn             Offset = 0x33 // uint16 return type
-	OffsetUpTime                Offset = 0x35 // uint32 return type
-	OffsetEncoderPosition       Offset = 0x39 // int32 return type
-	OffsetRCPulseWidth          Offset = 0x3D // uint16 return type
-	OffsetAnalogReadingSCL      Offset = 0x3F // uint16 return type
-	OffsetAnalogReadingSDA      Offset = 0x41 // uint16 return type
-	OffsetAnalogReadingTX       Offset = 0x43 // uint16 return type
-	OffsetAnalogReadingRX       Offset = 0x45 // uint16 return type
-	OffsetDigitalReadings       Offset = 0x47 // uint8 return type
-	OffsetPinStates             Offset = 0x48 // uint8 return type
-	OffsetStepMode              Offset = 0x49 // uint8 return type
-	OffsetCurrentLimit          Offset = 0x4A // uint8 return type
-	OffsetDecayMode             Offset = 0x4B // uint8 return type
-	OffsetInputState            Offset = 0x4C // uint8 return type
-	OffsetInputAfterAveraging   Offset = 0x4D // uint16 return type
-	OffsetInputAfterHysteresis  Offset = 0x4F // uint16 return type
-	OffsetInputAfterScaling     Offset = 0x51 // uint16 return type
-	OffsetLastMotorDriverError  Offset = 0x55 // uint8 return type
-	OffsetAGCMode               Offset = 0x56 // uint8 return type
-	OffsetAGCBottomCurrentLimit Offset = 0x57 // uint8 return type
-	OffsetAGCCurrentBoostSteps  Offset = 0x58 // uint8 return type
-	OffsetAGCFrequencyLimit     Offset = 0x59 // uint8 return type
-	OffsetLastHPDriverErrors    Offset = 0xFF // uint8 return type
+	OffsetOperationState        offset = 0x00 // uint8 return type
+	OffsetMiscFlags1            offset = 0x01 // uint8 return type
+	OffsetErrorStatus           offset = 0x02 // uint16 return type
+	OffsetErrorsOccurred        offset = 0x04 // uint32 return type
+	OffsetPlanningMode          offset = 0x09 // uint8 return type
+	OffsetTargetPosition        offset = 0x0A // int32 return type
+	OffsetTargetVelocity        offset = 0x0E // int32 return type
+	OffsetStartingSpeed         offset = 0x12 // uint32 return type
+	OffsetSpeedMax              offset = 0x16 // uint32 return type
+	OffsetDecelMax              offset = 0x1A // uint32 return type
+	OffsetAccelMax              offset = 0x1E // uint32 return type
+	OffsetCurrentPosition       offset = 0x22 // int32 return type
+	OffsetCurrentVelocity       offset = 0x26 // int32 return type
+	OffsetActingTargetPosition  offset = 0x2A // int32 return type
+	OffsetTimeSinceLastStep     offset = 0x2E // uint32 return type
+	OffsetDeviceReset           offset = 0x32 // uint8 return type
+	OffsetVoltageIn             offset = 0x33 // uint16 return type
+	OffsetUpTime                offset = 0x35 // uint32 return type
+	OffsetEncoderPosition       offset = 0x39 // int32 return type
+	OffsetRCPulseWidth          offset = 0x3D // uint16 return type
+	OffsetAnalogReadingSCL      offset = 0x3F // uint16 return type
+	OffsetAnalogReadingSDA      offset = 0x41 // uint16 return type
+	OffsetAnalogReadingTX       offset = 0x43 // uint16 return type
+	OffsetAnalogReadingRX       offset = 0x45 // uint16 return type
+	OffsetDigitalReadings       offset = 0x47 // uint8 return type
+	OffsetPinStates             offset = 0x48 // uint8 return type
+	OffsetStepMode              offset = 0x49 // uint8 return type
+	OffsetCurrentLimit          offset = 0x4A // uint8 return type
+	OffsetDecayMode             offset = 0x4B // uint8 return type
+	OffsetInputState            offset = 0x4C // uint8 return type
+	OffsetInputAfterAveraging   offset = 0x4D // uint16 return type
+	OffsetInputAfterHysteresis  offset = 0x4F // uint16 return type
+	OffsetInputAfterScaling     offset = 0x51 // uint16 return type
+	OffsetLastMotorDriverError  offset = 0x55 // uint8 return type
+	OffsetAGCMode               offset = 0x56 // uint8 return type
+	OffsetAGCBottomCurrentLimit offset = 0x57 // uint8 return type
+	OffsetAGCCurrentBoostSteps  offset = 0x58 // uint8 return type
+	OffsetAGCFrequencyLimit     offset = 0x59 // uint8 return type
+	OffsetLastHPDriverErrors    offset = 0xFF // uint8 return type
 )
 
 // command represents Tic command codes which are used for its I²C interface.

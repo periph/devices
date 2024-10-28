@@ -15,7 +15,7 @@ import (
 func TestGetVar8(t *testing.T) {
 	for _, test := range []struct {
 		name      string
-		offset    Offset
+		offset    offset
 		ops       []i2ctest.IO
 		want      uint8
 		expectErr bool
@@ -72,7 +72,7 @@ func TestGetVar8(t *testing.T) {
 func TestGetVar16(t *testing.T) {
 	for _, test := range []struct {
 		name      string
-		offset    Offset
+		offset    offset
 		ops       []i2ctest.IO
 		want      uint16
 		expectErr bool
@@ -129,7 +129,7 @@ func TestGetVar16(t *testing.T) {
 func TestGetVar32(t *testing.T) {
 	for _, test := range []struct {
 		name      string
-		offset    Offset
+		offset    offset
 		ops       []i2ctest.IO
 		want      uint32
 		expectErr bool
@@ -276,7 +276,7 @@ func TestGetSegment(t *testing.T) {
 	for _, test := range []struct {
 		name      string
 		cmd       command
-		offset    Offset
+		offset    offset
 		length    uint
 		want      []uint8
 		ops       []i2ctest.IO
