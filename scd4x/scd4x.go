@@ -313,7 +313,7 @@ func (d *Dev) SetConfiguration(newCfg *DevConfig) error {
 
 	if currentConfig.ASCInitialPeriod != newCfg.ASCInitialPeriod {
 		if newCfg.ASCInitialPeriod%4 != 0 {
-			return fmt.Errorf("scd4x: invalid initial period %d. must be a mulitple of 4", newCfg.ASCInitialPeriod)
+			return fmt.Errorf("scd4x: invalid initial period %d. must be a multiple of 4", newCfg.ASCInitialPeriod)
 		}
 		w[0] = uint16(newCfg.ASCInitialPeriod / time.Hour)
 		_, err := d.sendCommand(cmdSetASCInitialPeriod, w)
@@ -324,7 +324,7 @@ func (d *Dev) SetConfiguration(newCfg *DevConfig) error {
 
 	if currentConfig.ASCStandardPeriod != newCfg.ASCStandardPeriod {
 		if newCfg.ASCStandardPeriod%4 != 0 {
-			return fmt.Errorf("scd4x: invalid standard period %d. must be a mulitple of 4", newCfg.ASCStandardPeriod)
+			return fmt.Errorf("scd4x: invalid standard period %d. must be a multiple of 4", newCfg.ASCStandardPeriod)
 		}
 		w[0] = uint16(newCfg.ASCStandardPeriod / time.Hour)
 		_, err := d.sendCommand(cmdSetASCStandardPeriod, w)

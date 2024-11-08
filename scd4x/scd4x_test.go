@@ -334,7 +334,7 @@ func TestGetSetConfiguration(t *testing.T) {
 // SCDRESET. Running this test will destructively clear customized values
 // previously programmed into the device.
 func TestPersistAndResetFactory(t *testing.T) {
-	if liveDevice && os.Getenv("SCDRESET") == "" {
+	if !liveDevice || os.Getenv("SCDRESET") == "" {
 		t.Skip("using live device and SCDRESET not defined. skipping")
 	}
 	dev, err := getDev(t)
