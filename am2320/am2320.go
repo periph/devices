@@ -3,7 +3,7 @@
 // that can be found in the LICENSE file.
 //
 // This package provides a driver for the AOSONG AM2320 Temperature/Humidity
-// Sensor. This sensor is a basic, inexpensive sensor with reasonably good
+// Sensor. This sensor is a basic, inexpensive i2c sensor with reasonably good
 // accuracy for both temperature and humidity.
 //
 // The datasheet is located at:

@@ -150,6 +150,7 @@ func TestSense(t *testing.T) {
 func TestSenseContinuous(t *testing.T) {
 	readCount := 10
 
+	// make 10 copies of the single reading playback data.
 	pb := make([]i2ctest.IO, 0, len(pbSense)*10)
 	for range readCount {
 		pb = append(pb, pbSense...)
