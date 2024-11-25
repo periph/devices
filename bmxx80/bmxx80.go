@@ -20,6 +20,9 @@ import (
 	"periph.io/x/conn/v3/spi"
 )
 
+// I2CAddr i2c default address.
+const I2CAddr uint16 = 0x77
+
 // Oversampling affects how much time is taken to measure each of temperature,
 // pressure and humidity.
 //
