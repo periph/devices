@@ -1,12 +1,12 @@
 // Copyright 2024 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
-//
+
 // This package provides a driver for the AOSONG AM2320 Temperature/Humidity
 // Sensor. This sensor is a basic, inexpensive i2c sensor with reasonably good
 // accuracy for both temperature and humidity.
 //
-// The datasheet is located at:
+// # Datasheet
 //
 // https://cdn-shop.adafruit.com/product-files/3721/AM2320.pdf
 package am2320
@@ -74,28 +74,26 @@ func checkCRC(bytes []byte) bool {
 
 // readCommand provides the logic of communicating with the sensor. According
 // to the datasheet, it tries to stay in low-power as much as possible to
-// avoid self-heating the sensors. This makes finicky to talk to. On success,
+// avoid self-heating the sensors. This makes it finicky to talk to. On success,
 // returns a slice of registerCount bytes starting from registerAddress.
 func (dev *Dev) readCommand(registerAddress, registerCount byte) ([]byte, error) {
 	// Send a wake-up call to the device.
+	var err error
 	for range 5 {
-		err := dev.d.Tx([]byte{0}, nil)
+		err = dev.d.Tx([]byte{0}, nil)
 		if err == nil {
 			break
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
-	w := make([]byte, 3)
-	w[0] = 0x3 // Read Operation
-	w[1] = registerAddress
-	w[2] = registerCount
+	w := []byte{0x3, registerAddress, registerCount}
 	// The read return format is:
 	//
 	// {operation,registerCount,requested registers...,crc low, crc high}
 	r := make([]byte, registerCount+4)
 
 	for range 10 {
-		err := dev.d.Tx(w, r)
+		err = dev.d.Tx(w, r)
 		if err == nil &&
 			w[0] == r[0] && w[2] == r[1] &&
 			checkCRC(r) {
@@ -104,8 +102,10 @@ func (dev *Dev) readCommand(registerAddress, registerCount byte) ([]byte, error)
 		}
 		time.Sleep(2 * time.Second)
 	}
-
-	return nil, errors.New("am2320: error sending read command")
+	if err == nil {
+		err = errors.New("invalid return values or crc from sensor")
+	}
+	return nil, fmt.Errorf("am2320 error sending read command: %w", err)
 }
 
 // Sense queries the sensor for the current temperature and humidity. Note that
