@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -391,6 +392,8 @@ func TestSenseContinuous(t *testing.T) {
 
 	counter := atomic.Int32{}
 	tEnd := time.Now().UnixMilli() + int64(readCount+2)*1000
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 	go func() {
 		for {
 			time.Sleep(100 * time.Millisecond)
@@ -401,6 +404,7 @@ func TestSenseContinuous(t *testing.T) {
 				if err != nil {
 					t.Error(err)
 				}
+				wg.Done()
 				return
 			}
 		}
@@ -413,6 +417,7 @@ func TestSenseContinuous(t *testing.T) {
 	if counter.Load() != readCount {
 		t.Errorf("expected %d readings. received %d", readCount, counter.Load())
 	}
+	wg.Wait()
 }
 
 func TestConfiguration(t *testing.T) {
@@ -590,8 +595,8 @@ func TestHeater(t *testing.T) {
 	t.Logf("initial temperature: %s Humidity: %s", env.Temperature, env.Humidity)
 	err = dev.SetHeater(PowerFull)
 	defer func() {
-		if err := dev.SetHeater(PowerOff); err != nil {
-			t.Error(err)
+		if errOff := dev.SetHeater(PowerOff); errOff != nil {
+			t.Error(errOff)
 		}
 	}()
 	if err != nil {

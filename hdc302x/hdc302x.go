@@ -159,7 +159,7 @@ var writeHighAlertThresholds = devCommand{0x61, 0x1d}
 var writeLowClearThresholds = devCommand{0x61, 0x0b}
 var writeHighClearThresholds = devCommand{0x61, 0x16}
 
-var invalidCRCError = errors.New("hdc302x: invalid crc")
+var errInvalidCRC = errors.New("hdc302x: invalid crc")
 
 const (
 	// Magic numbers for count to value conversions.
@@ -252,7 +252,7 @@ func (dev *Dev) Sense(env *physic.Env) error {
 		return fmt.Errorf("hdc302x: %w", err)
 	}
 	if crc8(res[:2]) != res[2] || crc8(res[3:5]) != res[5] {
-		return invalidCRCError
+		return errInvalidCRC
 	}
 	env.Temperature = countToTemperature(res)
 	env.Humidity = countToHumidity(res[3:])
@@ -359,7 +359,7 @@ func (dev *Dev) readAlertValues(cfg *Configuration) error {
 			return err
 		}
 		if crc8(r[:2]) != r[2] {
-			return invalidCRCError
+			return errInvalidCRC
 		}
 		wValue := uint16(r[0])<<8 | uint16(r[1])
 		// The alert value is returned as a 16 bit words, where bits 0-8 are the
@@ -382,7 +382,7 @@ func (dev *Dev) readOffsets(cfg *Configuration) error {
 		return fmt.Errorf("hdc302x: %w", err)
 	}
 	if crc8(r[:2]) != r[2] {
-		return invalidCRCError
+		return errInvalidCRC
 	}
 
 	// The result comes back as the humidity offset, followed by
@@ -425,7 +425,7 @@ func (dev *Dev) ReadStatus() (StatusWord, error) {
 		return 0, err
 	}
 	if crc8(r[:2]) != r[2] {
-		return 0, invalidCRCError
+		return 0, errInvalidCRC
 	}
 	_ = dev.d.Tx(clearStatus, nil)
 	return StatusWord(r[0])<<8 | StatusWord(r[1]), nil
