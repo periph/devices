@@ -12,6 +12,8 @@ package scd4x
 import (
 	"fmt"
 	"os"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -235,7 +237,7 @@ func TestSense(t *testing.T) {
 }
 
 func TestSenseContinuous(t *testing.T) {
-	readings := 6
+	readings := int32(6)
 	timeBase := time.Second
 	if liveDevice {
 		timeBase *= 10
@@ -244,26 +246,36 @@ func TestSenseContinuous(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer func() { _ = dev.Halt() }()
+
 	defer shutdown(t)
 	t.Log("dev.sensing=", dev.sensing)
 	ch, err := dev.SenseContinuous(timeBase)
 	if err != nil {
 		t.Error(err)
 	}
-
+	received := atomic.Int32{}
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	tEnd := time.Now().UnixMilli() + int64(readings+2)*1000
 	go func() {
-		time.Sleep(time.Duration(readings) * timeBase)
-		_ = dev.Halt()
+		for {
+			if received.Load() == readings || time.Now().UnixMilli() > tEnd {
+				_ = dev.Halt()
+				wg.Done()
+				break
+			}
+		}
 	}()
-	received := 0
+
 	for env := range ch {
+		received.Add(1)
 		t.Log(env.String())
-		received += 1
+
 	}
-	if received < (readings-1) || received > readings {
-		t.Errorf("SenseContinuous() expected at least %d readings, got %d", readings-1, received)
+	if received.Load() != readings {
+		t.Errorf("SenseContinuous() expected at least %d readings, got %d", readings-1, received.Load())
 	}
+	wg.Wait()
 
 }
 
@@ -335,7 +347,7 @@ func TestGetSetConfiguration(t *testing.T) {
 // previously programmed into the device.
 func TestPersistAndResetFactory(t *testing.T) {
 	if !liveDevice || os.Getenv("SCDRESET") == "" {
-		t.Skip("using live device and SCDRESET not defined. skipping")
+		t.Skip("not using live device or SCDRESET not defined. skipping")
 	}
 	dev, err := getDev(t)
 	if err != nil {
