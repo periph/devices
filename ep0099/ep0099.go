@@ -25,7 +25,15 @@ type Dev struct {
 	state [4]State
 }
 
+type Opts struct {
+	ReadStates bool // ReadStates from the device on startup instead of resetting the device.
+}
+
 func New(bus i2c.Bus, address uint16) (*Dev, error) {
+	return NewWithOpts(bus, address, nil)
+}
+
+func NewWithOpts(bus i2c.Bus, address uint16, opts *Opts) (*Dev, error) {
 	if err := isValidAddress(address); err != nil {
 		return nil, err
 	}
@@ -34,7 +42,12 @@ func New(bus i2c.Bus, address uint16) (*Dev, error) {
 		i2c: i2c.Dev{Bus: bus, Addr: address},
 	}
 
-	if err := d.reset(); err != nil {
+	bootFn := d.Reset
+	if opts != nil && opts.ReadStates {
+		bootFn = d.ReadStates
+	}
+
+	if err := bootFn(); err != nil {
 		return nil, err
 	}
 
@@ -42,7 +55,7 @@ func New(bus i2c.Bus, address uint16) (*Dev, error) {
 }
 
 func (d *Dev) Halt() error {
-	return d.reset()
+	return d.Reset()
 }
 
 func (d *Dev) On(channel uint8) error {
@@ -72,6 +85,20 @@ func (d *Dev) State(channel uint8) (State, error) {
 	return d.state[channel-1], nil
 }
 
+func (d *Dev) ReadStates() error {
+	for i, channel := range d.AvailableChannels() {
+		read := make([]byte, 1)
+
+		if err := d.i2c.Tx([]byte{channel}, read); err != nil {
+			return err
+		}
+
+		d.state[i] = State(read[0])
+	}
+
+	return nil
+}
+
 func (d *Dev) AvailableChannels() []uint8 {
 	return []uint8{0x01, 0x02, 0x03, 0x04}
 }
@@ -83,7 +110,7 @@ func (s State) String() string {
 	return "on"
 }
 
-func (d *Dev) reset() error {
+func (d *Dev) Reset() error {
 	for _, channel := range d.AvailableChannels() {
 		err := d.Off(channel)
 		if err != nil {

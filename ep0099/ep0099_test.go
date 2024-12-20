@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"periph.io/x/conn/v3/i2c/i2ctest"
+	"periph.io/x/conn/v3/physic"
 )
 
 const (
@@ -90,6 +91,22 @@ func TestOff(t *testing.T) {
 	checkChannelState(t, dev, 4, StateOff)
 }
 
+func TestReadState(t *testing.T) {
+	bus := initTestBus()
+	bus.Bus = &testBus{states: [4]State{StateOff, StateOn, StateOff, StateOn}}
+
+	dev, err := NewWithOpts(bus, testDefaultValidAddress, &Opts{ReadStates: true})
+
+	if err != nil {
+		t.Fatal("Failed to create dev with ReadStates, got ", err)
+	}
+
+	checkChannelState(t, dev, 1, StateOff)
+	checkChannelState(t, dev, 2, StateOn)
+	checkChannelState(t, dev, 3, StateOff)
+	checkChannelState(t, dev, 4, StateOn)
+}
+
 func TestReturnErrorForInvalidChannel(t *testing.T) {
 	bus := initTestBus()
 	dev, _ := New(bus, testDefaultValidAddress)
@@ -152,4 +169,28 @@ func checkDevReset(t *testing.T, dev *Dev, bus *i2ctest.Record) {
 
 	checkBusHasWrite(t, bus, []byte{4, byte(StateOff)})
 	checkChannelState(t, dev, 4, StateOff)
+}
+
+type testBus struct {
+	states [4]State
+}
+
+func (b *testBus) String() string {
+	return "ep0099 test i2c bus"
+}
+
+func (b *testBus) Tx(addr uint16, w, r []byte) error {
+	if len(w) == 1 && len(r) == 1 {
+		if w[0] < 1 || w[0] > 4 {
+			return errors.New("Invalid port")
+		}
+
+		r[0] = byte(b.states[w[0]-1])
+	}
+
+	return nil
+}
+
+func (b *testBus) SetSpeed(f physic.Frequency) error {
+	return nil
 }
