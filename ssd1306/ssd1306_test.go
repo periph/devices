@@ -29,7 +29,7 @@ func TestNewI2C_fail(t *testing.T) {
 	if d, err := NewI2C(&bus, &Opts{W: 64}); d != nil || err == nil {
 		t.Fatal(d, err)
 	}
-	if d, err := NewI2C(&bus, &Opts{W: 64, H: 64, Rotated: true}); d != nil || err == nil {
+	if d, err := NewI2C(&bus, &Opts{W: 64, H: 64, MirrorVertical: true, MirrorHorizontal: true}); d != nil || err == nil {
 		t.Fatal(d, err)
 	}
 	if err := bus.Close(); err != nil {
@@ -491,7 +491,7 @@ func TestSPI_3wire(t *testing.T) {
 func TestSPI_4wire_String(t *testing.T) {
 	port := spitest.Playback{
 		Playback: conntest.Playback{
-			Ops: []conntest.IO{{W: getInitCmd(&Opts{W: 128, H: 64, Rotated: false})}},
+			Ops: []conntest.IO{{W: getInitCmd(&Opts{W: 128, H: 64, MirrorVertical: false, MirrorHorizontal: false})}},
 		},
 	}
 	dev, err := NewSPI(&port, &gpiotest.Pin{N: "pin1", Num: 42}, &DefaultOpts)
@@ -516,7 +516,7 @@ func TestSPI_4wire_Write_differential(t *testing.T) {
 	port := spitest.Playback{
 		Playback: conntest.Playback{
 			Ops: []conntest.IO{
-				{W: getInitCmd(&Opts{W: 128, H: 64, Rotated: false})},
+				{W: getInitCmd(&Opts{W: 128, H: 64, MirrorVertical: false, MirrorHorizontal: false})},
 
 				// Page 1
 				{W: []byte{0xB0, 0x00, 0x10}},
@@ -573,7 +573,7 @@ func TestSPI_4wire_Write_differential_fail(t *testing.T) {
 	port := spitest.Playback{
 		Playback: conntest.Playback{
 			Ops: []conntest.IO{
-				{W: getInitCmd(&Opts{W: 128, H: 64, Rotated: false})},
+				{W: getInitCmd(&Opts{W: 128, H: 64, MirrorVertical: false, MirrorHorizontal: false})},
 				// Page 1
 				{W: []byte{0xB0, 0x00, 0x10}},
 				{W: buf1},
@@ -623,7 +623,7 @@ func TestSPI_4wire_Write_differential_fail(t *testing.T) {
 func TestSPI_4wire_gpio_fail(t *testing.T) {
 	port := spitest.Playback{
 		Playback: conntest.Playback{
-			Ops: []conntest.IO{{W: getInitCmd(&Opts{W: 128, H: 64, Rotated: false})}},
+			Ops: []conntest.IO{{W: getInitCmd(&Opts{W: 128, H: 64, MirrorVertical: false, MirrorHorizontal: false})}},
 		},
 	}
 	pin := &failPin{fail: false}
@@ -666,7 +666,7 @@ func TestInitCmd(t *testing.T) {
 //
 
 func initCmdI2C() []byte {
-	return append([]byte{0}, getInitCmd(&Opts{W: 128, H: 64, Rotated: false})...)
+	return append([]byte{0}, getInitCmd(&Opts{W: 128, H: 64, MirrorVertical: false, MirrorHorizontal: false})...)
 }
 
 func getI2CPlayback() *i2ctest.Playback {

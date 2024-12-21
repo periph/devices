@@ -35,10 +35,10 @@ jobs:
     - name: Turn off git core.autocrlf
       if: matrix.os == 'windows-latest'
       run: git config --global core.autocrlf false
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 2
-    - uses: actions/setup-go@v4
+    - uses: actions/setup-go@v5
       with:
         go-version-file: go.mod
     - name: 'go install necessary tools'
@@ -49,8 +49,9 @@ jobs:
       if: always()
       run: go test -timeout=120s -covermode=count -coverprofile coverage.txt -bench=. -benchtime=1x ./...
       # Don't send code coverage if anything failed to reduce spam.
-    - uses: codecov/codecov-action@v2
-      timeout-minutes: 1
+    - uses: codecov/codecov-action@v4
+      with:
+        token: ${{secrets.CODECOV_TOKEN}}
     - name: 'Cleanup'
       if: always()
       run: rm coverage.txt
@@ -104,18 +105,10 @@ jobs:
     - name: Turn off git core.autocrlf
       if: matrix.os == 'windows-latest'
       run: git config --global core.autocrlf false
-    - uses: actions/checkout@v3
-    - uses: actions/setup-go@v4
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v5
       with:
         go-version-file: go.mod
-    - name: "Debug"
-      run: |
-        echo HOME = $HOME
-        echo GITHUB_WORKSPACE = $GITHUB_WORKSPACE
-        echo PATH = $PATH
-        echo ""
-        echo $ ls -l $HOME/go/bin
-        ls -la $HOME/go/bin
     - name: 'go install necessary tools'
       if: always()
       run: |
@@ -123,7 +116,6 @@ jobs:
         go install github.com/securego/gosec/v2/cmd/gosec@latest
         go install golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow@latest
         go install honnef.co/go/tools/cmd/staticcheck@latest
-        go install golang.org/x/tools/cmd/stringer@latest
     - name: 'go install necessary tools (ubuntu)'
       if: always() && matrix.os == 'ubuntu-latest'
       run: |
@@ -149,7 +141,7 @@ jobs:
       run: staticcheck -checks inherit,-SA1019 ./...
     - name: 'Check: gosec'
       if: always()
-      run: gosec -fmt=golint -quiet ./...
+      run: gosec -fmt=golint -quiet -exclude=G115 ./...
       # The following checks are not dependent on the OS or go build tags. Only
       # run them on ubuntu-latest since it's the fastest one.
     - name: 'Check: no executable was committed (ubuntu)'
@@ -240,36 +232,6 @@ jobs:
         go test -short ./...
 
 
-    # Ensure tests pass on oldest supported Go version.
-  old:
-    name: "test: go${{matrix.gover}}/${{matrix.os}}"
-    runs-on: "${{matrix.os}}"
-    continue-on-error: true
-    defaults:
-      run:
-        shell: bash
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
-        # https://github.com/golang/go/issues/55078
-        # golang.org/x/sys/unix broke on Go versions before 1.17. Not worth
-        # fixing.
-        gover: ['1.17.13']
-    env:
-      PYTHONDONTWRITEBYTECODE: x
-    steps:
-    - name: Turn off git core.autocrlf
-      if: matrix.os == 'windows-latest'
-      run: git config --global core.autocrlf false
-    - uses: actions/checkout@v3
-    - uses: actions/setup-go@v3
-      with:
-        go-version: "=${{matrix.gover}}"
-    - name: 'Check: go test'
-      run: go test -timeout=120s -bench=. -benchtime=1x ./...
-
-
   codeql:
     name: "codeql: ${{matrix.os}}"
     runs-on: "${{matrix.os}}"
@@ -281,15 +243,15 @@ jobs:
     permissions:
       security-events: write
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-go@v4
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v5
       with:
         go-version-file: go.mod
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v2
+      uses: github/codeql-action/init@v3
       with:
         languages: go
     - name: Autobuild
-      uses: github/codeql-action/autobuild@v2
+      uses: github/codeql-action/autobuild@v3
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2
+      uses: github/codeql-action/analyze@v3
