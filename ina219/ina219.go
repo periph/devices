@@ -99,44 +99,48 @@ const (
 )
 
 // Sense reads the power values from the ina219 sensor.
-func (d *Dev) Sense() (PowerMonitor, error) {
+func (d *Dev) Sense() (pm PowerMonitor, err error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	var pm PowerMonitor
-
 	shunt, err := d.m.ReadUint16(shuntVoltageRegister)
 	if err != nil {
-		return PowerMonitor{}, errReadShunt
+		err = errReadShunt
+		return
 	}
 	// Least significant bit is 10µV.
 	pm.Shunt = physic.ElectricPotential(int16(shunt)) * 10 * physic.MicroVolt
 
 	bus, err := d.m.ReadUint16(busVoltageRegister)
 	if err != nil {
-		return PowerMonitor{}, errReadBus
-	}
-	// Check if bit zero is set, if set the ADC has overflowed.
-	if bus&1 > 0 {
-		return PowerMonitor{}, errRegisterOverflow
+		err = errReadBus
+		return
 	}
 
 	// Least significant bit is 4mV.
 	pm.Voltage = physic.ElectricPotential(bus>>3) * 4 * physic.MilliVolt
 
+	// Check if bit zero is set, if set the ADC has overflowed.
+	if bus&1 > 0 {
+		err = errRegisterOverflow
+		return
+	}
+
 	current, err := d.m.ReadUint16(currentRegister)
 	if err != nil {
-		return PowerMonitor{}, errReadCurrent
+		err = errReadCurrent
+		return
 	}
 	pm.Current = physic.ElectricCurrent(int16(current)) * d.currentLSB
 
 	power, err := d.m.ReadUint16(powerRegister)
 	if err != nil {
-		return PowerMonitor{}, errReadPower
+		err = errReadPower
+		return
 	}
 	pm.Power = physic.Power(power) * d.powerLSB
 
-	return pm, nil
+	return
 }
 
 // Since physic electrical is in nano units we need to scale taking care to not
