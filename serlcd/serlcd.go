@@ -50,7 +50,7 @@ func NewSerLCD(writer io.Writer, rows, cols int) *Dev {
 
 // Create a SerLCD display using a hardware interface that provides
 // conn.Conn. For example, a conn.spi.Conn
-func NewConnSerLCD(conn conn.Conn, rows, cols int) *Dev {
+func NewConn(conn conn.Conn, rows, cols int) *Dev {
 	dev := &Dev{conn: conn, rows: rows, cols: cols, w: nil}
 	return dev
 }
