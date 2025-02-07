@@ -108,7 +108,7 @@ func makeDev(ra registerAccess, variant Variant, devicename string) (*Dev, error
 	for i := range ports {
 		// pre-cache iodir
 		_, err := ports[i].iodir.readValue(false)
-        if err != nil {
+		if err != nil {
 			return nil, err
 		}
 		pins[i] = ports[i].pins()

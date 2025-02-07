@@ -45,8 +45,8 @@ func (pg *pinGroup) Pins() []pin.Pin {
 	pins := make([]pin.Pin, len(pg.pins))
 
 	for ix, p := range pg.pins {
-        pins[ix] = p
-    }
+		pins[ix] = p
+	}
 	return pins
 }
 
@@ -139,7 +139,7 @@ func (pg *pinGroup) Read(mask gpio.GPIOValue) (result gpio.GPIOValue, err error)
 			rmask |= (1 << pg.pins[bit].Number())
 		}
 	}
-	// Make sure the direction for the pins involved in this write read is 
+	// Make sure the direction for the pins involved in this write read is
 	// Input.
 	port := pg.pins[0].port
 	currentIn, err := port.iodir.readValue(true)
@@ -197,7 +197,7 @@ func (pg *pinGroup) Halt() error {
 			return r.Halt()
 		}
 	}
-    // TODO: I think we want to call Dev.Halt()
+	// TODO: I think we want to call Dev.Halt()
 	return nil
 }
 
