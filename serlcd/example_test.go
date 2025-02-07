@@ -30,7 +30,7 @@ func Example() {
 	defer bus.Close()
 
 	conn := &i2c.Dev{Bus: bus, Addr: serlcd.DefaultI2CAddress}
-	dev := serlcd.NewConnSerLCD(conn, 4, 20)
+	dev := serlcd.NewConn(conn, 4, 20)
 	_ = dev.Clear()
 	n, err := dev.WriteString("Hello")
 	fmt.Printf("n=%d, err=%s\n", n, err)

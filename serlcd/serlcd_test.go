@@ -259,7 +259,7 @@ func getDev(t *testing.T, playbackOps ...[]i2ctest.IO) (*Dev, error) {
 		}
 	}
 	conn := &i2c.Dev{Bus: bus, Addr: DefaultI2CAddress}
-	dev := NewConnSerLCD(conn, 4, 20)
+	dev := NewConn(conn, 4, 20)
 
 	return dev, nil
 }
