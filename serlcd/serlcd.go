@@ -28,6 +28,14 @@ type Dev struct {
 }
 
 const (
+	// For i2c there's a buffer limitation of 32 bytes.
+	// See this issue:
+	//
+	// https://github.com/sparkfun/OpenLCD/issues/29
+	//
+	// Writing more than that will lock the device up necessitating
+	// a device reset.
+	_MAX_I2C_WRITE           = 32
 	DefaultI2CAddress uint16 = 0x72
 )
 
@@ -197,13 +205,10 @@ func (dev *Dev) Write(p []byte) (n int, err error) {
 		n, err = dev.w.Write(p)
 		return
 	}
-	// Evidently, for i2c there's a buffer limitation of 32 bytes. Writing
-	// more than that will lock the device up.
-	writeLimit := 32
 	for n < len(p) {
 		bytesToWrite := len(p) - n
-		if bytesToWrite > writeLimit {
-			bytesToWrite = 32
+		if bytesToWrite > _MAX_I2C_WRITE {
+			bytesToWrite = _MAX_I2C_WRITE
 		}
 		w := p[n : n+bytesToWrite]
 		err = dev.conn.Tx(w, nil)
