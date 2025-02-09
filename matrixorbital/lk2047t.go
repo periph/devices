@@ -216,7 +216,7 @@ func (dev *LK2047T) Move(direction display.CursorDirection) (err error) {
 	case display.Up:
 	case display.Down:
 	default:
-		err = errors.New("lk2047t: invalid move direction.")
+		err = errors.New("lk2047t: invalid move direction")
 	}
 	return
 }
@@ -224,7 +224,7 @@ func (dev *LK2047T) Move(direction display.CursorDirection) (err error) {
 // Move the cursor to an arbitrary row/column on the device.
 func (dev *LK2047T) MoveTo(row, col int) (err error) {
 	if row < 1 || row > dev.rows || col < 1 || col > dev.cols {
-		return fmt.Errorf("lk2047t: MoveTo(%d, %d) value out of range.", row, col)
+		return fmt.Errorf("lk2047t: MoveTo(%d, %d) value out of range", row, col)
 	}
 	_, err = dev.Write([]byte{setCursorPosition[0], setCursorPosition[1], byte(col), byte(row)})
 	return err
