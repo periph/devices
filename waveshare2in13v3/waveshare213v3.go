@@ -57,15 +57,6 @@ const (
 	setDigitalBlockControl            byte = 0x7E
 )
 
-// Register values
-const (
-	gateDrivingVoltage19V = 0x15
-
-	sourceDrivingVoltageVSH1_15V   = 0x41
-	sourceDrivingVoltageVSH2_5V    = 0xA8
-	sourceDrivingVoltageVSL_neg15V = 0x32
-)
-
 // Flags for the displayUpdateControl2 command
 const (
 	displayUpdateDisableClock byte = 1 << iota
