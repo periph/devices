@@ -15,7 +15,7 @@ golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab/go.mod h1:oPkhp1MJrh7nUepCBc
 golang.org/x/sys v0.6.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.29.0 h1:TPYlXGxvx1MGTn2GiZDhnjPA9wZzZeGKHHmKhHYvgaU=
 golang.org/x/sys v0.29.0/go.mod h1:/VUhepiaJMQUp4+oa/7Zr1D23ma6VTLIYjOOTFZPUcA=
-periph.io/x/conn/v3 v3.7.1 h1:tMjNv3WO8jEz/ePuXl7y++2zYi8LsQ5otbmqGKy3Myg=
-periph.io/x/conn/v3 v3.7.1/go.mod h1:c+HCVjkzbf09XzcqZu/t+U8Ss/2QuJj0jgRF6Nye838=
+periph.io/x/conn/v3 v3.7.2 h1:qt9dE6XGP5ljbFnCKRJ9OOCoiOyBGlw7JZgoi72zZ1s=
+periph.io/x/conn/v3 v3.7.2/go.mod h1:Ao0b4sFRo4QOx6c1tROJU1fLJN1hUIYggjOrkIVnpGg=
 periph.io/x/host/v3 v3.8.3 h1:v90ozCFDWgEyfNElZ+JnOvq0jAdW0vmgjCUy8dYXDds=
 periph.io/x/host/v3 v3.8.3/go.mod h1:uKrIpfXjELwHkwGBNe6aos//XiQ/3uxDa1P2BmLV6Ok=
