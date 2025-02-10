@@ -11,5 +11,6 @@
 // https://github.com/pimoroni/inky
 //
 // The display seems to use a SSD1675 controller:
+//
 // https://www.china-epaper.com/uploads/soft/DEPG0420R01V3.0.pdf
 package inky
