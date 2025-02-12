@@ -12,8 +12,6 @@ import (
 	"periph.io/x/conn/v3/i2c/i2ctest"
 )
 
-var bt *i2ctest.BusTest
-
 const (
 	liveTest = false
 )
