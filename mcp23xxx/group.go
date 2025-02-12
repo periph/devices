@@ -115,6 +115,9 @@ func (pg *pinGroup) Out(value, mask gpio.GPIOValue) error {
 
 	// Read the current value
 	currentValue, err := port.olat.readValue(true)
+	if err != nil {
+		return err
+	}
 	// Apply the mask to clear bits we're writing.
 	currentValue &= (0xff ^ wrMask)
 	// Or the value with the bits to modify

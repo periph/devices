@@ -98,9 +98,7 @@ func TestReadWrite(t *testing.T) {
 
 	// For this test, write to the pins individually, and then
 	// confirm read on the other set works as expected.
-	x := gRead
 	gRead = gOut
-	gOut = x
 	t.Log(gRead)
 	pinset := extender.Pins[0][:4]
 	for i := range gpio.GPIOValue(16) {

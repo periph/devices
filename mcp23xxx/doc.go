@@ -3,7 +3,7 @@
 // that can be found in the LICENSE file.
 
 // Package mcp23xxx provides drivers for the MCP23XXX family of GPIO expanders.
-// It's availble with either I2C or SPI interfaces in 8 and 16 bit variants.
+// It's available with either I2C or SPI interfaces in 8 and 16 bit variants.
 // Additionally, variants are available that have Open-Drain outputs.
 //
 // # Datasheet
