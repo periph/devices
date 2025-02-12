@@ -5,43 +5,35 @@
 package mcp23xxx
 
 import (
-	"log"
 	"testing"
 	"time"
 
 	"periph.io/x/conn/v3/gpio"
-	"periph.io/x/conn/v3/i2c/i2creg"
-	"periph.io/x/host/v3"
+	"periph.io/x/conn/v3/i2c/i2ctest"
 )
 
-func init() {
-	// Make sure periph is initialized.
-	if _, err := host.Init(); err != nil {
-		log.Fatal(err)
-	}
-}
+var bt *i2ctest.BusTest
+
+const (
+	liveTest = false
+)
 
 func TestGroup(t *testing.T) {
-
-	// Open default I²C bus.
-	bus, err := i2creg.Open("")
-	if err != nil {
-		log.Fatalf("failed to open I²C: %v", err)
-	}
-	defer bus.Close()
-	extender, err := NewI2C(bus, MCP23008, 0x20)
+	bus := i2ctest.Playback{Ops: recordingData["TestGroup"]}
+	extender, err := NewI2C(&bus, MCP23008, 0x20)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	for portnum, port := range extender.Pins {
 		for _, pin := range port {
 			t.Logf("Port: %d Pin: %d %s", portnum, pin.Number(), pin)
 		}
-
 	}
 
-	// My Test fixture has an led on pin 0, and also wires pin 0 -> pin 4.
+	// The test fixture has an led on pin 0, and also wires pin 0 -> pin 4.
 	// If I don't set pin 4 for input, then it breaks the LED blinking.
+	// It's not important to the test, but it's nice to have a visual indicator.
 	reader, _ := interface{}(extender.Pins[0][4]).(gpio.PinIn)
 	_ = reader.In(gpio.PullNoChange, gpio.NoEdge)
 	var ifpin interface{} = extender.Pins[0][0]
@@ -50,21 +42,21 @@ func TestGroup(t *testing.T) {
 		for range 20 {
 			writer.Out(l)
 			l = !l
-			time.Sleep(500 * time.Millisecond)
+			if liveTest {
+				time.Sleep(500 * time.Millisecond)
+			}
 		}
 	} else {
 		t.Error("pin[0] not converted to gpio.PinOut!")
 	}
 }
 
+// TestReadWrite exercises the group Out()/Read() functions. It's expected
+// that pin 0 of MCP23xxx port 0 is connected to pin 4 of port 0, pin 1
+// is connected to pin 5, etc...
 func TestReadWrite(t *testing.T) {
-	// Open default I²C bus.
-	bus, err := i2creg.Open("")
-	if err != nil {
-		log.Fatalf("failed to open I²C: %v", err)
-	}
-	defer bus.Close()
-	extender, err := NewI2C(bus, MCP23008, 0x20)
+	bus := i2ctest.Playback{Ops: recordingData["TestReadWrite"]}
+	extender, err := NewI2C(&bus, MCP23008, 0x20)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +67,7 @@ func TestReadWrite(t *testing.T) {
 	}
 	gRead := *extender.Group(0, []int{4, 5, 6, 7})
 	if gRead == nil {
-		t.Error("gIn is nil!")
+		t.Error("gRead is nil!")
 	}
 	// Turn off the GPIOs
 	defer gOut.Out(0, 0)
@@ -93,7 +85,9 @@ func TestReadWrite(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			time.Sleep(time.Millisecond)
+			if liveTest {
+				time.Sleep(time.Millisecond)
+			}
 			r, err := gRead.Read(defMask)
 			if err != nil {
 				t.Error(err)
@@ -128,5 +122,4 @@ func TestReadWrite(t *testing.T) {
 			t.Errorf("Error writing GPIO pins and reading back result. Read 0x%x Expected 0x%x", r, i)
 		}
 	}
-
 }
