@@ -12,8 +12,6 @@ import (
 	"io"
 	"sync"
 
-	//	"time"
-
 	"periph.io/x/conn/v3"
 	"periph.io/x/conn/v3/display"
 	"periph.io/x/conn/v3/gpio"
@@ -39,12 +37,13 @@ type LK2047T struct {
 	// Pins represents the set of gpio.PinOut pins exposed by the device. For
 	// units with LEDS, the pins are used to manipulate them. For the Adafruit
 	// USB/LCD backpack, 4 pins are exposed.
-	Pins       []gpio.PinOut
+	Pins []gpio.PinOut
+	rows int
+	cols int
+
+	mu         sync.Mutex
 	d          conn.Conn
 	writer     io.Writer
-	mu         sync.Mutex
-	rows       int
-	cols       int
 	chKeyboard chan byte
 	shutdown   chan struct{}
 }
@@ -336,8 +335,7 @@ func (dev *LK2047T) LED(number int, color LEDColor) error {
 	if err != nil {
 		return err
 	}
-	err = dev.Pins[number*2+1].Out(gpio.Level(color&Green == Green))
-	return err
+	return dev.Pins[number*2+1].Out(gpio.Level(color&Green == Green))
 }
 
 func (dev *LK2047T) String() string {
