@@ -8,15 +8,21 @@ import (
 	"fmt"
 	"strconv"
 
+	"periph.io/x/conn/v3/gpio"
 	"periph.io/x/conn/v3/gpio/gpioreg"
 	"periph.io/x/conn/v3/i2c"
 	"periph.io/x/conn/v3/spi"
 )
 
-// Dev his a handle for a configured MCP23xxx device.
+// Dev is a handle for a configured MCP23xxx device.
 type Dev struct {
-	// Pins provide access to extender pins.
+	// For all variants, Pins exposes a two dimensional slice of pins. For a
+	// MCP23X08/X09, [][]Pins would have one row with 8 pins, while the 16
+	// pin variants would have two rows with 8 pins each.
 	Pins [][]Pin
+
+	edgePin *gpio.PinIn
+	variant Variant
 }
 
 // Variant is the type denoting a specific variant of the family.
@@ -29,25 +35,25 @@ const (
 	// MCP23S08 8-bit SPI extender. Datasheet: https://www.microchip.com/wwwproducts/en/MCP23S08
 	MCP23S08 Variant = "MCP23S08"
 
-	// MCP23009 8-bit I2C extender. Datasheet: https://www.microchip.com/wwwproducts/en/MCP23009
+	// MCP23009 8-bit I2C extender w/ Open-Drain Output. Datasheet: https://www.microchip.com/wwwproducts/en/MCP23009
 	MCP23009 Variant = "MCP23009"
 
-	// MCP23S09 8-bit SPI extender. Datasheet: https://www.microchip.com/wwwproducts/en/MCP23S09
+	// MCP23S09 8-bit SPI extender w/ Open-Drain Output. Datasheet: https://www.microchip.com/wwwproducts/en/MCP23S09
 	MCP23S09 Variant = "MCP23S09"
 
 	// MCP23016 16-bit I2C extender. Datasheet: https://www.microchip.com/wwwproducts/en/MCP23016
 	MCP23016 Variant = "MCP23016"
 
-	// MCP23017 8-bit I2C extender. Datasheet: https://www.microchip.com/wwwproducts/en/MCP23017
+	// MCP23017 16-bit I2C extender. Datasheet: https://www.microchip.com/wwwproducts/en/MCP23017
 	MCP23017 Variant = "MCP23017"
 
-	// MCP23S17 8-bit SPI extender. Datasheet: https://www.microchip.com/wwwproducts/en/MCP23S17
+	// MCP23S17 16-bit SPI extender. Datasheet: https://www.microchip.com/wwwproducts/en/MCP23S17
 	MCP23S17 Variant = "MCP23S17"
 
-	// MCP23018 8-bit I2C extender. Datasheet: https://www.microchip.com/wwwproducts/en/MCP23018
+	// MCP23018 16-bit I2C extender w/ Open-Drain Output. Datasheet: https://www.microchip.com/wwwproducts/en/MCP23018
 	MCP23018 Variant = "MCP23018"
 
-	// MCP23S18 8-bit SPI extender. Datasheet: https://www.microchip.com/wwwproducts/en/MCP23S18
+	// MCP23S18 16-bit SPI extender w/ Open-Drain Output. Datasheet: https://www.microchip.com/wwwproducts/en/MCP23S18
 	MCP23S18 Variant = "MCP23S18"
 )
 
@@ -112,8 +118,18 @@ func makeDev(ra registerAccess, variant Variant, devicename string) (*Dev, error
 		}
 	}
 	return &Dev{
-		Pins: pins,
+		Pins:    pins,
+		variant: variant,
 	}, nil
+}
+
+// SetEdgePin supplies a configured GPIO pin
+func (dev *Dev) SetEdgePin(pin *gpio.PinIn) {
+	dev.edgePin = pin
+}
+
+func (dev *Dev) String() string {
+	return string(dev.variant)
 }
 
 func mcp23x178ports(devicename string, ra registerAccess) []port {
