@@ -123,12 +123,12 @@ func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, o *Opts
 	return d, nil
 }
 
-// SetBorder changes the border color. This will not take effect until the next Draw().
+// SetBorder changes the border color. This will take effect on the next call to [*Dev.Draw]().
 func (d *Dev) SetBorder(c Color) {
 	d.border = c
 }
 
-// SetModelColor changes the model color. This will not take effect until the next Draw().
+// SetModelColor changes the model color. This will take effect on the next call to [*Dev.Draw]().
 // Useful if you want to switch between two-color and three-color drawing.
 func (d *Dev) SetModelColor(c Color) error {
 	if c != Black && c != Red && c != Yellow {
@@ -138,7 +138,7 @@ func (d *Dev) SetModelColor(c Color) error {
 	return nil
 }
 
-// String implements conn.Resource.
+// String implements interface [conn.Resource].
 func (d *Dev) String() string {
 	index := int(d.variant)
 	if index < len(displayVariantMap) {
@@ -165,12 +165,12 @@ func (d *Dev) SetFlipHorizontally(f bool) {
 	d.flipHorizontally = f
 }
 
-// Halt implements conn.Resource.
+// Halt implements interface [conn.Resource].
 func (d *Dev) Halt() error {
 	return nil
 }
 
-// ColorModel implements display.Drawer
+// ColorModel implements interface [display.Drawer].
 // Maps white to white, black to black and anything else as red. Red is used as
 // a placeholder for the display's third color, i.e., red or yellow.
 func (d *Dev) ColorModel() color.Model {
@@ -200,12 +200,12 @@ func (d *Dev) ColorModel() color.Model {
 	})
 }
 
-// Bounds implements display.Drawer
+// Bounds implements interface [display.Drawer].
 func (d *Dev) Bounds() image.Rectangle {
 	return d.bounds
 }
 
-// Draw implements display.Drawer
+// Draw implements interface [display.Drawer].
 func (d *Dev) Draw(dstRect image.Rectangle, src image.Image, srcPtrs image.Point) error {
 	if dstRect != d.Bounds() {
 		return fmt.Errorf("partial update not supported")
