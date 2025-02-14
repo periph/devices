@@ -23,7 +23,7 @@ const (
 	IMPRESSION57
 )
 
-// Set sets the Model to a value represented by the string s. Set implements the flag.Value interface.
+// Set sets the Model to a value represented by the string s. Set implements the [flag.Value] interface.
 func (m *Model) Set(s string) error {
 	switch s {
 	case "PHAT":
@@ -55,7 +55,7 @@ const (
 	Multi
 )
 
-// Set sets the Color to a value represented by the string s. Set implements the flag.Value interface.
+// Set sets the [Color] to a value represented by the string s. Set implements the [flag.Value] interface.
 func (c *Color) Set(s string) error {
 	switch s {
 	case "black":
@@ -86,7 +86,7 @@ const (
 	CleanImpression
 )
 
-// Set sets the ImpressionColor to a value represented by the string s. Set implements the flag.Value interface.
+// Set sets the [ImpressionColor] to a value represented by the string s. Set implements the [flag.Value] interface.
 func (c *ImpressionColor) Set(s string) error {
 	switch s {
 	case "black":

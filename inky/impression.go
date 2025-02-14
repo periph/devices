@@ -181,7 +181,7 @@ func (d *DevImpression) Saturation() uint {
 	return d.saturation
 }
 
-// SetSaturaton changes the saturation level. This will not take effect until the next Draw().
+// SetSaturaton changes the saturation level. This will take effect on the next call to [*DevImpression.Draw]().
 func (d *DevImpression) SetSaturation(level uint) error {
 	if level > 100 {
 		return fmt.Errorf("saturation level needs to be between 0 and 100")
@@ -193,12 +193,12 @@ func (d *DevImpression) SetSaturation(level uint) error {
 	return nil
 }
 
-// SetBorder changes the border color. This will not take effect until the next Draw().
+// SetBorder changes the border color. This will take effect on the next call to [*DevImpression.Draw]().
 func (d *DevImpression) SetBorder(c ImpressionColor) {
 	d.border = Color(c)
 }
 
-// Render renders the content of the Pix to the screen.
+// Render renders the content of the [*DevImpression.Pix] to the screen.
 func (d *DevImpression) Render() error {
 	if d.flipVertically {
 		for w := 0; w < len(d.Pix)/2-1; w = w + d.width {
@@ -385,7 +385,7 @@ func (d *DevImpression) At(x, y int) color.Color {
 	return d.Palette[d.Pix[y*d.width+x]]
 }
 
-// Set sets the pixel at (x, y) to the given color. This will not take effect until the next Draw().
+// Set sets the pixel at (x, y) to the given color. This will take effect on the next [*DevImpression.Draw]().
 func (d *DevImpression) Set(x, y int, c color.Color) {
 	if d.Palette == nil {
 		d.Palette = d.blend()
