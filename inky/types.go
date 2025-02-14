@@ -4,7 +4,7 @@
 
 package inky
 
-//go:generate go install golang.org/x/tools/cmd/stringer@latest
+//go:generate -command stringer go run golang.org/x/tools/cmd/stringer@latest
 //go:generate stringer -type=Model,Color,ImpressionColor -output types_string.go
 
 import (
