@@ -40,7 +40,7 @@ func (m *Model) Set(s string) error {
 	case "IMPRESSION73":
 		*m = IMPRESSION73
 	default:
-		return fmt.Errorf("unknown model %q: expected PHAT, PHAT2, WHAT, IMPRESSION4 or IMPRESSION57 or IMPRESSION73", s)
+		return fmt.Errorf("unknown model %q: expected PHAT, PHAT2, WHAT, IMPRESSION4, IMPRESSION57 or IMPRESSION73", s)
 	}
 	return nil
 }

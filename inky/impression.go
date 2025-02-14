@@ -406,6 +406,8 @@ func (d *DevImpression) resetUC() error {
 }
 
 func (d *DevImpression) resetAC() error {
+	// Reference code: https://github.com/pimoroni/inky/blob/a7d380231cc5fac754243b8d66d2c5674c1bd1ac/inky/inky_ac073tc1a.py#L229
+
 	if err := d.cycleResetGPIO(); err != nil {
 		return err
 	}
