@@ -184,13 +184,14 @@ func TestGroup(t *testing.T) {
 	}
 	// Test the read/write functionality.
 	limit := (1 << len(set1))
+	var read gpio.GPIOValue
 	for groupNumber := range 2 {
 		for val := range limit {
 			err = gr1.Out(gpio.GPIOValue(val), 0)
 			if err != nil {
 				t.Error(err)
 			}
-			read, err := gr2.Read(0)
+			read, err = gr2.Read(0)
 			if err != nil {
 				t.Error(err)
 			}
