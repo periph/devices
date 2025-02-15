@@ -1,0 +1,70 @@
+// Copyright 2025 The Periph Authors. All rights reserved.
+// Use of this source code is governed under the Apache License, Version 2.0
+// that can be found in the LICENSE file.
+
+package hd44780_test
+
+import (
+	"errors"
+	"fmt"
+	"log"
+	"time"
+
+	"periph.io/x/conn/v3/display"
+	"periph.io/x/conn/v3/display/displaytest"
+	"periph.io/x/conn/v3/gpio"
+	"periph.io/x/devices/v3/hd44780"
+	"periph.io/x/host/v3"
+	"periph.io/x/host/v3/gpioioctl"
+)
+
+// This example shows using a gpio.Group with an HD44780 display. For this
+// example its using the periph.io/x/host/gpioioctl package to obtain
+// the gpio.Group and pins. You can use an I/O device that implements
+// gpio.Group and gpio.PinOut to drive a display.
+func Example() {
+	var err error
+	if _, err = host.Init(); err != nil {
+		log.Fatal(err)
+	}
+	chip := gpioioctl.Chips[0]
+	var ls gpio.Group
+	// Using a group to obtain the pins. The first 4 pins in the group are the
+	// data pins, and the remaining ones are reset, enable, and backlight.
+	// For 8 bit mode, specify additional data pins.
+	ls, err = chip.LineSet(gpioioctl.LineOutput, gpio.NoEdge, gpio.PullNoChange,
+		"GPIO27", "GPIO22", "GPIO23", "GPIO24", "GPIO17", "GPIO18", "GPIO25")
+	if err != nil {
+		log.Fatal(err)
+	}
+	pins := ls.Pins()
+	reset := pins[4].(gpio.PinOut)
+	enable := pins[5].(gpio.PinOut)
+	bl := pins[6].(gpio.PinOut)
+	lcd, err := hd44780.NewHD44780(ls, &reset, &enable, &bl, 2, 16)
+	if err != nil {
+		log.Fatal(err)
+	}
+	n, err := lcd.WriteString("Hello")
+	time.Sleep(5 * time.Second)
+	fmt.Printf("n=%d, err=%s\n", n, err)
+	fmt.Println("lcd=", lcd.String())
+
+	lcd.Home()
+	lcd.MoveTo(1, 1)
+	lcd.WriteString("Line 1")
+	lcd.MoveTo(2, 2)
+	lcd.WriteString("Line 2")
+	time.Sleep(5 * time.Second)
+	lcd.Clear()
+
+	fmt.Println("calling TestTextDisplay")
+
+	errs := displaytest.TestTextDisplay(lcd, true)
+	fmt.Println("back from TestTextDisplay")
+	for _, e := range errs {
+		if !errors.Is(e, display.ErrNotImplemented) {
+			log.Println(e)
+		}
+	}
+}
