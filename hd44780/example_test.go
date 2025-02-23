@@ -10,9 +10,13 @@ import (
 	"log"
 	"time"
 
+	"golang.org/x/exp/io/spi"
 	"periph.io/x/conn/v3/display"
 	"periph.io/x/conn/v3/display/displaytest"
 	"periph.io/x/conn/v3/gpio"
+	"periph.io/x/conn/v3/i2c/i2creg"
+	"periph.io/x/conn/v3/physic"
+	"periph.io/x/conn/v3/spi/spireg"
 	"periph.io/x/devices/v3/hd44780"
 	"periph.io/x/host/v3"
 	"periph.io/x/host/v3/gpioioctl"
@@ -67,4 +71,90 @@ func Example() {
 			log.Println(e)
 		}
 	}
+}
+
+// Create a new HD44780 that uses the Adafruit I2C/SPI Backpack.
+func ExampleNewAdafruitI2CBackpack() {
+	// Make sure periph is initialized.
+	if _, err := host.Init(); err != nil {
+		log.Fatal(err)
+	}
+
+	// Open default I²C bus.
+	bus, err := i2creg.Open("")
+	if err != nil {
+		log.Fatalf("failed to open I²C: %v", err)
+	}
+	defer bus.Close()
+	dev, err := hd44780.NewAdafruitI2CBackpack(bus, 0x20, 4, 20)
+	fmt.Println(dev.String())
+	if err != nil {
+		log.Fatal(err)
+	}
+	dev.Clear()
+	dev.WriteString("Hello")
+	fmt.Println("wrote hello")
+	time.Sleep(5 * time.Second)
+	fmt.Println("calling test text display")
+	_ = displaytest.TestTextDisplay(dev, true)
+}
+
+
+func ExampleNewAdafruitSPIBackpack() {
+	if _, err := host.Init(); err != nil {
+		log.Fatal(err)
+	}
+
+	pc, err := spireg.Open("")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer pc.Close()
+	conn, err := pc.Connect(physic.MegaHertz, spi.Mode1, 8)
+	if err != nil {
+		log.Fatal(err)
+	}
+	display, err := hd44780.NewAdafruitSPIBackpack(conn, 2, 26)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_ = display.Clear()
+	_, _ = display.WriteString("Hello")
+	time.Sleep(5 * time.Second)
+	_ = displaytest.TestTextDisplay(lcd, true)
+}
+
+func ExampleNewPCF857xBackpack() {
+	// Make sure periph is initialized.
+	if _, err := host.Init(); err != nil {
+		log.Fatal(err)
+	}
+
+	// Open default I²C bus.
+	bus, err := i2creg.Open("")
+	if err != nil {
+		log.Fatalf("failed to open I²C: %v", err)
+	}
+	defer bus.Close()
+	dev, err := hd44780.NewPCF857xBackpack(bus, pcf857x.DefaultAddress, 4, 20)
+	fmt.Println(dev.String())
+	if err != nil {
+		log.Fatal(err)
+
+	}
+	for range 5 {
+		fmt.Println("toggling backlight")
+		dev.Backlight(0)
+		time.Sleep(500 * time.Millisecond)
+		dev.Backlight(255)
+		time.Sleep(500 * time.Millisecond)
+
+	}
+	dev.Clear()
+	dev.WriteString("Hello")
+	fmt.Println("wrote hello")
+	time.Sleep(5 * time.Second)
+	fmt.Println("calling test text display")
+	_ = displaytest.TestTextDisplay(dev, true)
 }
