@@ -18,7 +18,7 @@ func Example() {
 	if _, err := host.Init(); err != nil {
 		log.Fatal(err)
 	}
-    // Open the SPI Bus
+	// Open the SPI Bus
 	pc, err := spireg.Open("")
 	if err != nil {
 		log.Fatal(err)
@@ -28,7 +28,7 @@ func Example() {
 	if err != nil {
 		log.Fatal(err)
 	}
-    // Create a new 74HC595 device conn that bus.
+	// Create a new 74HC595 device conn that bus.
 	dev, err := New(conn)
 	if err != nil {
 		log.Fatal(err)
