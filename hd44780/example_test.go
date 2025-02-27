@@ -99,7 +99,6 @@ func ExampleNewAdafruitI2CBackpack() {
 	_ = displaytest.TestTextDisplay(dev, true)
 }
 
-
 func ExampleNewAdafruitSPIBackpack() {
 	if _, err := host.Init(); err != nil {
 		log.Fatal(err)
@@ -122,7 +121,7 @@ func ExampleNewAdafruitSPIBackpack() {
 	_ = display.Clear()
 	_, _ = display.WriteString("Hello")
 	time.Sleep(5 * time.Second)
-	_ = displaytest.TestTextDisplay(lcd, true)
+	_ = displaytest.TestTextDisplay(display, true)
 }
 
 func ExampleNewPCF857xBackpack() {

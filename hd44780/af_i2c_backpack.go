@@ -40,10 +40,9 @@ func NewAdafruitI2CBackpack(bus i2c.Bus, address uint16, rows, cols int) (*HD447
 		return nil, err
 	}
 	gr := *mcp.Group(0, []int{d4, d5, d6, d7, rsPin, enablePin, backlightPin})
-	grPins := gr.Pins()
-	reset := grPins[4].(gpio.PinOut)
-	enable := grPins[5].(gpio.PinOut)
-	bl := grPins[6].(gpio.PinOut)
+	reset, _ := gr.ByOffset(4).(gpio.PinOut)
+	enable, _ := gr.ByOffset(5).(gpio.PinOut)
+	bl := gr.ByOffset(6).(gpio.PinOut)
 	return NewHD44780(gr, &reset, &enable, &bl, rows, cols)
 }
 
@@ -53,9 +52,9 @@ func NewAdafruitSPIBackpack(conn spi.Conn, rows, cols int) (*HD44780, error) {
 	chip := nxp74hc595.New(conn)
 	// The SPI side has the same pins but in reverse order from the I2C side.
 	gr, _ := chip.Group(d7, d6, d5, d4)
-	rs := chip.Pins[rsPin]
-	e := chip.Pins[enablePin]
-	bt := dev.Pins[backlightPin]
+	rs := &chip.Pins[rsPin]
+	e := &chip.Pins[enablePin]
+	bt := &chip.Pins[backlightPin]
 
-	return hd44780.NewHD44780(gr, &rs, &e, &bt, rows, cols)
+	return NewHD44780(gr, rs, e, bt, rows, cols)
 }
