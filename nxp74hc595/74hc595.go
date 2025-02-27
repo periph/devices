@@ -173,7 +173,7 @@ func (gr *Group) WaitForEdge(timeout time.Duration) (int, gpio.Edge, error) {
 
 // Halt frees the group's resources and prevents it from being used again.
 func (gr *Group) Halt() error {
-	gr.pins = make([]Pin, 0)
+	gr.pins = nil
 	return nil
 }
 
