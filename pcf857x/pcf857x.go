@@ -207,8 +207,8 @@ func (dev *Dev) String() string {
 // Pins returns the set of pins that make up this group.
 func (gr *Group) Pins() []pin.Pin {
 	pins := make([]pin.Pin, len(gr.pins))
-	for ix, p := range gr.pins {
-		pins[ix] = &p
+	for ix := range len(gr.pins) {
+		pins[ix] = &gr.pins[ix]
 	}
 	return pins
 }
@@ -217,10 +217,10 @@ func (gr *Group) Pins() []pin.Pin {
 // to the device.
 func (gr *Group) groupMaskToDevMask(mask gpio.GPIOValue) gpio.GPIOValue {
 	m := gpio.GPIOValue(0)
-	for ix, pin := range gr.pins {
+	for ix := range len(gr.pins) {
 		currentBit := gpio.GPIOValue(1 << ix)
 		if (mask & currentBit) == currentBit {
-			pinBit := gpio.GPIOValue(1) << pin.number
+			pinBit := gpio.GPIOValue(1) << gr.pins[ix].number
 			m |= pinBit
 		}
 	}
@@ -234,9 +234,9 @@ func (gr *Group) ByOffset(offset int) pin.Pin {
 
 // Return the GPIO pin by name.
 func (gr *Group) ByName(name string) pin.Pin {
-	for _, pin := range gr.pins {
-		if pin.name == name {
-			return &pin
+	for ix := range len(gr.pins) {
+		if gr.pins[ix].name == name {
+			return &gr.pins[ix]
 		}
 	}
 	return nil
@@ -244,9 +244,9 @@ func (gr *Group) ByName(name string) pin.Pin {
 
 // Return the GPIO pin by it's pin number on the device.
 func (gr *Group) ByNumber(number int) pin.Pin {
-	for _, pin := range gr.pins {
-		if pin.number == number {
-			return &pin
+	for ix := range len(gr.pins) {
+		if gr.pins[ix].number == number {
+			return &gr.pins[ix]
 		}
 	}
 	return nil
