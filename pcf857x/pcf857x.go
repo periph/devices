@@ -173,13 +173,10 @@ func (dev *Dev) read(mask gpio.GPIOValue) (gpio.GPIOValue, error) {
 // write performs the low-level write to the device. If the resulting value of
 // the device is unchanged, the write is skipped.
 func (dev *Dev) write(value, mask gpio.GPIOValue) error {
-	// fmt.Printf("pcf857x.write(value=0x%x, mask=0x%x)\n", value, mask)
-	// fmt.Printf("dev.mask=0x%x\n", dev.mask)
 	dev.mu.Lock()
 	defer dev.mu.Unlock()
 	wrValue := dev.value & (dev.mask ^ mask)
 	wrValue |= (value & mask)
-	// fmt.Printf("pcf857x.write() wrValue=0x%x, mask=0x%x\n", wrValue, mask)
 	if dev.value == wrValue {
 		return nil
 	}
@@ -265,7 +262,6 @@ func (gr *Group) Out(value, mask gpio.GPIOValue) error {
 			wr |= 1 << pin.number
 		}
 	}
-	// fmt.Printf("group.out wr=0x%x wrMask=0x%x\n",wr,wrMask)
 	return gr.dev.write(wr, wrMask)
 }
 
