@@ -13,11 +13,12 @@ func _() {
 	_ = x[PHAT2-2]
 	_ = x[IMPRESSION4-3]
 	_ = x[IMPRESSION57-4]
+	_ = x[IMPRESSION73-5]
 }
 
-const _Model_name = "PHATWHATPHAT2IMPRESSION4IMPRESSION57"
+const _Model_name = "PHATWHATPHAT2IMPRESSION4IMPRESSION57IMPRESSION73"
 
-var _Model_index = [...]uint8{0, 4, 8, 13, 24, 36}
+var _Model_index = [...]uint8{0, 4, 8, 13, 24, 36, 48}
 
 func (i Model) String() string {
 	if i < 0 || i >= Model(len(_Model_index)-1) {
