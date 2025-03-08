@@ -44,8 +44,8 @@ func Example() {
 	pins := ls.Pins()
 	reset := pins[4].(gpio.PinOut)
 	enable := pins[5].(gpio.PinOut)
-	bl := pins[6].(gpio.PinOut)
-	lcd, err := hd44780.NewHD44780(ls, &reset, &enable, &bl, 2, 16)
+	bl := hd44780.NewBacklight(pins[6].(gpio.PinOut))
+	lcd, err := hd44780.NewHD44780(ls, &reset, &enable, bl, 2, 16)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -38,17 +38,17 @@ const (
 //
 // Implements periph.io/conn/x/display/TextDisplay and display.DisplayBacklight
 type HD44780 struct {
-	dataPins     gpio.Group
-	resetPin     gpio.PinOut
-	enablePin    gpio.PinOut
-	backlightPin gpio.PinOut
-	mode         ifMode
-	rows         int
-	cols         int
-	on           bool
-	cursor       bool
-	blink        bool
-	lastWrite    int64
+	dataPins  gpio.Group
+	resetPin  gpio.PinOut
+	enablePin gpio.PinOut
+	bl        interface{}
+	mode      ifMode
+	rows      int
+	cols      int
+	on        bool
+	cursor    bool
+	blink     bool
+	lastWrite int64
 }
 
 const (
@@ -80,7 +80,8 @@ func getRowConstant(row, maxcols int) byte {
 // connected using all 8 pins.
 func NewHD44780(
 	dataPinGroup gpio.Group,
-	resetPin, enablePin, backlightPin *gpio.PinOut,
+	resetPin, enablePin *gpio.PinOut,
+	backlight interface{},
 	rows, cols int) (*HD44780, error) {
 
 	mode := mode4Bit
@@ -89,14 +90,14 @@ func NewHD44780(
 	}
 
 	display := &HD44780{
-		dataPins:     dataPinGroup,
-		resetPin:     *resetPin,
-		enablePin:    *enablePin,
-		backlightPin: *backlightPin,
-		mode:         mode,
-		rows:         rows,
-		cols:         cols,
-		on:           true,
+		dataPins:  dataPinGroup,
+		resetPin:  *resetPin,
+		enablePin: *enablePin,
+		bl:        backlight,
+		mode:      mode,
+		rows:      rows,
+		cols:      cols,
+		on:        true,
 	}
 	return display, display.init()
 }
@@ -277,18 +278,29 @@ func (lcd *HD44780) Halt() error {
 	return lcd.dataPins.Halt()
 }
 
-// Turn the display's backlight on or off. You must supply a backlight control
-// pin when creating the display to use this.
+// Set the backlight intensity.
 func (lcd *HD44780) Backlight(intensity display.Intensity) error {
-	on := (intensity > 0)
-	err := lcd.Display(on)
-	if err != nil {
-		return err
+	switch bl := lcd.bl.(type) {
+	case display.DisplayBacklight:
+		return bl.Backlight(intensity)
+	case display.DisplayRGBBacklight:
+		return bl.RGBBacklight(intensity, intensity, intensity)
+	default:
+		return display.ErrNotImplemented
 	}
-	if lcd.backlightPin != nil {
-		err = lcd.backlightPin.Out(gpio.Level(on))
+}
+
+// For units that have an RGB Backlight, set the backlight color/intensity.
+// The range of the values is 0-255.
+func (lcd *HD44780) RGBBacklight(red, green, blue display.Intensity) error {
+	switch bl := lcd.bl.(type) {
+	case display.DisplayRGBBacklight:
+		return bl.RGBBacklight(red, green, blue)
+	case display.DisplayBacklight:
+		return bl.Backlight(red | green | blue)
+	default:
+		return display.ErrNotImplemented
 	}
-	return err
 }
 
 // delayWrite looks at the time of the last LCD write and if
