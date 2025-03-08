@@ -253,7 +253,7 @@ func (dev *Dev) Move(dir display.CursorDirection) (err error) {
 // Move the cursor to arbitrary position.
 func (dev *Dev) MoveTo(row, col int) (err error) {
 	if row < dev.MinRow() || row > dev.rows || col < dev.MinCol() || col > dev.cols {
-		err = fmt.Errorf("%s.MoveTo(%d,%d) value out of range.", packageName, row, col)
+		err = fmt.Errorf("%s.MoveTo(%d,%d) value out of range", packageName, row, col)
 		return
 	}
 	var cmd = []byte{cmdByte, setCursorPosition[1]}
