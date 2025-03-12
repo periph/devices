@@ -48,12 +48,13 @@ type Dev struct {
 	rows int
 	cols int
 
-	mu        sync.Mutex
-	d         *i2c.Dev
-	blink     bool
-	on        bool
-	cursor    bool
-	backlight interface{}
+	mu     sync.Mutex
+	d      *i2c.Dev
+	blink  bool
+	on     bool
+	cursor bool
+	blMono display.DisplayBacklight
+	blRGB  display.DisplayRGBBacklight
 }
 
 func wrap(err error) error {
@@ -71,16 +72,22 @@ func wrap(err error) error {
 // display.DisplayRGBBacklight.
 func New(bus i2c.Bus,
 	address uint16,
-	backlight interface{},
+	backlight any,
 	rows,
 	cols int) (*Dev, error) {
 
 	dev := &Dev{
-		d:         &i2c.Dev{Bus: bus, Addr: address},
-		backlight: backlight,
-		rows:      rows,
-		cols:      cols,
+		d:    &i2c.Dev{Bus: bus, Addr: address},
+		rows: rows,
+		cols: cols,
 	}
+	switch bl := backlight.(type) {
+	case display.DisplayBacklight:
+		dev.blMono = bl
+	case display.DisplayRGBBacklight:
+		dev.blRGB = bl
+	}
+
 	err := dev.init()
 	if err != nil {
 		dev = nil
@@ -118,7 +125,6 @@ func (dev *Dev) init() error {
 		_ = dev.Backlight(0xff)
 	}
 	if err != nil {
-		fmt.Println("dev.init() returns", err)
 		err = wrap(err)
 	}
 	return err
@@ -343,27 +349,23 @@ func (dev *Dev) WriteString(text string) (n int, err error) {
 
 // Set the backlight intensity.
 func (dev *Dev) Backlight(intensity display.Intensity) error {
-	switch bl := dev.backlight.(type) {
-	case display.DisplayBacklight:
-		return bl.Backlight(intensity)
-	case display.DisplayRGBBacklight:
-		return bl.RGBBacklight(intensity, intensity, intensity)
-	default:
-		return ErrNotImplemented
+	if dev.blMono != nil {
+		return dev.blMono.Backlight(intensity)
+	} else if dev.blRGB != nil {
+		return dev.blRGB.RGBBacklight(intensity, intensity, intensity)
 	}
+	return ErrNotImplemented
 }
 
 // For units that have an RGB Backlight, set the backlight color/intensity.
 // The range of the values is 0-255.
 func (dev *Dev) RGBBacklight(red, green, blue display.Intensity) error {
-	switch bl := dev.backlight.(type) {
-	case display.DisplayRGBBacklight:
-		return bl.RGBBacklight(red, green, blue)
-	case display.DisplayBacklight:
-		return bl.Backlight(red | green | blue)
-	default:
-		return ErrNotImplemented
+	if dev.blRGB != nil {
+		return dev.blRGB.RGBBacklight(red, green, blue)
+	} else if dev.blMono != nil {
+		return dev.blMono.Backlight(red | green | blue)
 	}
+	return ErrNotImplemented
 }
 
 var _ conn.Resource = &Dev{}

@@ -5,7 +5,6 @@
 package waveshare1602_test
 
 import (
-	"fmt"
 	"log"
 	"time"
 
@@ -17,7 +16,6 @@ import (
 )
 
 func Example() {
-	fmt.Println("Starting")
 	// Make sure periph is initialized.
 	if _, err := host.Init(); err != nil {
 		log.Fatal(err)
