@@ -10,14 +10,15 @@ import (
 	"log"
 	"time"
 
-	"golang.org/x/exp/io/spi"
 	"periph.io/x/conn/v3/display"
 	"periph.io/x/conn/v3/display/displaytest"
 	"periph.io/x/conn/v3/gpio"
 	"periph.io/x/conn/v3/i2c/i2creg"
 	"periph.io/x/conn/v3/physic"
+	"periph.io/x/conn/v3/spi"
 	"periph.io/x/conn/v3/spi/spireg"
 	"periph.io/x/devices/v3/hd44780"
+	"periph.io/x/devices/v3/pcf857x"
 	"periph.io/x/host/v3"
 	"periph.io/x/host/v3/gpioioctl"
 )
@@ -54,13 +55,13 @@ func Example() {
 	fmt.Printf("n=%d, err=%s\n", n, err)
 	fmt.Println("lcd=", lcd.String())
 
-	lcd.Home()
-	lcd.MoveTo(1, 1)
-	lcd.WriteString("Line 1")
-	lcd.MoveTo(2, 2)
-	lcd.WriteString("Line 2")
+	_ = lcd.Home()
+	_ = lcd.MoveTo(1, 1)
+	_, _ = lcd.WriteString("Line 1")
+	_ = lcd.MoveTo(2, 2)
+	_, _ = lcd.WriteString("Line 2")
 	time.Sleep(5 * time.Second)
-	lcd.Clear()
+	_ = lcd.Clear()
 
 	fmt.Println("calling TestTextDisplay")
 
@@ -91,8 +92,8 @@ func ExampleNewAdafruitI2CBackpack() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dev.Clear()
-	dev.WriteString("Hello")
+	_ = dev.Clear()
+	_, _ = dev.WriteString("Hello")
 	fmt.Println("wrote hello")
 	time.Sleep(5 * time.Second)
 	fmt.Println("calling test text display")
@@ -144,14 +145,14 @@ func ExampleNewPCF857xBackpack() {
 	}
 	for range 5 {
 		fmt.Println("toggling backlight")
-		dev.Backlight(0)
+		_ = dev.Backlight(0)
 		time.Sleep(500 * time.Millisecond)
-		dev.Backlight(255)
+		_ = dev.Backlight(255)
 		time.Sleep(500 * time.Millisecond)
 
 	}
-	dev.Clear()
-	dev.WriteString("Hello")
+	_ = dev.Clear()
+	_, _ = dev.WriteString("Hello")
 	fmt.Println("wrote hello")
 	time.Sleep(5 * time.Second)
 	fmt.Println("calling test text display")

@@ -36,8 +36,9 @@ MatrixOrbital LK2047T, the AdaFruit USB+Serial Backpack etc.
 
 The driver package is designed to use the gpio.Group interface. This allows
 the LCD driver to be agnostic about the physical connection between the display 
-and the host device. Any host/expander that supports the GPIO group can be used 
-to easily drive the LCD display.
+and the host device. Any host/expander that supports the 
+periph.io/x/conn/v3/gpio.Group interface can be used to easily drive the LCD 
+display.
 
 ## Hardware Notes
 
@@ -51,6 +52,9 @@ transistor (2N2222 or equivalent).
 
 If nothing displays at all, check the contrast. Adjust the contrast control
 until the 5x7 dot grid on the display is visible.
+
+If the first row contains blocks of dots, and the other rows are blank, then
+the initialization of the device failed. Check IO pins are connected properly.
 
 If the text is garbled, verify the gpio.Group is configured and the IO Pins
 are connected to the right pins of the LCD display.

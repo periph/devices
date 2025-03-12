@@ -5,6 +5,8 @@
 package hd44780
 
 import (
+	"fmt"
+
 	"periph.io/x/conn/v3/display"
 	"periph.io/x/conn/v3/gpio"
 )
@@ -29,6 +31,10 @@ func (bl *GPIOMonoBacklight) Backlight(intensity display.Intensity) (err error) 
 		err = bl.blPin.Out(gpio.High)
 	}
 	return err
+}
+
+func (bl *GPIOMonoBacklight) String() string {
+	return fmt.Sprintf("%#v", bl)
 }
 
 var _ display.DisplayBacklight = &GPIOMonoBacklight{}

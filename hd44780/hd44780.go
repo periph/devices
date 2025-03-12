@@ -41,7 +41,8 @@ type HD44780 struct {
 	dataPins  gpio.Group
 	resetPin  gpio.PinOut
 	enablePin gpio.PinOut
-	bl        interface{}
+	blMono    display.DisplayBacklight
+	blRGB     display.DisplayRGBBacklight
 	mode      ifMode
 	rows      int
 	cols      int
@@ -70,18 +71,20 @@ func getRowConstant(row, maxcols int) byte {
 	return rowConstants[offset][row]
 }
 
-// NewHD44780 takes a GPIO group, and gpio.PinOut for reset, enable, and
-// backlight. It returns a the HD44780 device in an initialized state and
-// ready for use.
+// NewHD44780 takes a GPIO group, and gpio.PinOut for reset and enable. It
+// returns an HD44780 device in an initialized state and ready for use.
 //
 // The first 4 or 8 pins of the data group must be connected to the data lines
-// To use 4 bit mode, you would connect lines D4-D7 on the display, and for
-// 8 bit mode, D0-D7. If dataPinGroup is 8 or more pins, then it's assumed the display is
-// connected using all 8 pins.
+// To use 4 bit mode, you would connect lines D4-D7 on the display, and for 8
+// bit mode, D0-D7. If dataPinGroup is 8 or more pins, then it's assumed the
+// display is connected using all 8 pins.
+//
+// backlight should implement either display.DisplayBacklight or
+// display.DisplayRGBBacklight. See GPIOMonoBacklight.
 func NewHD44780(
 	dataPinGroup gpio.Group,
 	resetPin, enablePin *gpio.PinOut,
-	backlight interface{},
+	backlight any,
 	rows, cols int) (*HD44780, error) {
 
 	mode := mode4Bit
@@ -89,17 +92,22 @@ func NewHD44780(
 		mode = mode8Bit
 	}
 
-	display := &HD44780{
+	lcd := &HD44780{
 		dataPins:  dataPinGroup,
 		resetPin:  *resetPin,
 		enablePin: *enablePin,
-		bl:        backlight,
 		mode:      mode,
 		rows:      rows,
 		cols:      cols,
 		on:        true,
 	}
-	return display, display.init()
+	switch bl := backlight.(type) {
+	case display.DisplayBacklight:
+		lcd.blMono = bl
+	case display.DisplayRGBBacklight:
+		lcd.blRGB = bl
+	}
+	return lcd, lcd.init()
 }
 
 // Not supported by this device. Returns display.ErrNotImplemented
@@ -206,7 +214,7 @@ func (lcd *HD44780) Rows() int {
 
 // Return info about the dsiplay.
 func (lcd *HD44780) String() string {
-	return fmt.Sprintf("HD44780::%s - Rows: %d, Cols: %d", lcd.dataPins.String(), lcd.rows, lcd.cols)
+	return fmt.Sprintf("HD44780 - Rows: %d, Cols: %d", lcd.rows, lcd.cols)
 }
 
 // Turn the display on / off
@@ -280,39 +288,35 @@ func (lcd *HD44780) Halt() error {
 
 // Set the backlight intensity.
 func (lcd *HD44780) Backlight(intensity display.Intensity) error {
-	switch bl := lcd.bl.(type) {
-	case display.DisplayBacklight:
-		return bl.Backlight(intensity)
-	case display.DisplayRGBBacklight:
-		return bl.RGBBacklight(intensity, intensity, intensity)
-	default:
-		return display.ErrNotImplemented
+	if lcd.blMono != nil {
+		return lcd.blMono.Backlight(intensity)
+	} else if lcd.blRGB != nil {
+		return lcd.blRGB.RGBBacklight(intensity, intensity, intensity)
 	}
+	return display.ErrNotImplemented
 }
 
 // For units that have an RGB Backlight, set the backlight color/intensity.
 // The range of the values is 0-255.
 func (lcd *HD44780) RGBBacklight(red, green, blue display.Intensity) error {
-	switch bl := lcd.bl.(type) {
-	case display.DisplayRGBBacklight:
-		return bl.RGBBacklight(red, green, blue)
-	case display.DisplayBacklight:
-		return bl.Backlight(red | green | blue)
-	default:
-		return display.ErrNotImplemented
+	if lcd.blRGB != nil {
+		return lcd.blRGB.RGBBacklight(red, green, blue)
+	} else if lcd.blMono != nil {
+		return lcd.blMono.Backlight(red | green | blue)
 	}
+	return display.ErrNotImplemented
 }
 
-// delayWrite looks at the time of the last LCD write and if
-// the specified microseconds period has not elapsed, it
-// invokes time.Sleep() with the difference.
+// delayWrite looks at the time of the last LCD write and if the specified
+// microseconds period has not elapsed, it invokes time.Sleep() with the
+// difference.
 //
 // Some I/O methods, like direct GPIO on a Pi are very fast, while other methods
 // like i2c take longer. Without delays, on very fast I/O paths, the LCD will
-// display garbage. The correct way to handle this would be to read the Busy flag
-// on the LCD display. However, some backpacks don't have the capability to
-// check the Busy flag because the R/W pin isn't connected. So, we can't correctly
-// handle io delays. This handles the very fast interfaces, while not
+// display garbage. The correct way to handle this would be to read the Busy
+// flag on the LCD display. However, some backpacks don't have the capability to
+// check the Busy flag because the R/W pin isn't connected. So, we can't
+// correctly handle io delays. This handles the very fast interfaces, while not
 // penalizing the slower ones with unnecessary delays.
 //
 // The value of lcd.lastWrite is updated to the current time by the call.
@@ -380,8 +384,9 @@ func (lcd *HD44780) init() error {
 	_ = lcd.Display(true)
 	_ = lcd.Clear()
 	_ = lcd.Home()
-
-	return lcd.Backlight(0xff)
+	// If there's not a backlight, ignore the error.
+	_ = lcd.Backlight(0xff)
+	return nil
 }
 
 func (lcd *HD44780) sendCommand(commands []byte) error {
@@ -431,4 +436,5 @@ func (lcd *HD44780) writeBits(value, mask gpio.GPIOValue) error {
 
 var _ display.TextDisplay = &HD44780{}
 var _ display.DisplayBacklight = &HD44780{}
+var _ display.DisplayRGBBacklight = &HD44780{}
 var _ conn.Resource = &HD44780{}
