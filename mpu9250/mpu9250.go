@@ -2,7 +2,12 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package mpu9250 MPU-9250 is a 9-axis MotionTracking device that combines a 3-axis gyroscope, 3-axis accelerometer, 3-axis magnetometer and a Digital Motion Processor™ (DMP)
+// Package mpu9250 MPU-9250 is a 9-axis MotionTracking device that combines a
+// 3-axis gyroscope, 3-axis accelerometer, 3-axis magnetometer and a Digital
+// Motion Processor™ (DMP). Connections via SPI or I2C are supported.
+//
+// There is a sample program in periph.io/x/cmd/mpu9250 that you can run to
+// test using the sensor.
 //
 // # Datasheet
 //
@@ -23,16 +28,6 @@ const (
 	registers        = 12
 	accelsenSitivity = 16384
 )
-
-// Proto defines the low-level methods used by different transports.
-type Proto interface {
-	writeMaskedReg(address byte, mask byte, value byte) error
-	readMaskedReg(address byte, mask byte) (byte, error)
-	readByte(address byte) (byte, error)
-	writeByte(address byte, value byte) error
-	readUint16(address ...byte) (uint16, error)
-	writeMagReg(address byte, value byte) error
-}
 
 // AccelerometerData the values for x/y/z axises.
 type AccelerometerData struct {
@@ -62,14 +57,14 @@ type SelfTestResult struct {
 
 // MPU9250 defines the structure to keep reference to the transport.
 type MPU9250 struct {
-	transport Proto
+	transport Transport
 	debug     func(string, ...interface{})
 }
 
 // New creates the new instance of the driver.
 //
 // transport the transport interface.
-func New(transport Proto) (*MPU9250, error) {
+func New(transport Transport) (*MPU9250, error) {
 	return &MPU9250{transport: transport, debug: noop}, nil
 }
 
