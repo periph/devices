@@ -4,13 +4,14 @@
 
 package ssd1306
 
-// Some have SPI enabled;
+// The SSD1306, SH1106, SH1107 are a family of OLED displays. Some have SPI enabled.
+//
 // https://hallard.me/adafruit-oled-display-driver-for-pi/
+//
 // https://learn.adafruit.com/ssd1306-oled-displays-with-raspberry-pi-and-beaglebone-black?view=all
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -25,22 +26,25 @@ import (
 	"periph.io/x/devices/v3/ssd1306/image1bit"
 )
 
+type variant string
+
 const (
 	_CHARGEPUMP          = 0x8D
 	_COLUMNADDR          = 0x21
 	_COMSCANDEC          = 0xC8
 	_COMSCANINC          = 0xC0
-	_DISPLAYALLON        = 0xA5
+	_DC_DC_SETTING       = 0xAD
+	_DEACTIVATE_SCROLL   = 0x2E
 	_DISPLAYALLON_RESUME = 0xA4
 	_DISPLAYOFF          = 0xAE
 	_DISPLAYON           = 0xAF
-	_EXTERNALVCC         = 0x1
 	_INVERTDISPLAY       = 0xA7
 	_MEMORYMODE          = 0x20
 	_NORMALDISPLAY       = 0xA6
 	_PAGEADDR            = 0x22
 	_PAGESTARTADDRESS    = 0xB0
 	_SEGREMAP            = 0xA0
+	_SET_PAGE_ADDRESS    = 0xB0
 	_SETCOMPINS          = 0xDA
 	_SETCONTRAST         = 0x81
 	_SETDISPLAYCLOCKDIV  = 0xD5
@@ -52,7 +56,13 @@ const (
 	_SETSEGMENTREMAP     = 0xA1
 	_SETSTARTLINE        = 0x40
 	_SETVCOMDETECT       = 0xDB
-	_SWITCHCAPVCC        = 0x2
+	_SH1107_SETSTARTLINE = 0xDC
+)
+
+const (
+	_SSD1306 variant = "SSD1306"
+	_SH1106  variant = "SH1106"
+	_SH1107  variant = "SH1107"
 )
 
 // FrameRate determines scrolling speed.
@@ -91,6 +101,7 @@ var DefaultOpts = Opts{
 	MirrorHorizontal: false,
 	Sequential:       false,
 	SwapTopBottom:    false,
+	Addr:             0x3c,
 }
 
 // Opts defines the options for the device.
@@ -103,7 +114,7 @@ type Opts struct {
 	Rotated bool
 	// Sequential corresponds to the Sequential/Alternative COM pin configuration
 	// in the OLED panel hardware. Try toggling this if half the rows appear to be
-	// missing on your display.
+	// missing on your display. Particularly on 32 pixel height displays.
 	Sequential bool
 	// MirrorVertical corresponds to the COM remap configuration in the OLED panel
 	// hardware. Try toggling this if the display is flipped vertically.
@@ -117,6 +128,8 @@ type Opts struct {
 	// the OLED panel hardware. Try toggling this if the top and bottom halves of
 	// your display are swapped.
 	SwapTopBottom bool
+	// The I2C address of the display.
+	Addr uint16
 }
 
 // NewSPI returns a Dev object that communicates over SPI to a SSD1306 display
@@ -137,7 +150,7 @@ type Opts struct {
 // be reinstantiated.
 func NewSPI(p spi.Port, dc gpio.PinOut, opts *Opts) (*Dev, error) {
 	if dc == gpio.INVALID {
-		return nil, errors.New("ssd1306: use nil for dc to use 3-wire mode, do not use gpio.INVALID")
+		return nil, fmt.Errorf("%s: use nil for dc to use 3-wire mode, do not use gpio.INVALID", _SSD1306)
 	}
 	bits := 8
 	if dc == nil {
@@ -156,8 +169,11 @@ func NewSPI(p spi.Port, dc gpio.PinOut, opts *Opts) (*Dev, error) {
 // NewI2C returns a Dev object that communicates over I²C to a SSD1306 display
 // controller.
 func NewI2C(i i2c.Bus, opts *Opts) (*Dev, error) {
+	if opts.Addr == 0x00 {
+		opts.Addr = DefaultOpts.Addr
+	}
 	// Maximum clock speed is 1/2.5µs = 400KHz.
-	return newDev(&i2c.Dev{Bus: i, Addr: 0x3C}, opts, false, nil)
+	return newDev(&i2c.Dev{Bus: i, Addr: opts.Addr}, opts, false, nil)
 }
 
 // Dev is an open handle to the display controller.
@@ -184,13 +200,18 @@ type Dev struct {
 	startCol, endCol   int
 	scrolled           bool
 	halted             bool
+	// The display type. _SSD1306, _SH1106, _SH1107.
+	variant variant
+	// The SH1106 is a little funny. It's got 132 bytes wide of RAM, but 4 bytes
+	// are unused, so you have to offset writes by two to account for it.
+	startOffset byte
 }
 
 func (d *Dev) String() string {
 	if d.spi {
-		return fmt.Sprintf("ssd1360.Dev{%s, %s, %s}", d.c, d.dc, d.rect.Max)
+		return fmt.Sprintf("%s.Dev{%s, %s, %s}", d.variant, d.c, d.dc, d.rect.Max)
 	}
-	return fmt.Sprintf("ssd1360.Dev{%s, %s}", d.c, d.rect.Max)
+	return fmt.Sprintf("%s.Dev{%s, %s}", d.variant, d.c, d.rect.Max)
 }
 
 // ColorModel implements display.Drawer.
@@ -234,7 +255,7 @@ func (d *Dev) Draw(r image.Rectangle, src image.Image, sp image.Point) error {
 // This function accepts the content of image1bit.VerticalLSB.Pix.
 func (d *Dev) Write(pixels []byte) (int, error) {
 	if len(pixels) != len(d.buffer) {
-		return 0, fmt.Errorf("ssd1306: invalid pixel stream length; expected %d bytes, got %d bytes", len(d.buffer), len(pixels))
+		return 0, fmt.Errorf("%s: invalid pixel stream length; expected %d bytes, got %d bytes", d.variant, len(d.buffer), len(pixels))
 	}
 	// Write() skips d.next so it saves 1kb of RAM.
 	if err := d.drawInternal(pixels); err != nil {
@@ -288,16 +309,23 @@ func (d *Dev) StopScroll() error {
 //
 // Note: values other than 0xff do not seem useful...
 func (d *Dev) SetContrast(level byte) error {
-	return d.sendCommand([]byte{0x81, level})
+	return d.sendCommand([]byte{_SETCONTRAST, level})
 }
 
 // SetDisplayStartLine causes the display to start from startLine, effectively
 // scrolling the screen to that position.
 //
-// startLine must be between 0 and 63.
+// startLine must be between 0 and 63 (127 SH1107).
 func (d *Dev) SetDisplayStartLine(startLine byte) error {
+	if d.variant == _SH1107 {
+		if startLine > 0x7f {
+			return fmt.Errorf("%s: invalid startLine %d", d.variant, startLine)
+		}
+		return d.sendCommand([]byte{_SH1107_SETSTARTLINE, startLine})
+	}
+	// SSDH1306 and SH1106
 	if startLine > 63 {
-		return fmt.Errorf("ssd1306: invalid startLine %d", startLine)
+		return fmt.Errorf("%s: invalid startLine %d", d.variant, startLine)
 	}
 	return d.sendCommand([]byte{_SETSTARTLINE | startLine})
 }
@@ -307,7 +335,7 @@ func (d *Dev) SetDisplayStartLine(startLine byte) error {
 // Sending any other command afterward reenables the display.
 func (d *Dev) Halt() error {
 	d.halted = false
-	err := d.sendCommand([]byte{0xAE})
+	err := d.sendCommand([]byte{_DISPLAYOFF})
 	if err == nil {
 		d.halted = true
 	}
@@ -316,24 +344,16 @@ func (d *Dev) Halt() error {
 
 // Invert the display (black on white vs white on black).
 func (d *Dev) Invert(blackOnWhite bool) error {
-	b := []byte{0xA6}
+	b := []byte{_NORMALDISPLAY}
 	if blackOnWhite {
-		b[0] = 0xA7
+		b[0] = _INVERTDISPLAY
 	}
 	return d.sendCommand(b)
 }
 
-//
-
 // newDev is the common initialization code that is independent of the
 // communication protocol (I²C or SPI) being used.
 func newDev(c conn.Conn, opts *Opts, usingSPI bool, dc gpio.PinOut) (*Dev, error) {
-	if opts.W < 8 || opts.W > 128 || opts.W&7 != 0 {
-		return nil, fmt.Errorf("ssd1306: invalid width %d", opts.W)
-	}
-	if opts.H < 8 || opts.H > 64 || opts.H&7 != 0 {
-		return nil, fmt.Errorf("ssd1306: invalid height %d", opts.H)
-	}
 
 	nbPages := opts.H / 8
 	pageSize := opts.W
@@ -350,36 +370,76 @@ func newDev(c conn.Conn, opts *Opts, usingSPI bool, dc gpio.PinOut) (*Dev, error
 		// Signal that the screen must be redrawn on first draw().
 		scrolled: true,
 	}
-	if err := d.sendCommand(getInitCmd(opts)); err != nil {
+
+	// Read the variant directly from the chip.
+	id, _ := d.readID()
+	id &= 0x0f
+	if id == 0x07 || id == 0x0f {
+		d.variant = _SH1107
+	} else if id == 0x08 {
+		d.startOffset = 2
+		d.variant = _SH1106
+	} else {
+		d.variant = _SSD1306
+	}
+	if err := d.sendCommand(getInitCmd(opts, d.variant)); err != nil {
 		return nil, err
 	}
+
+	// validate W/H with rules for the specific variant.
+	if opts.W < 8 || opts.W > 128 || opts.W&7 != 0 {
+		return nil, fmt.Errorf("%s: invalid width %d", d.variant, opts.W)
+	}
+
+	if d.variant == _SH1107 {
+		if opts.H < 8 || opts.H > 128 || opts.H&7 != 0 {
+			return nil, fmt.Errorf("%s: invalid height %d", d.variant, opts.H)
+		}
+	} else {
+		// SSD1306 and SH1106
+		if opts.H < 8 || opts.H > 64 || opts.H&7 != 0 {
+			return nil, fmt.Errorf("%s: invalid height %d", d.variant, opts.H)
+		}
+	}
+
 	return d, nil
 }
 
-func getInitCmd(opts *Opts) []byte {
+func getInitCmd(opts *Opts, variant variant) []byte {
+	if variant == _SH1107 {
+		return getInitCmd1107(opts)
+	}
+	return getInitCmd1306(opts)
+}
+
+func getInitCmd1306(opts *Opts) []byte {
 	// Set COM output scan direction; C0 means normal; C8 means reversed
-	comScan := byte(0xC8)
+	comScan := byte(_COMSCANDEC)
 	// See page 40.
-	columnAddr := byte(0xA1)
+	columnAddr := byte(_SETSEGMENTREMAP)
+
 	if opts.Rotated {
 		// Change order both horizontally and vertically.
-		comScan = 0xC0
-		columnAddr = byte(0xA0)
+		comScan = _COMSCANINC
+		columnAddr = byte(_SEGREMAP)
 	}
 	if opts.MirrorVertical {
-		comScan = byte(0xC0)
+		comScan = byte(_COMSCANINC)
 	}
+
 	if opts.MirrorHorizontal {
-		columnAddr = byte(0xA0)
+		columnAddr = byte(_SEGREMAP)
 	}
 	// See page 40.
 	hwLayout := byte(0x02)
+
 	if !opts.Sequential {
 		hwLayout |= 0x10
 	}
 	if opts.SwapTopBottom {
 		hwLayout |= 0x20
 	}
+
 	// Set the max frequency. The problem with I²C is that it creates visible
 	// tear down. On SPI at high speed this is not visible. Page 23 pictures how
 	// to avoid tear down. For now default to max frequency.
@@ -389,25 +449,40 @@ func getInitCmd(opts *Opts) []byte {
 	// Page 64 has the full recommended flow.
 	// Page 28 lists all the commands.
 	return []byte{
-		0xAE,       // Display off
-		0xD3, 0x00, // Set display offset; 0
-		0x40,           // Start display start line; 0
-		columnAddr,     // Set segment remap; RESET is column 127.
-		comScan,        //
-		0xDA, hwLayout, // Set COM pins hardware configuration; see page 40
-		0x81, 0xFF, // Set max contrast
-		0xA4,       // Set display to use GDDRAM content
-		0xA6,       // Set normal display (0xA7 for inverted 0=lit, 1=dark)
-		0xD5, freq, // Set osc frequency and divide ratio; power on reset value is 0x80.
-		0x8D, 0x14, // Enable charge pump regulator; page 62
-		0xD9, 0xF1, // Set pre-charge period; from adafruit driver
-		0xDB, 0x40, // Set Vcomh deselect level; page 32
-		0x2E,                   // Deactivate scroll
-		0xA8, byte(opts.H - 1), // Set multiplex ratio (number of lines to display)
-		0x20, 0x00, // Set memory addressing mode to horizontal
-		0x21, 0, uint8(opts.W - 1), // Set column address (Width)
-		0x22, 0, uint8(opts.H/8 - 1), // Set page address (Pages)
-		0xAF, // Display on
+		_DISPLAYOFF,             // Display off
+		_SETDISPLAYOFFSET, 0x00, // Set display offset; 0
+		_SETSTARTLINE,         // Start display start line; 0
+		columnAddr,            // Set segment remap; RESET is column 127.
+		comScan,               //
+		_SETCOMPINS, hwLayout, // Set COM pins hardware configuration; see page 40
+		_SETCONTRAST, 0xFF, // Set max contrast
+		_DISPLAYALLON_RESUME,      // Set display to use GDDRAM content
+		_NORMALDISPLAY,            // Set normal display (_INVERTDISPLAY for inverted 0=lit, 1=dark)
+		_SETDISPLAYCLOCKDIV, freq, // Set osc frequency and divide ratio; power on reset value is 0x80.
+		_CHARGEPUMP, 0x14, // Enable charge pump regulator; page 62
+		_SETPRECHARGE, 0xF1, // Set pre-charge period; from adafruit driver
+		_SETVCOMDETECT, 0x40, // Set Vcomh deselect level; page 32
+		_DEACTIVATE_SCROLL,              // Deactivate scroll
+		_SETMULTIPLEX, byte(opts.H - 1), // Set multiplex ratio (number of lines to display)
+		_MEMORYMODE, 0x00, // Set memory addressing mode to horizontal
+		_COLUMNADDR, 0, uint8(opts.W - 1), // Set column address (Width)
+		_PAGEADDR, 0, uint8(opts.H/8 - 1), // Set page address (Pages)
+		_DISPLAYON, // Display on
+	}
+}
+
+func getInitCmd1107(opts *Opts) []byte {
+	// From the adafruit driver...
+	return []byte{
+		_DISPLAYOFF,                     // display off
+		_SETMULTIPLEX, byte(opts.H - 1), // set multiplex ratio (number of lines to display)
+		_MEMORYMODE,          // set memory addressing mode to horizontal
+		_SET_PAGE_ADDRESS,    // page address
+		_DC_DC_SETTING, 0x81, // DC/DC Converter
+		_SETDISPLAYCLOCKDIV, 0x50, // Display CLock
+		_SETVCOMDETECT, 0x35, // VCOM DSEL Level
+		_SETPRECHARGE, 0x22, // Discharge/PreCharge
+		_DISPLAYON, // display on
 	}
 }
 
@@ -491,7 +566,7 @@ func (d *Dev) drawInternal(next []byte) error {
 	for page := d.startPage; page < d.endPage; page++ {
 		err := d.sendCommand([]byte{
 			_PAGESTARTADDRESS | byte(page),
-			_SETLOWCOLUMN | (byte(d.startCol) & 0x0F),
+			_SETLOWCOLUMN | ((byte(d.startCol) & 0x0F) + d.startOffset),
 			_SETHIGHCOLUMN | (byte(d.startCol) >> 4),
 		})
 		if err != nil {
@@ -526,13 +601,13 @@ func (d *Dev) sendData(c []byte) error {
 func (d *Dev) sendCommand(c []byte) error {
 	if d.halted {
 		// Transparently enable the display.
-		c = append([]byte{0xAF}, c...)
+		c = append([]byte{_DISPLAYON}, c...)
 		d.halted = false
 	}
 	if d.spi {
 		if d.dc == nil {
 			// 3-wire SPI.
-			return errors.New("ssd1306: 3-wire SPI mode is not yet implemented")
+			return fmt.Errorf("%s: 3-wire SPI mode is not yet implemented", d.variant)
 		}
 		// 4-wire SPI.
 		if err := d.dc.Out(gpio.Low); err != nil {
@@ -541,6 +616,28 @@ func (d *Dev) sendCommand(c []byte) error {
 		return d.c.Tx(c, nil)
 	}
 	return d.c.Tx(append([]byte{i2cCmd}, c...), nil)
+}
+
+// readID() reads the ID byte of the device. Piecing together the datasheet,
+// the format is:
+//
+// Bits
+// ----
+// 0 - 5 Device ID
+//
+//	ID Values have been documented as:
+//
+//	    0x03 SSD1306 128x32
+//	    0x06 SSD1306 128x64
+//	    0x07 or 0x0f: sh1107
+//	    0x08: sh1106
+//
+// 6 Display On/Off 0=on, 1 = off
+// 7 BUSY
+func (d *Dev) readID() (byte, error) {
+	r := make([]byte, 1)
+	err := d.c.Tx([]byte{0}, r)
+	return r[0], err
 }
 
 const (
