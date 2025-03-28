@@ -198,7 +198,7 @@ func (lcd *HD44780) Move(dir display.CursorDirection) (err error) {
 // Move the cursor to arbitrary position.
 func (lcd *HD44780) MoveTo(row, col int) (err error) {
 	if row < lcd.MinRow() || row > lcd.rows || col < lcd.MinCol() || col > lcd.cols {
-		err = fmt.Errorf("HD44780.MoveTo(%d,%d) value out of range.", row, col)
+		err = fmt.Errorf("HD44780.MoveTo(%d,%d) value out of range", row, col)
 		return
 	}
 	var cmd = []byte{cmdByte, setCursorPosition[1]}
