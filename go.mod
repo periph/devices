@@ -12,7 +12,7 @@ require (
 	github.com/mattn/go-colorable v0.1.13
 	golang.org/x/image v0.23.0
 	periph.io/x/conn/v3 v3.7.2
-	periph.io/x/host/v3 v3.8.3
+	periph.io/x/host/v3 v3.8.4
 )
 
 require (
