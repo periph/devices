@@ -5,9 +5,14 @@
 package ssd1306_test
 
 import (
-    "flag"
+	"flag"
+	"fmt"
 	"image"
+	"image/color"
+	"image/draw"
 	"log"
+	"math"
+	"time"
 
 	"periph.io/x/conn/v3/i2c/i2creg"
 	"periph.io/x/devices/v3/ssd1306"
