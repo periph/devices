@@ -57,7 +57,7 @@ func TestI2C_String(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	expected := "ssd1360.Dev{playback(60), (128,64)}"
+	expected := "SSD1306.Dev{playback(60), (128,64)}"
 	if s := dev.String(); s != expected {
 		t.Fatalf("%q != %q", expected, s)
 	}
@@ -77,6 +77,7 @@ func TestI2C_Draw_VerticalLSD_fast(t *testing.T) {
 
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
+			{Addr: 0x3c, W: []byte{0}, R: []byte{0x06}},
 			// Startup initialization.
 			{Addr: 0x3c, W: initCmdI2C()},
 
@@ -131,6 +132,7 @@ func TestI2C_Halt_Write(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Startup initialization.
+			{Addr: 0x3c, W: []byte{0}, R: []byte{0x06}},
 			{Addr: 0x3c, W: initCmdI2C()},
 			// Halt()
 			{Addr: 0x3c, W: []byte{0x0, 0xae}},
@@ -207,6 +209,7 @@ func TestI2C_Write_invalid_size(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Startup initialization.
+			{Addr: 0x3c, W: []byte{0}, R: []byte{0x06}},
 			{Addr: 0x3c, W: initCmdI2C()},
 		},
 	}
@@ -268,6 +271,7 @@ func TestI2C_DrawGray(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Startup initialization.
+			{Addr: 0x3c, W: []byte{0}, R: []byte{0x06}},
 			{Addr: 0x3c, W: initCmdI2C()},
 			// Page 1
 			{Addr: 0x3c, W: []byte{0x00, 0xB0, 0x00, 0x10}},
@@ -314,6 +318,7 @@ func TestI2C_DrawGray(t *testing.T) {
 func TestI2C_Scroll(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
+			{Addr: 0x3c, W: []byte{0}, R: []byte{0x06}},
 			{Addr: 0x3c, W: initCmdI2C()},
 			// Scroll Left.
 			{Addr: 0x3c, W: []byte{0x0, 0x27, 0x0, 0x0, 0x6, 0x7, 0x0, 0xff, 0x2f}},
@@ -353,6 +358,7 @@ func TestI2C_Scroll(t *testing.T) {
 func TestI2C_SetContrast(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
+			{Addr: 0x3c, W: []byte{0}, R: []byte{0x06}},
 			{Addr: 0x3c, W: initCmdI2C()},
 			{Addr: 0x3c, W: []byte{0x0, 0x81, 0x0}},
 			{Addr: 0x3c, W: []byte{0x0, 0x81, 0x7f}},
@@ -380,6 +386,7 @@ func TestI2C_SetContrast(t *testing.T) {
 func TestI2C_SetDisplayStartLine(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
+			{Addr: 0x3c, W: []byte{0}, R: []byte{0x06}},
 			{Addr: 0x3c, W: initCmdI2C()},
 			{Addr: 0x3c, W: []byte{0x0, 0x40}},
 			{Addr: 0x3c, W: []byte{0x0, 0x45}},
@@ -411,6 +418,7 @@ func TestI2C_SetDisplayStartLine(t *testing.T) {
 func TestI2C_Invert_Halt_resume(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
+			{Addr: 0x3c, W: []byte{0}, R: []byte{0x06}},
 			{Addr: 0x3c, W: initCmdI2C()},
 			// Invert(true)
 			{Addr: 0x3c, W: []byte{0x0, 0xa7}},
@@ -441,6 +449,7 @@ func TestI2C_Invert_Halt_resume(t *testing.T) {
 func TestI2C_Halt(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
+			{Addr: 0x3c, W: []byte{0}, R: []byte{0x06}},
 			{Addr: 0x3c, W: initCmdI2C()},
 			// Halt()
 			{Addr: 0x3c, W: []byte{0x0, 0xae}},
@@ -467,7 +476,9 @@ func TestI2C_Halt(t *testing.T) {
 //
 
 func TestNewSPI_fail(t *testing.T) {
-	if d, err := NewSPI(&spitest.Playback{}, nil, &Opts{H: 64}); d != nil || err == nil {
+	if d, err := NewSPI(&spitest.Playback{
+		Playback: conntest.Playback{Ops: []conntest.IO{{W: []byte{0}, R: []byte{0x06}}}},
+	}, nil, &Opts{H: 64}); d != nil || err == nil {
 		t.Fatal(d, err)
 	}
 	if d, err := NewSPI(&configFail{}, nil, &Opts{W: 64, H: 64}); d != nil || err == nil {
@@ -483,7 +494,7 @@ func TestNewSPI_fail(t *testing.T) {
 
 func TestSPI_3wire(t *testing.T) {
 	// Not supported yet.
-	if dev, err := NewSPI(&spitest.Playback{}, nil, &DefaultOpts); dev != nil || err == nil {
+	if dev, err := NewSPI(&spitest.Playback{Playback: conntest.Playback{Ops: []conntest.IO{{W: []byte{0}, R: []byte{0x06}}}}}, nil, &DefaultOpts); dev != nil || err == nil {
 		t.Fatal("SPI 3-wire is not supported")
 	}
 }
@@ -491,14 +502,17 @@ func TestSPI_3wire(t *testing.T) {
 func TestSPI_4wire_String(t *testing.T) {
 	port := spitest.Playback{
 		Playback: conntest.Playback{
-			Ops: []conntest.IO{{W: getInitCmd(&Opts{W: 128, H: 64, MirrorVertical: false, MirrorHorizontal: false})}},
+			Ops: []conntest.IO{
+				{W: []byte{0x00}, R: []byte{0x06}},
+				{W: getInitCmd(&Opts{W: 128, H: 64, MirrorVertical: false, MirrorHorizontal: false}, _SSD1306)},
+			},
 		},
 	}
 	dev, err := NewSPI(&port, &gpiotest.Pin{N: "pin1", Num: 42}, &DefaultOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
-	expected := "ssd1360.Dev{playback, pin1(42), (128,64)}"
+	expected := "SSD1306.Dev{playback, pin1(42), (128,64)}"
 	if s := dev.String(); s != expected {
 		t.Fatalf("%q != %q", expected, s)
 	}
@@ -516,7 +530,8 @@ func TestSPI_4wire_Write_differential(t *testing.T) {
 	port := spitest.Playback{
 		Playback: conntest.Playback{
 			Ops: []conntest.IO{
-				{W: getInitCmd(&Opts{W: 128, H: 64, MirrorVertical: false, MirrorHorizontal: false})},
+				{W: []byte{0}, R: []byte{0x06}},
+				{W: getInitCmd(&Opts{W: 128, H: 64, MirrorVertical: false, MirrorHorizontal: false}, _SSD1306)},
 
 				// Page 1
 				{W: []byte{0xB0, 0x00, 0x10}},
@@ -573,7 +588,7 @@ func TestSPI_4wire_Write_differential_fail(t *testing.T) {
 	port := spitest.Playback{
 		Playback: conntest.Playback{
 			Ops: []conntest.IO{
-				{W: getInitCmd(&Opts{W: 128, H: 64, MirrorVertical: false, MirrorHorizontal: false})},
+				{W: getInitCmd(&Opts{W: 128, H: 64, MirrorVertical: false, MirrorHorizontal: false}, _SSD1306)},
 				// Page 1
 				{W: []byte{0xB0, 0x00, 0x10}},
 				{W: buf1},
@@ -623,7 +638,10 @@ func TestSPI_4wire_Write_differential_fail(t *testing.T) {
 func TestSPI_4wire_gpio_fail(t *testing.T) {
 	port := spitest.Playback{
 		Playback: conntest.Playback{
-			Ops: []conntest.IO{{W: getInitCmd(&Opts{W: 128, H: 64, MirrorVertical: false, MirrorHorizontal: false})}},
+			Ops: []conntest.IO{
+				{W: []byte{0}, R: []byte{0x06}},
+				{W: getInitCmd(&Opts{W: 128, H: 64, MirrorVertical: false, MirrorHorizontal: false}, _SSD1306)},
+			},
 		},
 	}
 	pin := &failPin{fail: false}
@@ -656,7 +674,7 @@ func TestInitCmd(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		got := getInitCmd(test.opts)
+		got := getInitCmd(test.opts, _SSD1306)
 		if !bytes.Contains(got, test.wantSubslice) {
 			t.Errorf("getInitCmd(%v) -> %v, want %v", test.opts, got, test.wantSubslice)
 		}
@@ -666,13 +684,14 @@ func TestInitCmd(t *testing.T) {
 //
 
 func initCmdI2C() []byte {
-	return append([]byte{0}, getInitCmd(&Opts{W: 128, H: 64, MirrorVertical: false, MirrorHorizontal: false})...)
+	return append([]byte{0}, getInitCmd(&Opts{W: 128, H: 64, MirrorVertical: false, MirrorHorizontal: false}, _SSD1306)...)
 }
 
 func getI2CPlayback() *i2ctest.Playback {
 	return &i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Startup initialization.
+			{Addr: 0x3c, W: []byte{0}, R: []byte{0x06}},
 			{Addr: 0x3c, W: initCmdI2C()},
 		},
 	}
