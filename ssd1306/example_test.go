@@ -5,6 +5,7 @@
 package ssd1306_test
 
 import (
+    "flag"
 	"image"
 	"log"
 
