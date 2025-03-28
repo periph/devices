@@ -83,7 +83,7 @@ func getRowConstant(row, maxcols int) byte {
 // display.DisplayRGBBacklight. See GPIOMonoBacklight.
 func NewHD44780(
 	dataPinGroup gpio.Group,
-	resetPin, enablePin *gpio.PinOut,
+	resetPin, enablePin gpio.PinOut,
 	backlight any,
 	rows, cols int) (*HD44780, error) {
 
@@ -94,8 +94,8 @@ func NewHD44780(
 
 	lcd := &HD44780{
 		dataPins:  dataPinGroup,
-		resetPin:  *resetPin,
-		enablePin: *enablePin,
+		resetPin:  resetPin,
+		enablePin: enablePin,
 		mode:      mode,
 		rows:      rows,
 		cols:      cols,

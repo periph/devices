@@ -46,5 +46,5 @@ func NewPCF857xBackpack(bus i2c.Bus, address uint16, rows, cols int) (*HD44780, 
 	reset := grPins[4].(gpio.PinOut)
 	enable := grPins[5].(gpio.PinOut)
 	bl := grPins[6].(gpio.PinOut)
-	return NewHD44780(gr, &reset, &enable, NewBacklight(bl), rows, cols)
+	return NewHD44780(gr, reset, enable, NewBacklight(bl), rows, cols)
 }

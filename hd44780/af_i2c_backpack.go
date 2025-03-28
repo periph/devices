@@ -43,7 +43,7 @@ func NewAdafruitI2CBackpack(bus i2c.Bus, address uint16, rows, cols int) (*HD447
 	reset, _ := gr.ByOffset(4).(gpio.PinOut)
 	enable, _ := gr.ByOffset(5).(gpio.PinOut)
 	bl := gr.ByOffset(6).(gpio.PinOut)
-	return NewHD44780(gr, &reset, &enable, NewBacklight(bl), rows, cols)
+	return NewHD44780(gr, reset, enable, NewBacklight(bl), rows, cols)
 }
 
 // This function returns a display configured to use the SPI side of the Adafruit
@@ -55,8 +55,8 @@ func NewAdafruitSPIBackpack(conn spi.Conn, rows, cols int) (*HD44780, error) {
 	}
 	// The SPI side has the same pins but in reverse order from the I2C side.
 	gr, _ := chip.Group(d7, d6, d5, d4)
-	rs := &chip.Pins[rsPin]
-	e := &chip.Pins[enablePin]
+	rs := chip.Pins[rsPin]
+	e := chip.Pins[enablePin]
 	bl := chip.Pins[backlightPin]
 	return NewHD44780(gr, rs, e, NewBacklight(bl), rows, cols)
 }
