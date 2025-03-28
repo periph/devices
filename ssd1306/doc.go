@@ -27,7 +27,7 @@
 //
 // Product page:
 //
-// SSD1306
+// # SSD1306
 //
 // http://www.solomon-systech.com/en/product/display-ic/oled-driver-controller/ssd1306/
 //
@@ -35,11 +35,11 @@
 //
 // "DM-OLED096-624": https://drive.google.com/file/d/0B5lkVYnewKTGaEVENlYwbDkxSGM/view
 //
-// SH1106
+// # SH1106
 //
 // https://cdn.velleman.eu/downloads/29/infosheets/sh1106_datasheet.pdf
 //
-// SH1107
+// # SH1107
 //
 // https://www.adafruit.com/product/5297
 //
