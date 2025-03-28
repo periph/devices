@@ -144,17 +144,17 @@ func (i *VerticalLSB) SetBit(x, y int, b Bit) {
 }
 
 // Draw a horizontal line from start to end at ypos
-func (i *VerticalLSB)DrawHLine(start, end, ypos int, b Bit) {
-    for x:=start; x < end; x++ {
-        i.SetBit(x,ypos,b)
-    }
+func (i *VerticalLSB) DrawHLine(start, end, ypos int, b Bit) {
+	for x := start; x < end; x++ {
+		i.SetBit(x, ypos, b)
+	}
 }
 
 // Draw a vertical line from start to end at xpos
-func (i *VerticalLSB)DrawVLine(start, end, xpos int, b Bit) {
-    for y:=start; y < end; y++ {
-        i.SetBit(xpos,y,b)
-    }
+func (i *VerticalLSB) DrawVLine(start, end, xpos int, b Bit) {
+	for y := start; y < end; y++ {
+		i.SetBit(xpos, y, b)
+	}
 }
 
 /*
