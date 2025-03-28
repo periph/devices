@@ -132,7 +132,7 @@ const (
 
 // DevImpression is a handle to an Inky Impression.
 type DevImpression struct {
-	*Dev
+	Dev
 
 	// Color Palette used to convert images to the 7 color.
 	Palette color.Palette
@@ -175,7 +175,7 @@ func NewImpression(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinI
 	}
 
 	d := &DevImpression{
-		Dev: &Dev{
+		Dev: Dev{
 			c:          c,
 			maxTxSize:  maxTxSize,
 			dc:         dc,
