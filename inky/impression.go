@@ -205,7 +205,7 @@ func NewImpression(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinI
 		d.res = 0b11
 	}
 	// Prefer the passed in values via Opts.
-	if o.Width == 0 && o.Height == 0 {
+	if o.Width != 0 && o.Height != 0 {
 		d.width = o.Width
 		d.height = o.Height
 	}
