@@ -584,7 +584,7 @@ func (d *DevImpression) wait(dur time.Duration) {
 				return
 			}
 			// It was a bounce. Recalculate the duration to wait for the edge.
-			edgeDur = tEnd.Sub(time.Now())
+			edgeDur = time.Until(tEnd)
 		}
 	}
 }
