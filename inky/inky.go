@@ -14,6 +14,7 @@ import (
 	"periph.io/x/conn/v3"
 	"periph.io/x/conn/v3/display"
 	"periph.io/x/conn/v3/gpio"
+	"periph.io/x/conn/v3/gpio/gpioreg"
 	"periph.io/x/conn/v3/physic"
 	"periph.io/x/conn/v3/spi"
 )
@@ -65,6 +66,7 @@ type Dev struct {
 	variant uint
 	// PCB Variant of the panel. Represents a version string as a number (12 -> 1.2).
 	pcbVariant uint
+	cs         gpio.PinOut
 }
 
 // New opens a handle to an Inky pHAT or wHAT.
@@ -99,6 +101,7 @@ func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, o *Opts
 		model:      o.Model,
 		variant:    o.DisplayVariant,
 		pcbVariant: o.PCBVariant,
+		cs:         gpioreg.ByName("GPIO8"),
 	}
 
 	switch o.Model {
@@ -337,12 +340,14 @@ func (d *Dev) reset() (err error) {
 }
 
 func (d *Dev) sendCommand(command byte, data []byte) error {
+	d.cs.Out(gpio.Low)
 	if err := d.dc.Out(gpio.Low); err != nil {
 		return err
 	}
 	if err := d.c.Tx([]byte{command}, nil); err != nil {
 		return fmt.Errorf("failed to send command %x to inky: %v", command, err)
 	}
+	d.cs.Out(gpio.High)
 	if data != nil {
 		if err := d.sendData(data); err != nil {
 			return fmt.Errorf("failed to send data for command %x to inky: %v", command, err)
@@ -352,9 +357,12 @@ func (d *Dev) sendCommand(command byte, data []byte) error {
 }
 
 func (d *Dev) sendData(data []byte) error {
+	d.cs.Out(gpio.Low)
+
 	if err := d.dc.Out(gpio.High); err != nil {
 		return err
 	}
+
 	for len(data) != 0 {
 		var chunk []byte
 		if len(data) > d.maxTxSize {
@@ -366,6 +374,9 @@ func (d *Dev) sendData(data []byte) error {
 			return fmt.Errorf("failed to send data to inky: %v", err)
 		}
 	}
+
+	d.cs.Out(gpio.High)
+
 	return nil
 }
 
