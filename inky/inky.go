@@ -75,7 +75,7 @@ func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, o *Opts
 		return nil, fmt.Errorf("unsupported color: %v", o.ModelColor)
 	}
 
-	c, err := p.Connect(488*physic.KiloHertz, spi.Mode0 | spi.NoCS, 8)
+	c, err := p.Connect(488*physic.KiloHertz, spi.Mode0|spi.NoCS, 8)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to inky over spi: %v", err)
 	}
