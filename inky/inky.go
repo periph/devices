@@ -333,33 +333,41 @@ func (d *Dev) reset() (err error) {
 		}
 	}()
 	if err := d.sendCommand(0x12, nil); err != nil { // Soft Reset
-		return fmt.Errorf("failed to reset inky: %v", err)
+		return fmt.Errorf("inky: failed to reset inky: %v", err)
 	}
 	d.busy.WaitForEdge(-1)
 	return
 }
 
-func (d *Dev) sendCommand(command byte, data []byte) error {
-	d.cs.Out(gpio.Low)
-	if err := d.dc.Out(gpio.Low); err != nil {
+func (d *Dev) sendCommand(command byte, data []byte) (err error) {
+	err = d.cs.Out(gpio.Low)
+	if err != nil {
 		return err
 	}
-	if err := d.c.Tx([]byte{command}, nil); err != nil {
-		return fmt.Errorf("failed to send command %x to inky: %v", command, err)
+	if err = d.dc.Out(gpio.Low); err != nil {
+		return
+	}
+	if err = d.c.Tx([]byte{command}, nil); err != nil {
+		err = fmt.Errorf("inky: failed to send command %x to inky: %v", command, err)
+		return
 	}
 	d.cs.Out(gpio.High)
 	if data != nil {
-		if err := d.sendData(data); err != nil {
-			return fmt.Errorf("failed to send data for command %x to inky: %v", command, err)
+		if err = d.sendData(data); err != nil {
+			err = fmt.Errorf("inky: failed to send data for command %x to inky: %v", command, err)
+			return
 		}
 	}
-	return nil
+	return
 }
 
-func (d *Dev) sendData(data []byte) error {
-	d.cs.Out(gpio.Low)
+func (d *Dev) sendData(data []byte) (err error) {
+	err = d.cs.Out(gpio.Low)
+	if err != nil {
+		return
+	}
 
-	if err := d.dc.Out(gpio.High); err != nil {
+	if err = d.dc.Out(gpio.High); err != nil {
 		return err
 	}
 
@@ -370,14 +378,15 @@ func (d *Dev) sendData(data []byte) error {
 		} else {
 			chunk, data = data, nil
 		}
-		if err := d.c.Tx(chunk, nil); err != nil {
-			return fmt.Errorf("failed to send data to inky: %v", err)
+		if err = d.c.Tx(chunk, nil); err != nil {
+			err = fmt.Errorf("inky: failed to send data to inky: %v", err)
+			return
 		}
 	}
 
-	d.cs.Out(gpio.High)
+	err = d.cs.Out(gpio.High)
 
-	return nil
+	return
 }
 
 func pack(bits []bool) ([]byte, error) {
