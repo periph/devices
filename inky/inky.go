@@ -351,7 +351,11 @@ func (d *Dev) sendCommand(command byte, data []byte) (err error) {
 		err = fmt.Errorf("inky: failed to send command %x to inky: %v", command, err)
 		return
 	}
-	d.cs.Out(gpio.High)
+	err = d.cs.Out(gpio.High)
+	if err != nil {
+		return err
+	}
+
 	if data != nil {
 		if err = d.sendData(data); err != nil {
 			err = fmt.Errorf("inky: failed to send data for command %x to inky: %v", command, err)
