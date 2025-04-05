@@ -14,17 +14,12 @@ import (
 	"periph.io/x/conn/v3"
 	"periph.io/x/conn/v3/display"
 	"periph.io/x/conn/v3/gpio"
-	"periph.io/x/conn/v3/gpio/gpioreg"
 	"periph.io/x/conn/v3/physic"
 	"periph.io/x/conn/v3/spi"
 )
 
 var _ display.Drawer = &Dev{}
 var _ conn.Resource = &Dev{}
-
-const (
-	cs0Pin = "GPIO8"
-)
 
 var borderColor = map[Color]byte{
 	Black:  0x00,
@@ -66,7 +61,6 @@ type Dev struct {
 	variant uint
 	// PCB Variant of the panel. Represents a version string as a number (12 -> 1.2).
 	pcbVariant uint
-	cs         gpio.PinOut
 }
 
 // New opens a handle to an Inky pHAT or wHAT.
@@ -75,7 +69,7 @@ func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, o *Opts
 		return nil, fmt.Errorf("unsupported color: %v", o.ModelColor)
 	}
 
-	c, err := p.Connect(488*physic.KiloHertz, spi.Mode0|spi.NoCS, 8)
+	c, err := p.Connect(488*physic.KiloHertz, spi.Mode0, 8)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to inky over spi: %v", err)
 	}
@@ -101,7 +95,6 @@ func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, o *Opts
 		model:      o.Model,
 		variant:    o.DisplayVariant,
 		pcbVariant: o.PCBVariant,
-		cs:         gpioreg.ByName(cs0Pin),
 	}
 
 	switch o.Model {
@@ -340,20 +333,12 @@ func (d *Dev) reset() (err error) {
 }
 
 func (d *Dev) sendCommand(command byte, data []byte) (err error) {
-	err = d.cs.Out(gpio.Low)
-	if err != nil {
-		return err
-	}
 	if err = d.dc.Out(gpio.Low); err != nil {
 		return
 	}
 	if err = d.c.Tx([]byte{command}, nil); err != nil {
 		err = fmt.Errorf("inky: failed to send command %x to inky: %v", command, err)
 		return
-	}
-	err = d.cs.Out(gpio.High)
-	if err != nil {
-		return err
 	}
 
 	if data != nil {
@@ -366,11 +351,6 @@ func (d *Dev) sendCommand(command byte, data []byte) (err error) {
 }
 
 func (d *Dev) sendData(data []byte) (err error) {
-	err = d.cs.Out(gpio.Low)
-	if err != nil {
-		return
-	}
-
 	if err = d.dc.Out(gpio.High); err != nil {
 		return err
 	}
@@ -387,8 +367,6 @@ func (d *Dev) sendData(data []byte) (err error) {
 			return
 		}
 	}
-
-	err = d.cs.Out(gpio.High)
 
 	return
 }

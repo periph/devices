@@ -17,7 +17,6 @@ import (
 	"periph.io/x/conn/v3"
 	"periph.io/x/conn/v3/display"
 	"periph.io/x/conn/v3/gpio"
-	"periph.io/x/conn/v3/gpio/gpioreg"
 	"periph.io/x/conn/v3/physic"
 	"periph.io/x/conn/v3/spi"
 )
@@ -160,7 +159,7 @@ func NewImpression(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinI
 	// is 192K Bytes. To make the Impression 7.3 treat this as single trans-
 	// action, we have to take over control of the CS pin and manipulate it
 	// as required.
-	c, err := p.Connect(cSpeed, spi.Mode0|spi.NoCS, 8)
+	c, err := p.Connect(cSpeed, spi.Mode0, 8)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to inky over spi: %v", err)
 	}
@@ -191,7 +190,6 @@ func NewImpression(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinI
 			model:      o.Model,
 			variant:    o.DisplayVariant,
 			pcbVariant: o.PCBVariant,
-			cs:         gpioreg.ByName(cs0Pin),
 		},
 		saturation: 50, // Looks good enough for most of the images.
 	}
