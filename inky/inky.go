@@ -21,10 +21,6 @@ import (
 var _ display.Drawer = &Dev{}
 var _ conn.Resource = &Dev{}
 
-const (
-	cs0Pin = 8
-)
-
 var borderColor = map[Color]byte{
 	Black:  0x00,
 	Red:    0x73,
@@ -73,7 +69,7 @@ func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, o *Opts
 		return nil, fmt.Errorf("unsupported color: %v", o.ModelColor)
 	}
 
-	c, err := p.Connect(488*physic.KiloHertz, spi.Mode0, cs0Pin)
+	c, err := p.Connect(488*physic.KiloHertz, spi.Mode0, 8)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to inky over spi: %v", err)
 	}
@@ -330,31 +326,35 @@ func (d *Dev) reset() (err error) {
 		}
 	}()
 	if err := d.sendCommand(0x12, nil); err != nil { // Soft Reset
-		return fmt.Errorf("failed to reset inky: %v", err)
+		return fmt.Errorf("inky: failed to reset inky: %v", err)
 	}
 	d.busy.WaitForEdge(-1)
 	return
 }
 
-func (d *Dev) sendCommand(command byte, data []byte) error {
-	if err := d.dc.Out(gpio.Low); err != nil {
-		return err
+func (d *Dev) sendCommand(command byte, data []byte) (err error) {
+	if err = d.dc.Out(gpio.Low); err != nil {
+		return
 	}
-	if err := d.c.Tx([]byte{command}, nil); err != nil {
-		return fmt.Errorf("failed to send command %x to inky: %v", command, err)
+	if err = d.c.Tx([]byte{command}, nil); err != nil {
+		err = fmt.Errorf("inky: failed to send command %x to inky: %v", command, err)
+		return
 	}
+
 	if data != nil {
-		if err := d.sendData(data); err != nil {
-			return fmt.Errorf("failed to send data for command %x to inky: %v", command, err)
+		if err = d.sendData(data); err != nil {
+			err = fmt.Errorf("inky: failed to send data for command %x to inky: %v", command, err)
+			return
 		}
 	}
-	return nil
+	return
 }
 
-func (d *Dev) sendData(data []byte) error {
-	if err := d.dc.Out(gpio.High); err != nil {
+func (d *Dev) sendData(data []byte) (err error) {
+	if err = d.dc.Out(gpio.High); err != nil {
 		return err
 	}
+
 	for len(data) != 0 {
 		var chunk []byte
 		if len(data) > d.maxTxSize {
@@ -362,11 +362,13 @@ func (d *Dev) sendData(data []byte) error {
 		} else {
 			chunk, data = data, nil
 		}
-		if err := d.c.Tx(chunk, nil); err != nil {
-			return fmt.Errorf("failed to send data to inky: %v", err)
+		if err = d.c.Tx(chunk, nil); err != nil {
+			err = fmt.Errorf("inky: failed to send data to inky: %v", err)
+			return
 		}
 	}
-	return nil
+
+	return
 }
 
 func pack(bits []bool) ([]byte, error) {

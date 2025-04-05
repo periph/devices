@@ -155,7 +155,11 @@ func NewImpression(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinI
 	if o.Model == IMPRESSION73 {
 		cSpeed = acSpeed
 	}
-	c, err := p.Connect(cSpeed, spi.Mode0, cs0Pin)
+	// The SPI driver has a max buffer size of 4K bytes, but our image size
+	// is 192K Bytes. To make the Impression 7.3 treat this as single trans-
+	// action, we have to take over control of the CS pin and manipulate it
+	// as required.
+	c, err := p.Connect(cSpeed, spi.Mode0, 8)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to inky over spi: %v", err)
 	}
@@ -521,11 +525,12 @@ func (d *DevImpression) updateAC(pix []uint8) error {
 	// TODO there has to be a better way to force the white colour to be used instead of clear...
 	buf := make([]byte, len(pix))
 	for i := range pix {
-		if pix[i]&0xF == 7 {
-			buf[i] = (pix[i] & 0xF0) + 1
+		buf[i] = pix[i]
+		if buf[i]&0xF == 7 {
+			buf[i] = (buf[i] & 0xF0) + 1
 		}
-		if pix[i]&0xF0 == 0x70 {
-			buf[i] = (pix[i] & 0xF) + 0x10
+		if buf[i]&0xF0 == 0x70 {
+			buf[i] = (buf[i] & 0xF) + 0x10
 		}
 	}
 
@@ -558,8 +563,28 @@ func (d *DevImpression) wait(dur time.Duration) {
 		log.Printf("Err: %s", err)
 		return
 	}
+	if d.busy.Read() == gpio.High {
+		time.Sleep(dur)
+		return
+	}
 	// Wait for rising edges (Low -> High) or the timeout.
-	d.busy.WaitForEdge(dur)
+	tEnd := time.Now().Add(dur)
+	edgeDur := dur
+	for tEnd.After(time.Now()) {
+		// Debounce the edge
+		edge := d.busy.WaitForEdge(edgeDur)
+		if edge {
+			// The python driver is using 10ms debounce period
+			time.Sleep(10 * time.Millisecond)
+			l := d.busy.Read()
+			if l {
+				// It's still high. Return
+				return
+			}
+			// It was a bounce. Recalculate the duration to wait for the edge.
+			edgeDur = time.Until(tEnd)
+		}
+	}
 }
 
 // ColorModel returns the device native color model.
@@ -589,7 +614,7 @@ func (d *DevImpression) Set(x, y int, c color.Color) {
 // Draw updates the display with the image.
 func (d *DevImpression) Draw(r image.Rectangle, src image.Image, sp image.Point) error {
 	if r != d.Bounds() {
-		return fmt.Errorf("partial updates are not supported")
+		return fmt.Errorf("partial updates are not supported r=%#v bounds=%#v", r, d.Bounds())
 	}
 
 	if src.Bounds() != d.Bounds() {
