@@ -364,7 +364,7 @@ func (d *Dev) setCSPin(mode gpio.Level) error {
 }
 
 func (d *Dev) sendCommand(command byte, data []byte) (err error) {
-	d.setCSPin(csEnabled)
+	err = d.setCSPin(csEnabled)
 	if err != nil {
 		return
 	}
