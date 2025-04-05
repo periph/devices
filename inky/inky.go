@@ -14,6 +14,7 @@ import (
 	"periph.io/x/conn/v3"
 	"periph.io/x/conn/v3/display"
 	"periph.io/x/conn/v3/gpio"
+	"periph.io/x/conn/v3/gpio/gpioreg"
 	"periph.io/x/conn/v3/physic"
 	"periph.io/x/conn/v3/spi"
 )
@@ -27,6 +28,12 @@ var borderColor = map[Color]byte{
 	Yellow: 0x33,
 	White:  0x31,
 }
+
+const (
+	cs0Pin     = "GPIO8"
+	csEnabled  = gpio.Low
+	csDisabled = gpio.High
+)
 
 // Dev is a handle to an Inky.
 type Dev struct {
@@ -61,6 +68,8 @@ type Dev struct {
 	variant uint
 	// PCB Variant of the panel. Represents a version string as a number (12 -> 1.2).
 	pcbVariant uint
+	// cs is the chip-select pin for SPI. Refer to setCSPin() for information.
+	cs gpio.PinOut
 }
 
 // New opens a handle to an Inky pHAT or wHAT.
@@ -83,7 +92,11 @@ func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, o *Opts
 	if maxTxSize == 0 {
 		maxTxSize = 4096 // Use a conservative default.
 	}
-
+	// If possible, grab the CS pin.
+	cs := gpioreg.ByName(cs0Pin)
+	if cs != nil && cs.Out(csDisabled) != nil {
+		cs = nil
+	}
 	d := &Dev{
 		c:          c,
 		maxTxSize:  maxTxSize,
@@ -95,6 +108,7 @@ func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, o *Opts
 		model:      o.Model,
 		variant:    o.DisplayVariant,
 		pcbVariant: o.PCBVariant,
+		cs:         cs,
 	}
 
 	switch o.Model {
@@ -332,12 +346,38 @@ func (d *Dev) reset() (err error) {
 	return
 }
 
+// setCSPin sets the ChipSelect pin to the desired mode. The Pimoroni driver
+// uses manual control over the CS pin. To do this, they require the
+// Raspberry Pi /boot/firmware/config.txt to have dtloverlay=spi0-0cs set.
+//
+// So, if we run with automatic CS handling, we won't be compatible with the
+// pimoroni samples. If we run with manual control required, we then require
+// the dtoverlay setting. We really don't want to be incompatible with the
+// Pimoroni driver because that will confuse people. If the CS Pin is
+// not in use, use manual control, and if it is used by the SPI driver, let
+// it handle it.
+func (d *Dev) setCSPin(mode gpio.Level) error {
+	if d.cs != nil {
+		return d.cs.Out(mode)
+	}
+	return nil
+}
+
 func (d *Dev) sendCommand(command byte, data []byte) (err error) {
+	d.setCSPin(csEnabled)
+	if err != nil {
+		return
+	}
+
 	if err = d.dc.Out(gpio.Low); err != nil {
 		return
 	}
 	if err = d.c.Tx([]byte{command}, nil); err != nil {
 		err = fmt.Errorf("inky: failed to send command %x to inky: %v", command, err)
+		return
+	}
+	err = d.setCSPin(csDisabled)
+	if err != nil {
 		return
 	}
 
@@ -351,6 +391,10 @@ func (d *Dev) sendCommand(command byte, data []byte) (err error) {
 }
 
 func (d *Dev) sendData(data []byte) (err error) {
+	err = d.setCSPin(csEnabled)
+	if err != nil {
+		return
+	}
 	if err = d.dc.Out(gpio.High); err != nil {
 		return err
 	}
@@ -367,7 +411,10 @@ func (d *Dev) sendData(data []byte) (err error) {
 			return
 		}
 	}
-
+	err = d.setCSPin(csDisabled)
+	if err != nil {
+		return
+	}
 	return
 }
 

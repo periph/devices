@@ -17,6 +17,7 @@ import (
 	"periph.io/x/conn/v3"
 	"periph.io/x/conn/v3/display"
 	"periph.io/x/conn/v3/gpio"
+	"periph.io/x/conn/v3/gpio/gpioreg"
 	"periph.io/x/conn/v3/physic"
 	"periph.io/x/conn/v3/spi"
 )
@@ -177,6 +178,11 @@ func NewImpression(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinI
 			maxTxSize = 4096 // Use a conservative default.
 		}
 	}
+	// If possible, grab the CS pin.
+	cs := gpioreg.ByName(cs0Pin)
+	if cs != nil && cs.Out(csDisabled) != nil {
+		cs = nil
+	}
 
 	d := &DevImpression{
 		Dev: Dev{
@@ -190,6 +196,7 @@ func NewImpression(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinI
 			model:      o.Model,
 			variant:    o.DisplayVariant,
 			pcbVariant: o.PCBVariant,
+			cs:         cs,
 		},
 		saturation: 50, // Looks good enough for most of the images.
 	}
