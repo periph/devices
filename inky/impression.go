@@ -156,10 +156,6 @@ func NewImpression(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinI
 	if o.Model == IMPRESSION73 {
 		cSpeed = acSpeed
 	}
-	// The SPI driver has a max buffer size of 4K bytes, but our image size
-	// is 192K Bytes. To make the Impression 7.3 treat this as single trans-
-	// action, we have to take over control of the CS pin and manipulate it
-	// as required.
 	c, err := p.Connect(cSpeed, spi.Mode0, 8)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to inky over spi: %v", err)
