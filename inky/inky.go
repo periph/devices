@@ -412,9 +412,6 @@ func (d *Dev) sendData(data []byte) (err error) {
 		}
 	}
 	err = d.setCSPin(csDisabled)
-	if err != nil {
-		return
-	}
 	return
 }
 
