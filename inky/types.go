@@ -69,6 +69,8 @@ func (c *Color) Set(s string) error {
 		*c = Yellow
 	case "white":
 		*c = White
+	case "multi":
+		*c = Multi
 	default:
 		return fmt.Errorf("unknown color %q: expected either black, red, yellow or white", s)
 	}
