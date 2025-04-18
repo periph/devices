@@ -17,6 +17,7 @@ import (
 	"periph.io/x/conn/v3"
 	"periph.io/x/conn/v3/display"
 	"periph.io/x/conn/v3/gpio"
+	"periph.io/x/conn/v3/gpio/gpioreg"
 	"periph.io/x/conn/v3/physic"
 	"periph.io/x/conn/v3/spi"
 )
@@ -28,36 +29,36 @@ var _ draw.Image = &DevImpression{}
 var (
 	// For more: https://github.com/pimoroni/inky/issues/115#issuecomment-887453065
 	dsc = []color.NRGBA{
-		{0, 0, 0, 0},         // Black
+		{0, 0, 0, 255},       // Black
 		{255, 255, 255, 255}, // White
 		{0, 255, 0, 255},     // Green
 		{0, 0, 255, 255},     // Blue
 		{255, 0, 0, 255},     // Red
 		{255, 255, 0, 255},   // Yellow
 		{255, 140, 0, 255},   // Orange
-		{255, 255, 255, 255},
+		{255, 255, 255, 0},   // Clear
 	}
 
 	sc = []color.NRGBA{
-		{57, 48, 57, 0},      // Black
+		{57, 48, 57, 255},    // Black
 		{255, 255, 255, 255}, // White
 		{58, 91, 70, 255},    // Green
 		{61, 59, 94, 255},    // Blue
 		{156, 72, 75, 255},   // Red
 		{208, 190, 71, 255},  // Yellow
 		{177, 106, 73, 255},  // Orange
-		{255, 255, 255, 255},
+		{255, 255, 255, 0},   // Clear
 	}
 
 	sc7 = []color.NRGBA{
-		{0, 0, 0, 0},         // Black
+		{0, 0, 0, 255},       // Black
 		{217, 242, 255, 255}, // White
 		{3, 124, 76, 255},    // Green
 		{27, 46, 198, 255},   // Blue
 		{245, 80, 34, 255},   // Red
 		{255, 255, 68, 255},  // Yellow
 		{239, 121, 44, 255},  // Orange
-		{255, 255, 255, 255},
+		{255, 255, 255, 0},   // Clear
 	}
 )
 
@@ -155,7 +156,7 @@ func NewImpression(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinI
 	if o.Model == IMPRESSION73 {
 		cSpeed = acSpeed
 	}
-	c, err := p.Connect(cSpeed, spi.Mode0, cs0Pin)
+	c, err := p.Connect(cSpeed, spi.Mode0, 8)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to inky over spi: %v", err)
 	}
@@ -173,6 +174,11 @@ func NewImpression(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinI
 			maxTxSize = 4096 // Use a conservative default.
 		}
 	}
+	// If possible, grab the CS pin.
+	cs := gpioreg.ByName(cs0Pin)
+	if cs != nil && cs.Out(csDisabled) != nil {
+		cs = nil
+	}
 
 	d := &DevImpression{
 		Dev: Dev{
@@ -186,6 +192,7 @@ func NewImpression(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinI
 			model:      o.Model,
 			variant:    o.DisplayVariant,
 			pcbVariant: o.PCBVariant,
+			cs:         cs,
 		},
 		saturation: 50, // Looks good enough for most of the images.
 	}
@@ -217,10 +224,10 @@ func NewImpression(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinI
 }
 
 // blend recalculates the palette based on the saturation level.
-func (d *DevImpression) blend() []color.Color {
-	sat := float64(d.saturation / 100)
+func (d *DevImpression) blend() color.Palette {
+	sat := float64(d.saturation) / 100.0
 
-	pr := []color.Color{}
+	pr := make([]color.Color, 0)
 	for i := 0; i < 7; i++ {
 		var rs, gs, bs uint8
 		if d.Dev.model == IMPRESSION73 {
@@ -288,7 +295,7 @@ func (d *DevImpression) Render() error {
 
 	merged := make([]uint8, len(d.Pix)/2)
 	for i, offset := 0, 0; i < len(d.Pix)-1; i, offset = i+2, offset+1 {
-		merged[offset] = (d.Pix[i]<<4)&0xF0 | d.Pix[i+1]&0x0F
+		merged[offset] = ((d.Pix[i] << 4) & 0xF0) | (d.Pix[i+1] & 0x0F)
 	}
 
 	return d.update(merged)
@@ -519,17 +526,16 @@ func (d *DevImpression) updateAC(pix []uint8) error {
 	}
 
 	// TODO there has to be a better way to force the white colour to be used instead of clear...
-	buf := make([]byte, len(pix))
 	for i := range pix {
 		if pix[i]&0xF == 7 {
-			buf[i] = (pix[i] & 0xF0) + 1
+			pix[i] = (pix[i] & 0xF0) + 1
 		}
 		if pix[i]&0xF0 == 0x70 {
-			buf[i] = (pix[i] & 0xF) + 0x10
+			pix[i] = (pix[i] & 0xF) + 0x10
 		}
 	}
 
-	if err := d.sendCommand(ac073TC1DTM, buf); err != nil {
+	if err := d.sendCommand(ac073TC1DTM, pix); err != nil {
 		return err
 	}
 
@@ -558,8 +564,28 @@ func (d *DevImpression) wait(dur time.Duration) {
 		log.Printf("Err: %s", err)
 		return
 	}
+	if d.busy.Read() == gpio.High {
+		time.Sleep(dur)
+		return
+	}
 	// Wait for rising edges (Low -> High) or the timeout.
-	d.busy.WaitForEdge(dur)
+	tEnd := time.Now().Add(dur)
+	edgeDur := dur
+	for tEnd.After(time.Now()) {
+		// Debounce the edge
+		edge := d.busy.WaitForEdge(edgeDur)
+		if edge {
+			// The python driver is using 10ms debounce period
+			time.Sleep(10 * time.Millisecond)
+			l := d.busy.Read()
+			if l {
+				// It's still high. Return
+				return
+			}
+			// It was a bounce. Recalculate the duration to wait for the edge.
+			edgeDur = time.Until(tEnd)
+		}
+	}
 }
 
 // ColorModel returns the device native color model.
@@ -589,7 +615,7 @@ func (d *DevImpression) Set(x, y int, c color.Color) {
 // Draw updates the display with the image.
 func (d *DevImpression) Draw(r image.Rectangle, src image.Image, sp image.Point) error {
 	if r != d.Bounds() {
-		return fmt.Errorf("partial updates are not supported")
+		return fmt.Errorf("partial updates are not supported r=%#v bounds=%#v", r, d.Bounds())
 	}
 
 	if src.Bounds() != d.Bounds() {
@@ -598,6 +624,7 @@ func (d *DevImpression) Draw(r image.Rectangle, src image.Image, sp image.Point)
 
 	// Dither the image using Floyd–Steinberg dithering algorithm otherwise it won't look as good on the screen.
 	draw.FloydSteinberg.Draw(d, r, src, image.Point{})
+
 	return d.Render()
 }
 
