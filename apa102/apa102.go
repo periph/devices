@@ -36,10 +36,11 @@ const NeutralTemp uint16 = 6500
 
 // DefaultOpts is the recommended default options.
 var DefaultOpts = Opts{
-	NumPixels:        150,   // 150 LEDs is a common strip length.
-	Intensity:        255,   // Full blinding power.
-	Temperature:      5000,  // More pleasing white balance than NeutralTemp.
-	DisableGlobalPWM: false, // Use full 13 bits range.
+	NumPixels:        150,       // 150 LEDs is a common strip length.
+	Intensity:        255,       // Full blinding power.
+	Temperature:      5000,      // More pleasing white balance than NeutralTemp.
+	DisableGlobalPWM: false,     // Use full 13 bits range.
+	SpiMode:          spi.Mode3, // SPI Mode3 works on most devices.
 }
 
 // PassThruOpts makes the driver draw RGB pixels exactly as specified.
@@ -51,6 +52,7 @@ var PassThruOpts = Opts{
 	Intensity:        255,
 	Temperature:      NeutralTemp,
 	DisableGlobalPWM: true,
+	SpiMode:          spi.Mode3,
 }
 
 // Opts defines the options for the device.
@@ -81,6 +83,12 @@ type Opts struct {
 	// to 8 bits, this also disables the dynamic perceptual mapping of intensity
 	// since there is not enough bits of resolution to do it effectively.
 	DisableGlobalPWM bool
+	// SpiMode sets the clock polarity and phase as one of the 4 possible SPI Modes.
+	//
+	// Most devices can use spi.Mode3, but the Raspberry Pi 3 secondary SPI port
+	// for example does not support this Mode. You may need to use spi.Mode0
+	// in this and similar cases.
+	SpiMode spi.Mode
 }
 
 // New returns a strip that communicates over SPI to APA102 LEDs.
@@ -93,7 +101,7 @@ type Opts struct {
 // https://en.wikipedia.org/wiki/Flicker_fusion_threshold is a recommended
 // reading.
 func New(p spi.Port, o *Opts) (*Dev, error) {
-	c, err := p.Connect(20*physic.MegaHertz, spi.Mode3, 8)
+	c, err := p.Connect(20*physic.MegaHertz, o.SpiMode, 8)
 	if err != nil {
 		return nil, err
 	}
