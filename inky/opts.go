@@ -33,6 +33,7 @@ var (
 		"Black wHAT (SSD1683)",
 		"Red wHAT (SSD1683)",
 		"Yellow wHAT (SSD1683)",
+		"7-Colour 800x480 (AC073TC1A)",
 	}
 )
 
@@ -97,6 +98,8 @@ func DetectOpts(bus i2c.Bus) (*Opts, error) {
 		options.Model = IMPRESSION57
 	case 15, 16:
 		options.Model = IMPRESSION4
+	case 20:
+		options.Model = IMPRESSION73
 	default:
 		return nil, fmt.Errorf("failed to get ops: display type %v not supported", data[6])
 	}
