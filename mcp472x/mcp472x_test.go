@@ -21,7 +21,7 @@ func getDev(testName string, variant Variant, vRef physic.ElectricPotential) (*D
 	if variant == MCP4725 {
 		addr = 0x62
 	}
-	d, err :=New(&i2ctest.Playback{Ops:recordingData[testName], DontPanic: true},addr,variant,vRef)
+	d, err := New(&i2ctest.Playback{Ops: recordingData[testName], DontPanic: true}, addr, variant, vRef)
 	return d, err
 }
 

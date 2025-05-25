@@ -25,7 +25,7 @@ func Example() {
 		log.Fatal(err)
 	}
 	defer bus.Close()
-	// For a MCP4725, or to use VCC for the reference voltage, specify it as: 
+	// For a MCP4725, or to use VCC for the reference voltage, specify it as:
 	// 3_300 * physic.MilliVolt, etc.
 	dev, err := mcp472x.New(bus, mcp472x.DefaultAddress, mcp472x.MCP4728, mcp472x.MCP4728InternalRef)
 	if err != nil {
