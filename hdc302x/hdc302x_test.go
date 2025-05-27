@@ -200,22 +200,6 @@ func shutdown(t *testing.T) {
 	}
 }
 
-func TestCRC(t *testing.T) {
-	var tests = []struct {
-		bytes  []byte
-		result byte
-	}{
-		{bytes: []byte{0xbe, 0xef}, result: 0x92},
-		{bytes: []byte{0xab, 0xcd}, result: 0x6f},
-	}
-	for _, test := range tests {
-		res := crc8(test.bytes)
-		if res != test.result {
-			t.Errorf("crc8(%#v)!=0x%d receieved 0x%d", test.bytes, test.result, res)
-		}
-	}
-}
-
 // TestConversions tests the various temperature/humidity functions
 // for correct operation.
 func TestConversions(t *testing.T) {

@@ -12,6 +12,7 @@ import (
 
 	"periph.io/x/conn/v3/i2c"
 	"periph.io/x/conn/v3/physic"
+	"periph.io/x/devices/v3/common"
 )
 
 // PPM=Parts Per Million. Units of measure for CO2 concentration.
@@ -402,22 +403,6 @@ func (d *Dev) Reset(mode ResetMode) error {
 	return err
 }
 
-func calcCRC(bytes []byte) byte {
-	polynomial := byte(0x31)
-	crc := byte(0xff)
-	for ix := range len(bytes) {
-		crc ^= bytes[ix]
-		for crc_bit := byte(8); crc_bit > 0; crc_bit-- {
-			if (crc & 0x80) == 0x80 {
-				crc = (crc << 1) ^ polynomial
-			} else {
-				crc = (crc << 1)
-			}
-		}
-	}
-	return crc
-}
-
 // makeWriteData converts the slice of word values into byte values with the
 // CRC following.
 func makeWriteData(data []uint16) []byte {
@@ -425,7 +410,7 @@ func makeWriteData(data []uint16) []byte {
 	for ix, val := range data {
 		bytes[ix*3] = byte((val >> 8) & 0xff)
 		bytes[ix*3+1] = byte(val & 0xff)
-		bytes[ix*3+2] = calcCRC(bytes[ix*3 : ix*3+2])
+		bytes[ix*3+2] = common.CRC8(bytes[ix*3 : ix*3+2])
 	}
 	return bytes
 }
@@ -464,7 +449,7 @@ func (d *Dev) sendCommand(cmd command, writeData []uint16) ([]uint16, error) {
 	// verify the CRC as we go.
 	result := make([]uint16, cmd.responseSize/3)
 	for ix := range len(result) {
-		crc := calcCRC(r[ix*3 : ix*3+2])
+		crc := common.CRC8(r[ix*3 : ix*3+2])
 		if r[ix*3+2] != crc {
 			return nil, fmt.Errorf("scd4x cmd 0x%x: invalid crc", cmd.cmdWord)
 		}
