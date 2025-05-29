@@ -154,22 +154,6 @@ func shutdown(t *testing.T) {
 	}
 }
 
-func TestCRC(t *testing.T) {
-	tests := []struct {
-		bytes []byte
-		crc   byte
-	}{
-		{bytes: []byte{0xbe, 0xef}, crc: 0x92},
-		{bytes: []byte{0x01, 0xa4}, crc: 0x4d},
-	}
-	for _, test := range tests {
-		res := calcCRC(test.bytes)
-		if res != test.crc {
-			t.Error(fmt.Errorf("crc calculation error bytes: %#v, result: 0x%x expected: 0x%x", test.bytes, res, test.crc))
-		}
-	}
-}
-
 func TestCountToTemperature(t *testing.T) {
 	tests := []struct {
 		count    uint16

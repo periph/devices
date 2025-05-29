@@ -21,6 +21,7 @@ import (
 	"periph.io/x/conn/v3"
 	"periph.io/x/conn/v3/i2c"
 	"periph.io/x/conn/v3/physic"
+	"periph.io/x/devices/v3/common"
 )
 
 type SampleRate uint16
@@ -203,21 +204,6 @@ func countToHumidity(bytes []byte) physic.RelativeHumidity {
 	return physic.RelativeHumidity(f * float64(physic.PercentRH))
 }
 
-func crc8(bytes []byte) byte {
-	var crc byte = 0xff
-	for _, val := range bytes {
-		crc ^= val
-		for range 8 {
-			if (crc & 0x80) == 0 {
-				crc <<= 1
-			} else {
-				crc = (byte)((crc << 1) ^ 0x31)
-			}
-		}
-	}
-	return crc
-}
-
 // Halt shuts down the device. If a SenseContinuous operation is in progress,
 // its aborted. Implements conn.Resource
 func (dev *Dev) Halt() error {
@@ -251,7 +237,7 @@ func (dev *Dev) Sense(env *physic.Env) error {
 	if err := dev.d.Tx(read, res); err != nil {
 		return fmt.Errorf("hdc302x: %w", err)
 	}
-	if crc8(res[:2]) != res[2] || crc8(res[3:5]) != res[5] {
+	if common.CRC8(res[:2]) != res[2] || common.CRC8(res[3:5]) != res[5] {
 		return errInvalidCRC
 	}
 	env.Temperature = countToTemperature(res)
@@ -320,7 +306,7 @@ func (dev *Dev) readSerialNumber() int64 {
 	// this is a 6 byte value read in 3 parts
 	for range 3 {
 		err := dev.d.Tx(cmd, r)
-		if err != nil || (crc8(r[:2]) != r[2]) {
+		if err != nil || (common.CRC8(r[:2]) != r[2]) {
 			return result
 		}
 		result = result<<16 | (int64(r[0])<<8 | int64(r[1]))
@@ -358,7 +344,7 @@ func (dev *Dev) readAlertValues(cfg *Configuration) error {
 		if err != nil {
 			return err
 		}
-		if crc8(r[:2]) != r[2] {
+		if common.CRC8(r[:2]) != r[2] {
 			return errInvalidCRC
 		}
 		wValue := uint16(r[0])<<8 | uint16(r[1])
@@ -381,7 +367,7 @@ func (dev *Dev) readOffsets(cfg *Configuration) error {
 	if err := dev.d.Tx(readSetOffsets, r); err != nil {
 		return fmt.Errorf("hdc302x: %w", err)
 	}
-	if crc8(r[:2]) != r[2] {
+	if common.CRC8(r[:2]) != r[2] {
 		return errInvalidCRC
 	}
 
@@ -424,7 +410,7 @@ func (dev *Dev) ReadStatus() (StatusWord, error) {
 	if err := dev.d.Tx(readStatus, r); err != nil {
 		return 0, err
 	}
-	if crc8(r[:2]) != r[2] {
+	if common.CRC8(r[:2]) != r[2] {
 		return 0, errInvalidCRC
 	}
 	_ = dev.d.Tx(clearStatus, nil)
@@ -463,7 +449,7 @@ func (dev *Dev) setOffsets(cfg *Configuration) error {
 		computeTemperatureOffsetByte(cfg.TemperatureOffset),
 		0,
 	}
-	w[4] = crc8(w[2:4])
+	w[4] = common.CRC8(w[2:4])
 	return dev.d.Tx(w, nil)
 }
 
@@ -553,7 +539,7 @@ func (dev *Dev) setThresholds(typeAlert bool, tp *ThresholdPair) error {
 		wval := uint16(0)
 		wval = (humBits & 0xfe00) | tempBits>>7
 		w := []byte{cmds[pair][ix][0], cmds[pair][ix][1], byte(wval >> 8), byte(wval & 0xff), 0}
-		w[4] = crc8(w[2:4])
+		w[4] = common.CRC8(w[2:4])
 		err := dev.d.Tx(w, nil)
 		if err != nil {
 			return err
@@ -609,7 +595,7 @@ func (dev *Dev) SetHeater(powerLevel HeaterPower) error {
 		byte((powerLevel >> 8) & 0xff),
 		byte(powerLevel & 0xff),
 		0}
-	setValue[4] = crc8(setValue[2:4])
+	setValue[4] = common.CRC8(setValue[2:4])
 	err := dev.d.Tx(setValue, nil)
 	if err != nil {
 		return err
