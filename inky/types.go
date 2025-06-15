@@ -22,6 +22,7 @@ const (
 	IMPRESSION4
 	IMPRESSION57
 	IMPRESSION73
+	IMPRESSION73SPECTRA6
 )
 
 // Set sets the Model to a value represented by the string s. Set implements the [flag.Value] interface.
@@ -39,8 +40,10 @@ func (m *Model) Set(s string) error {
 		*m = IMPRESSION57
 	case "IMPRESSION73":
 		*m = IMPRESSION73
+	case "IMPRESSION73SPECTRA6":
+		*m = IMPRESSION73SPECTRA6
 	default:
-		return fmt.Errorf("unknown model %q: expected PHAT, PHAT2, WHAT, IMPRESSION4, IMPRESSION57 or IMPRESSION73", s)
+		return fmt.Errorf("unknown model %q: expected PHAT, PHAT2, WHAT, IMPRESSION4, IMPRESSION57, IMPRESSION73, or IMPRESSION73SPECTRA6", s)
 	}
 	return nil
 }
