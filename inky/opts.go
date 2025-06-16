@@ -34,6 +34,7 @@ var (
 		"Red wHAT (SSD1683)",
 		"Yellow wHAT (SSD1683)",
 		"7-Colour 800x480 (AC073TC1A)",
+		"Spectra 6 7.3 800 x 480 (E673)",
 	}
 )
 
@@ -78,7 +79,7 @@ func DetectOpts(bus i2c.Bus) (*Opts, error) {
 	case 3:
 		options.ModelColor = Yellow
 		options.BorderColor = Yellow
-	case 4:
+	case 4, 6:
 		options.ModelColor = Multi
 		options.BorderColor = Color(WhiteImpression)
 	default:
@@ -100,6 +101,8 @@ func DetectOpts(bus i2c.Bus) (*Opts, error) {
 		options.Model = IMPRESSION4
 	case 20:
 		options.Model = IMPRESSION73
+	case 22:
+		options.Model = IMPRESSION73SPECTRA6
 	default:
 		return nil, fmt.Errorf("failed to get ops: display type %v not supported", data[6])
 	}

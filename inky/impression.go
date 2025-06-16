@@ -39,6 +39,16 @@ var (
 		{255, 255, 255, 0},   // Clear
 	}
 
+	dsc6 = []color.NRGBA{
+		{0, 0, 0, 255},       // Black
+		{255, 255, 255, 255}, // White
+		{255, 255, 0, 255},   // Yellow
+		{255, 0, 0, 255},     // Red
+		{0, 0, 255, 255},     // Blue
+		{0, 255, 0, 255},     // Green
+		{255, 255, 255, 0},   // Clear
+	}
+
 	sc = []color.NRGBA{
 		{57, 48, 57, 255},    // Black
 		{255, 255, 255, 255}, // White
@@ -58,6 +68,16 @@ var (
 		{245, 80, 34, 255},   // Red
 		{255, 255, 68, 255},  // Yellow
 		{239, 121, 44, 255},  // Orange
+		{255, 255, 255, 0},   // Clear
+	}
+
+	sc6 = []color.NRGBA{
+		{0, 0, 0, 255},       // Black
+		{161, 164, 165, 255}, // Gray
+		{208, 190, 71, 255},  // Yellow
+		{156, 72, 75, 255},   // Red
+		{61, 59, 94, 255},    // Blue
+		{58, 91, 70, 255},    // Green
 		{255, 255, 255, 0},   // Clear
 	}
 )
@@ -129,6 +149,26 @@ const (
 	ac073TC1CCSET = 0xE0
 	ac073TC1PWS   = 0xE3
 	ac073TC1TSSET = 0xE6
+
+	el673PSR   = 0x00
+	el673PWR   = 0x01
+	el673POF   = 0x02
+	el673POFS  = 0x03
+	el673PON   = 0x04
+	el673BTST1 = 0x05
+	el673BTST2 = 0x06
+	el673DSLP  = 0x07
+	el673BTST3 = 0x08
+	el673DTM1  = 0x10
+	el673DSP   = 0x11
+	el673DRF   = 0x12
+	el673PLL   = 0x30
+	el673CDI   = 0x50
+	el673TCON  = 0x60
+	el673TRES  = 0x61
+	el673REV   = 0x70
+	el673VDCS  = 0x82
+	el673PWS   = 0xE3
 )
 
 // DevImpression is a handle to an Inky Impression.
@@ -206,7 +246,7 @@ func NewImpression(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinI
 		d.width = 600
 		d.height = 448
 		d.res = 0b11
-	case IMPRESSION73:
+	case IMPRESSION73, IMPRESSION73SPECTRA6:
 		d.width = 800
 		d.height = 480
 		d.res = 0b11
@@ -227,28 +267,38 @@ func NewImpression(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinI
 func (d *DevImpression) blend() color.Palette {
 	sat := float64(d.saturation) / 100.0
 
+	var satPalette []color.NRGBA
+	var dscPalette []color.NRGBA
+	switch d.Dev.model {
+	case IMPRESSION73:
+		satPalette = sc7
+		dscPalette = dsc
+	case IMPRESSION73SPECTRA6:
+		satPalette = sc6
+		dscPalette = dsc6
+	default:
+		satPalette = sc
+		dscPalette = dsc
+	}
+
 	pr := make([]color.Color, 0)
-	for i := 0; i < 7; i++ {
-		var rs, gs, bs uint8
-		if d.Dev.model == IMPRESSION73 {
-			rs, gs, bs =
-				uint8(float64(sc7[i].R)*sat),
-				uint8(float64(sc7[i].G)*sat),
-				uint8(float64(sc7[i].B)*sat)
-		} else {
-			rs, gs, bs =
-				uint8(float64(sc[i].R)*sat),
-				uint8(float64(sc[i].G)*sat),
-				uint8(float64(sc[i].B)*sat)
-		}
+	for i := range satPalette {
+		rs, gs, bs := uint8(float64(satPalette[i].R)*sat),
+			uint8(float64(satPalette[i].G)*sat),
+			uint8(float64(satPalette[i].B)*sat)
 
 		rd, gd, bd :=
-			uint8(float64(dsc[i].R)*(1.0-sat)),
-			uint8(float64(dsc[i].G)*(1.0-sat)),
-			uint8(float64(dsc[i].B)*(1.0-sat))
+			uint8(float64(dscPalette[i].R)*(1.0-sat)),
+			uint8(float64(dscPalette[i].G)*(1.0-sat)),
+			uint8(float64(dscPalette[i].B)*(1.0-sat))
 
-		pr = append(pr, color.RGBA{rs + rd, gs + gd, bs + bd, dsc[i].A})
+		pr = append(pr, color.RGBA{rs + rd, gs + gd, bs + bd, dscPalette[i].A})
 	}
+
+	if d.Dev.model == IMPRESSION73SPECTRA6 {
+		return pr
+	}
+
 	// Add Transparent color and return the result.
 	return append(pr, color.RGBA{255, 255, 255, 0})
 }
@@ -290,6 +340,14 @@ func (d *DevImpression) Render() error {
 			for i, j := 0, d.width-1; i < j; i, j = i+1, j-1 {
 				d.Pix[i+offset], d.Pix[j+offset] = d.Pix[j+offset], d.Pix[i+offset]
 			}
+		}
+	}
+
+	// remap spectra6 pixels to correct color palette
+	if d.model == IMPRESSION73SPECTRA6 {
+		remap := []uint8{0, 1, 2, 3, 5, 6}
+		for i, pix := range d.Pix {
+			d.Pix[i] = remap[pix]
 		}
 	}
 
@@ -486,9 +544,68 @@ func (d *DevImpression) resetAC() error {
 	return nil
 }
 
+func (d *DevImpression) resetEC() error {
+	// reference code: https://github.com/pimoroni/inky/blob/fef67aab73bb2b6def1eca6003a3f5a3ccec0741/inky/inky_e673.py#L204
+
+	if err := d.cycleResetGPIO(); err != nil {
+		return err
+	}
+	time.Sleep(30 * time.Millisecond)
+	if err := d.cycleResetGPIO(); err != nil {
+		return err
+	}
+	time.Sleep(30 * time.Millisecond)
+
+	d.wait(300 * time.Millisecond)
+
+	if err := d.sendCommand(0xAA, []byte{0x49, 0x55, 0x20, 0x08, 0x09, 0x18}); err != nil {
+		return err
+	}
+	if err := d.sendCommand(el673PWR, []byte{0x3F}); err != nil {
+		return err
+	}
+	if err := d.sendCommand(el673PSR, []byte{0x5F, 0x69}); err != nil {
+		return err
+	}
+	if err := d.sendCommand(el673BTST1, []byte{0x40, 0x1F, 0x1F, 0x2C}); err != nil {
+		return err
+	}
+	if err := d.sendCommand(el673BTST3, []byte{0x6F, 0x1F, 0x1F, 0x22}); err != nil {
+		return err
+	}
+	if err := d.sendCommand(el673BTST2, []byte{0x6F, 0x1F, 0x17, 0x17}); err != nil {
+		return err
+	}
+	if err := d.sendCommand(el673POFS, []byte{0x00, 0x54, 0x00, 0x44}); err != nil {
+		return err
+	}
+	if err := d.sendCommand(el673TCON, []byte{0x02, 0x00}); err != nil {
+		return err
+	}
+	if err := d.sendCommand(el673PLL, []byte{0x08}); err != nil {
+		return err
+	}
+	if err := d.sendCommand(el673CDI, []byte{0x3F}); err != nil {
+		return err
+	}
+	if err := d.sendCommand(el673TRES, []byte{0x03, 0x20, 0x01, 0xE0}); err != nil {
+		return err
+	}
+	if err := d.sendCommand(el673PWS, []byte{0x2F}); err != nil {
+		return err
+	}
+	if err := d.sendCommand(el673VDCS, []byte{0x01}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (d *DevImpression) update(pix []uint8) error {
 	if d.model == IMPRESSION73 {
 		return d.updateAC(pix)
+	} else if d.model == IMPRESSION73SPECTRA6 {
+		return d.updateEC(pix)
 	}
 	return d.updateUC(pix)
 }
@@ -553,6 +670,35 @@ func (d *DevImpression) updateAC(pix []uint8) error {
 		return err
 	}
 	d.wait(400 * time.Millisecond)
+
+	return nil
+}
+
+func (d *DevImpression) updateEC(pix []uint8) error {
+	if err := d.resetEC(); err != nil {
+		return err
+	}
+
+	if err := d.sendCommand(el673DTM1, pix); err != nil {
+		return err
+	}
+	if err := d.sendCommand(el673PON, nil); err != nil {
+		return err
+	}
+	d.wait(300 * time.Millisecond)
+
+	if err := d.sendCommand(el673BTST2, []byte{0x6F, 0x1F, 0x17, 0x49}); err != nil {
+		return err
+	}
+	if err := d.sendCommand(el673DRF, []byte{0x00}); err != nil {
+		return err
+	}
+	d.wait(32 * time.Second)
+
+	if err := d.sendCommand(el673POF, []byte{0x00}); err != nil {
+		return err
+	}
+	d.wait(300 * time.Millisecond)
 
 	return nil
 }
