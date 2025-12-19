@@ -104,9 +104,11 @@ func (d *Dev) Read() (physic.Env, error) {
     }
 
     // Verify checksum
-    checksum := data[0] + data[1] + data[2] + data[3]
-    if data[4] != checksum {
-        return physic.Env{}, errors.New("dht22: checksum error")
+    if len(data) >= 5{
+        checksum := data[0] + data[1] + data[2] + data[3]
+        if data[4] != checksum {
+            return physic.Env{}, errors.New("dht22: checksum error")
+        }
     }
 
     // Parse data (big-endian)
