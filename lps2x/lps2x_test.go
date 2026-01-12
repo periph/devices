@@ -5,8 +5,6 @@
 package lps2x
 
 import (
-	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -152,31 +150,41 @@ func TestSenseContinuous(t *testing.T) {
 		t.Error("expected error on insufficient sense continuous duration")
 	}
 
-	counter := atomic.Int32{}
-	chEnd := make(chan struct{})
 	chRead, err := dev.SenseContinuous(d)
 	if err != nil {
 		t.Fatal(err)
 	}
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go func(ch <-chan physic.Env, chEnd chan struct{}) {
-		var env physic.Env
-		for {
-			select {
-			case env = <-ch:
-				t.Logf("received %#v", env)
-				counter.Add(1)
-			case <-chEnd:
-				wg.Done()
-				break
-			}
+
+	expectedCount := 10
+	start := time.Now()
+
+	// Read exactly expectedCount samples
+	for i := 0; i < expectedCount; i++ {
+		select {
+		case env := <-chRead:
+			t.Logf("received reading %d: %#v", i+1, env)
+		case <-time.After(3 * d):
+			t.Fatalf("Timed out waiting for reading %d (waited %v)", i+1, 3*d)
 		}
-	}(chRead, chEnd)
-	time.Sleep(10 * d)
-	chEnd <- struct{}{}
-	wg.Wait()
-	if counter.Load() != 10 {
-		t.Errorf("Expected reading count of 10, received %d", counter.Load())
 	}
+
+	elapsed := time.Since(start)
+
+	// Verify timing: expectedCount readings at interval d should take approximately (expectedCount-1)*d to expectedCount*d
+	// Lower bound: readings shouldn't come faster than the ticker interval
+	minDuration := time.Duration(expectedCount-1) * d
+	// Upper bound: allow some slack for CI/scheduling delays (1.5x the expected maximum)
+	maxDuration := time.Duration(expectedCount) * d * 3 / 2
+
+	if elapsed < minDuration {
+		t.Errorf("Readings too fast! Got %d readings in %v, expected at least %v. Sample rate may be ignored.",
+			expectedCount, elapsed, minDuration)
+	}
+	if elapsed > maxDuration {
+		t.Errorf("Readings too slow! Got %d readings in %v, expected at most %v. Sample rate may be too slow.",
+			expectedCount, elapsed, maxDuration)
+	}
+
+	// Clean up: stop the background goroutine
+	_ = dev.Halt()
 }
