@@ -236,7 +236,7 @@ func (dev *Dev) SenseContinuous(interval time.Duration) (<-chan physic.Env, erro
 	d := sampleRateTimes[dev.sampleRate]
 	d *= time.Duration(averageMultiple[dev.averageReadings])
 	if interval < d {
-		return nil, fmt.Errorf("Invalid duration. Minimum Duration: %v", d)
+		return nil, fmt.Errorf("invalid duration, minimum duration: %v", d)
 	}
 	dev.mu.Lock()
 	if dev.shutdown != nil {
