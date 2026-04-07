@@ -282,6 +282,6 @@ func (s Sensitivity) String() string {
 	case S16G:
 		return "+/-16g"
 	default:
-		return fmt.Sprintf("unknown sensitivity: %#x", s)
+		return fmt.Sprintf("unknown sensitivity: %#x", byte(s))
 	}
 }
