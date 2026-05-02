@@ -62,6 +62,7 @@ examples!
 | [ds248x](ds248x) | Maxim DS2483/DS2482-100 1-wire interface chip over I²C |
 | [ep0099](ep0099) | EP-0099 Raspberry Pi HAT with 4 relays via I²C |
 | [epd](epd) | Waveshare e-paper display series |
+| [gc9a01](gc9a01) | GC9A01 240x240 round RGB LCD display over SPI |
 | [hd44780](hd44780) | Hitachi HD44780 LCD display chipset |
 | [hdc302x](hdc302x) | Texas Instruments HDC3021/3022 temperature/humidity sensor over I²C |
 | [ht16k33](ht16k33) | Holtek HT16K33 16×8 LED driver |
