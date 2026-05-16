@@ -283,16 +283,11 @@ func (d *DevImpression) blend() color.Palette {
 
 	pr := make([]color.Color, 0)
 	for i := range satPalette {
-		rs, gs, bs := uint8(float64(satPalette[i].R)*sat),
-			uint8(float64(satPalette[i].G)*sat),
-			uint8(float64(satPalette[i].B)*sat)
+		r := uint8(float64(satPalette[i].R)*sat + float64(dscPalette[i].R)*(1.0-sat))
+		g := uint8(float64(satPalette[i].G)*sat + float64(dscPalette[i].G)*(1.0-sat))
+		b := uint8(float64(satPalette[i].B)*sat + float64(dscPalette[i].B)*(1.0-sat))
 
-		rd, gd, bd :=
-			uint8(float64(dscPalette[i].R)*(1.0-sat)),
-			uint8(float64(dscPalette[i].G)*(1.0-sat)),
-			uint8(float64(dscPalette[i].B)*(1.0-sat))
-
-		pr = append(pr, color.RGBA{rs + rd, gs + gd, bs + bd, dscPalette[i].A})
+		pr = append(pr, color.RGBA{r, g, b, dscPalette[i].A})
 	}
 
 	if d.Dev.model == IMPRESSION73SPECTRA6 {
@@ -567,6 +562,7 @@ func (d *DevImpression) resetEC() error {
 	if err := d.sendCommand(el673PSR, []byte{0x5F, 0x69}); err != nil {
 		return err
 	}
+
 	if err := d.sendCommand(el673BTST1, []byte{0x40, 0x1F, 0x1F, 0x2C}); err != nil {
 		return err
 	}
@@ -576,6 +572,7 @@ func (d *DevImpression) resetEC() error {
 	if err := d.sendCommand(el673BTST2, []byte{0x6F, 0x1F, 0x17, 0x17}); err != nil {
 		return err
 	}
+
 	if err := d.sendCommand(el673POFS, []byte{0x00, 0x54, 0x00, 0x44}); err != nil {
 		return err
 	}
@@ -602,12 +599,14 @@ func (d *DevImpression) resetEC() error {
 }
 
 func (d *DevImpression) update(pix []uint8) error {
-	if d.model == IMPRESSION73 {
+	switch d.model {
+	case IMPRESSION73:
 		return d.updateAC(pix)
-	} else if d.model == IMPRESSION73SPECTRA6 {
+	case IMPRESSION73SPECTRA6:
 		return d.updateEC(pix)
+	default:
+		return d.updateUC(pix)
 	}
-	return d.updateUC(pix)
 }
 
 func (d *DevImpression) updateUC(pix []uint8) error {
@@ -710,10 +709,12 @@ func (d *DevImpression) wait(dur time.Duration) {
 		log.Printf("Err: %s", err)
 		return
 	}
+
 	if d.busy.Read() == gpio.High {
 		time.Sleep(dur)
 		return
 	}
+
 	// Wait for rising edges (Low -> High) or the timeout.
 	tEnd := time.Now().Add(dur)
 	edgeDur := dur

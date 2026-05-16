@@ -97,6 +97,10 @@ func DetectOpts(bus i2c.Bus) (*Opts, error) {
 		options.Model = WHAT
 	case 14:
 		options.Model = IMPRESSION57
+		// Some UC8159's report Height as 447 so fix that.
+		if options.Height == 447 {
+			options.Height = 448
+		}
 	case 15, 16:
 		options.Model = IMPRESSION4
 	case 20:
@@ -123,4 +127,8 @@ func readEep(bus i2c.Bus) ([]byte, error) {
 	}
 
 	return data, nil
+}
+
+func (o *Opts) String() string {
+	return fmt.Sprintf("Resolution: %dx%d Model: %s Model Color: %s Border Color: %s PCB Variant: %d Display Variant: %d", o.Width, o.Height, o.Model, o.ModelColor, o.BorderColor, o.PCBVariant, o.DisplayVariant)
 }
