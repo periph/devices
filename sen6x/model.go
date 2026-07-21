@@ -2,8 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-//go:generate -command stringer go run golang.org/x/tools/cmd/stringer@latest
-//go:generate stringer -type=Model
+//go:generate go tool stringer -type=Model
+
 package sen6x
 
 // Model represents the various sensor models in the SEN6x family.
