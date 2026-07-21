@@ -20,10 +20,11 @@ const _CameraStatus_name = "SystemReadySystemInitializingSystemInLowPowerModeSys
 var _CameraStatus_index = [...]uint8{0, 11, 29, 49, 71, 95}
 
 func (i CameraStatus) String() string {
-	if i >= CameraStatus(len(_CameraStatus_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_CameraStatus_index)-1 {
 		return "CameraStatus(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _CameraStatus_name[_CameraStatus_index[i]:_CameraStatus_index[i+1]]
+	return _CameraStatus_name[_CameraStatus_index[idx]:_CameraStatus_index[idx+1]]
 }
 func _() {
 	// An "invalid array index" compiler error signifies that the constant values have changed.
@@ -168,10 +169,11 @@ const _FFCShutterMode_name = "FFCShutterModeManualFFCShutterModeAutoFFCShutterMo
 var _FFCShutterMode_index = [...]uint8{0, 20, 38, 60}
 
 func (i FFCShutterMode) String() string {
-	if i >= FFCShutterMode(len(_FFCShutterMode_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_FFCShutterMode_index)-1 {
 		return "FFCShutterMode(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _FFCShutterMode_name[_FFCShutterMode_index[i]:_FFCShutterMode_index[i+1]]
+	return _FFCShutterMode_name[_FFCShutterMode_index[idx]:_FFCShutterMode_index[idx+1]]
 }
 func _() {
 	// An "invalid array index" compiler error signifies that the constant values have changed.
@@ -187,10 +189,11 @@ const _FFCState_name = "FFCNeverFFCInProgressFFCComplete"
 var _FFCState_index = [...]uint8{0, 8, 21, 32}
 
 func (i FFCState) String() string {
-	if i >= FFCState(len(_FFCState_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_FFCState_index)-1 {
 		return "FFCState(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _FFCState_name[_FFCState_index[i]:_FFCState_index[i+1]]
+	return _FFCState_name[_FFCState_index[idx]:_FFCState_index[idx+1]]
 }
 func _() {
 	// An "invalid array index" compiler error signifies that the constant values have changed.
@@ -236,8 +239,9 @@ const _ShutterTempLockoutState_name = "ShutterTempLockoutStateInactiveShutterTem
 var _ShutterTempLockoutState_index = [...]uint8{0, 31, 58, 84}
 
 func (i ShutterTempLockoutState) String() string {
-	if i >= ShutterTempLockoutState(len(_ShutterTempLockoutState_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_ShutterTempLockoutState_index)-1 {
 		return "ShutterTempLockoutState(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _ShutterTempLockoutState_name[_ShutterTempLockoutState_index[i]:_ShutterTempLockoutState_index[i+1]]
+	return _ShutterTempLockoutState_name[_ShutterTempLockoutState_index[idx]:_ShutterTempLockoutState_index[idx+1]]
 }

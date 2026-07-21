@@ -22,10 +22,11 @@ const _Model_name = "PHATWHATPHAT2IMPRESSION4IMPRESSION57IMPRESSION73IMPRESSION7
 var _Model_index = [...]uint8{0, 4, 8, 13, 24, 36, 48, 68}
 
 func (i Model) String() string {
-	if i < 0 || i >= Model(len(_Model_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_Model_index)-1 {
 		return "Model(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _Model_name[_Model_index[i]:_Model_index[i+1]]
+	return _Model_name[_Model_index[idx]:_Model_index[idx+1]]
 }
 func _() {
 	// An "invalid array index" compiler error signifies that the constant values have changed.
@@ -43,10 +44,11 @@ const _Color_name = "BlackRedYellowWhiteMulti"
 var _Color_index = [...]uint8{0, 5, 8, 14, 19, 24}
 
 func (i Color) String() string {
-	if i < 0 || i >= Color(len(_Color_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_Color_index)-1 {
 		return "Color(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _Color_name[_Color_index[i]:_Color_index[i+1]]
+	return _Color_name[_Color_index[idx]:_Color_index[idx+1]]
 }
 func _() {
 	// An "invalid array index" compiler error signifies that the constant values have changed.
@@ -67,8 +69,9 @@ const _ImpressionColor_name = "BlackImpressionWhiteImpressionGreenImpressionBlue
 var _ImpressionColor_index = [...]uint8{0, 15, 30, 45, 59, 72, 88, 104, 119}
 
 func (i ImpressionColor) String() string {
-	if i >= ImpressionColor(len(_ImpressionColor_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_ImpressionColor_index)-1 {
 		return "ImpressionColor(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _ImpressionColor_name[_ImpressionColor_index[i]:_ImpressionColor_index[i+1]]
+	return _ImpressionColor_name[_ImpressionColor_index[idx]:_ImpressionColor_index[idx+1]]
 }
