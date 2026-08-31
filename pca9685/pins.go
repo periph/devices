@@ -96,7 +96,7 @@ func (p *pin) Read() gpio.Level {
 }
 
 func (p *pin) WaitForEdge(timeout time.Duration) bool {
-	return false
+	return gpio.INVALID.WaitForEdge(timeout)
 }
 
 func (p *pin) Pull() gpio.Pull {
