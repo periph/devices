@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// CP437 raster glyphs and bit reversal for MAX7219 matrix displays.
+
 package max7219
 
 // A really basic 8x8 raster font in CP437. Used to display characters on matrix

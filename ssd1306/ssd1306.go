@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// SSD1306, SH1106, and SH1107 OLED initialization and image output.
+
 package ssd1306
 
 // The SSD1306, SH1106, SH1107 are a family of OLED displays. Some have SPI enabled.

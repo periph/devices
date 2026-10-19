@@ -9,6 +9,8 @@
 // ...
 // 7 => 15
 
+// Tests PCF857x GPIO registration and grouped operations.
+
 package pcf857x
 
 import (

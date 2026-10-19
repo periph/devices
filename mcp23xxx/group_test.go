@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Tests MCP23xxx GPIO expanders, ports, and grouped operations.
+
 package mcp23xxx
 
 import (

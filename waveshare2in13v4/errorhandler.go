@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Waveshare 2.13 v4 GPIO and SPI error propagation.
+
 package waveshare2in13v4
 
 import (

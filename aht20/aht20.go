@@ -2,14 +2,17 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// AHT20 humidity and temperature initialization, measurements, and reset.
+
 package aht20
 
 import (
 	"fmt"
-	"periph.io/x/conn/v3/i2c"
-	"periph.io/x/conn/v3/physic"
 	"sync"
 	"time"
+
+	"periph.io/x/conn/v3/i2c"
+	"periph.io/x/conn/v3/physic"
 )
 
 const deviceAddress = 0x38

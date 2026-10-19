@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Inky display models, color modes, and flag parsing.
+
 package inky
 
 //go:generate go tool stringer -type=Model,Color,ImpressionColor -output types_string.go

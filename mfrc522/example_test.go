@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Examples of MFRC522 RFID frame decoding and bit operations.
+
 package mfrc522_test
 
 import (

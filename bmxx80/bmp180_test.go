@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Tests BMP180 initialization, calibration validity, and sample compensation.
+
 package bmxx80
 
 import (

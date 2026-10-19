@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// SEN6x device status flags, error reporting, and status reset.
+
 package sen6x
 
 import "encoding/binary"

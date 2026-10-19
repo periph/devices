@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Stream display frames over HTTP with query options and reusable buffers.
+
 package videosink
 
 import (
@@ -18,10 +20,10 @@ import (
 	"time"
 )
 
-// bufferPool stores reusable []byte instances.
+// bufferPool stores reusable encoding and frame buffers.
 var bufferPool = sync.Pool{
-	New: func() interface{} {
-		return []byte(nil)
+	New: func() any {
+		return new(bytes.Buffer)
 	},
 }
 
@@ -113,10 +115,7 @@ func (c *client) waitNext(ctx context.Context) bool {
 
 func (d *Display) bufferChangedLocked() {
 	for cfg, buffer := range d.snapshot {
-		if buffer != nil {
-			//lint:ignore SA6002 buffer is []byte and thus pointer-like
-			bufferPool.Put(buffer)
-		}
+		bufferPool.Put(buffer)
 
 		delete(d.snapshot, cfg)
 	}
@@ -138,28 +137,32 @@ func (d *Display) terminateClientsLocked() {
 	}
 }
 
-func (d *Display) encodeBufferLocked(format ImageFormat) ([]byte, error) {
-	buf := bytes.NewBuffer(bufferPool.Get().([]byte)[:0])
+func (d *Display) encodeBufferLocked(format ImageFormat) (*bytes.Buffer, error) {
+	buf := bufferPool.Get().(*bytes.Buffer)
+	buf.Reset()
 
 	switch format {
 	case PNG:
 		if err := pngEncoder.get(d.pngCompressionLevel).Encode(buf, d.buffer); err != nil {
+			bufferPool.Put(buf)
 			return nil, err
 		}
 
 	case JPEG:
 		if err := jpeg.Encode(buf, d.buffer, &d.jpegOptions); err != nil {
+			bufferPool.Put(buf)
 			return nil, err
 		}
 
 	default:
+		bufferPool.Put(buf)
 		return nil, fmt.Errorf("unhandled image format %s", format)
 	}
 
-	return buf.Bytes(), nil
+	return buf, nil
 }
 
-func (d *Display) grabSnapshot(cfg imageConfig) []byte {
+func (d *Display) grabSnapshot(cfg imageConfig) *bytes.Buffer {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -174,7 +177,10 @@ func (d *Display) grabSnapshot(cfg imageConfig) []byte {
 		d.snapshot[cfg] = encoded
 	}
 
-	return append(bufferPool.Get().([]byte)[:0], encoded...)
+	payload := bufferPool.Get().(*bytes.Buffer)
+	payload.Reset()
+	_, _ = payload.Write(encoded.Bytes())
+	return payload
 }
 
 // ServeHTTP handles HTTP GET requests and sends a stream of images
@@ -222,12 +228,9 @@ func (d *Display) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	for {
 		payload := d.grabSnapshot(cfg)
-		err := pw.writeFrame(partHeaders, payload)
+		err := pw.writeFrame(partHeaders, payload.Bytes())
 
-		if payload != nil {
-			//lint:ignore SA6002 buffer is []byte and thus pointer-like
-			bufferPool.Put(payload)
-		}
+		bufferPool.Put(payload)
 
 		if err != nil {
 			// Errors cause the request to be silently terminated. There's no

@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Connect HD44780 displays through PCF857x I²C backpacks.
+
 package hd44780
 
 import (

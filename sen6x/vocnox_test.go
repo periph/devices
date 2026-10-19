@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Tests SEN6x VOC/NOx tuning parameters and algorithm state.
+
 package sen6x
 
 import (

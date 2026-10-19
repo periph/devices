@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// MCP23xxx register addressing, bus transactions, and register caching.
+
 package mcp23xxx
 
 import (

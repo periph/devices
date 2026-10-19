@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// DS18B20-family 1-wire temperature conversion and sensor discovery support.
+
 package ds18b20
 
 import (

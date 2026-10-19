@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// TM1637 segmented display encoding, clock digits, and GPIO communication.
+
 package tm1637
 
 import (

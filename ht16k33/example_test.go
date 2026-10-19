@@ -3,6 +3,8 @@
 // that can be found in the LICENSE file.
 package ht16k33_test
 
+// Examples of HT16K33 alphanumeric display output.
+
 import (
 	"fmt"
 	"log"

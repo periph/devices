@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// APA102 SPI LED strips with color conversion, brightness, and frame output.
+
 package apa102
 
 import (

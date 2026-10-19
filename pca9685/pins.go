@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Expose PCA9685 PWM channels through the GPIO pin registry.
+
 package pca9685
 
 import (

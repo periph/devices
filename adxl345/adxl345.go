@@ -2,11 +2,14 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// ADXL345 accelerometer configuration and measurements over I²C or SPI.
+
 package adxl345
 
 import (
 	"encoding/binary"
 	"fmt"
+
 	"periph.io/x/conn/v3"
 	"periph.io/x/conn/v3/i2c"
 	"periph.io/x/conn/v3/physic"

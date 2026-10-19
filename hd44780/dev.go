@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// HD44780 character display access through individual GPIO data pins.
+
 package hd44780
 
 import (

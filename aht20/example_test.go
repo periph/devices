@@ -2,11 +2,14 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Examples of AHT20 initialization, environmental sensing, and errors.
+
 package aht20_test
 
 import (
 	"fmt"
 	"log"
+
 	"periph.io/x/conn/v3/i2c/i2creg"
 	"periph.io/x/conn/v3/physic"
 	"periph.io/x/devices/v3/aht20"

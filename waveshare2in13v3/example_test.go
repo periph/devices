@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Examples of Waveshare 2.13 v3 e-paper display updates.
+
 package waveshare2in13v3_test
 
 import (

@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Examples of EP-0099 relay initialization and channel control.
+
 package ep0099_test
 
 import (

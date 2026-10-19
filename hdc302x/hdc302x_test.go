@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Tests HDC302x environmental sensing, offsets, and heater control.
+
 package hdc302x
 
 import (

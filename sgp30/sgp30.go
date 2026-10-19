@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// SGP30 air-quality measurements, environmental compensation, and baseline access.
+
 package sgp30
 
 import (

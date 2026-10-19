@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Examples of INA219 power measurements and calibration.
+
 package ina219_test
 
 import (

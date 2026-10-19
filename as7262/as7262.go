@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// AS7262 spectral measurements, illumination, and virtual-register access.
+
 package as7262
 
 import (

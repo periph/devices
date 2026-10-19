@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// HT16K33 LED matrix control, blinking, brightness, and column writes.
+
 package ht16k33
 
 import (

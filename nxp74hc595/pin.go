@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Expose 74HC595 shift-register outputs as GPIO pins.
+
 package nxp74hc595
 
 import (

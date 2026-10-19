@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// BME280 and BMP280 calibration, standby timing, and sample conversion.
+
 package bmxx80
 
 import (

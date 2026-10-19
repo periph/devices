@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// SEN6x command identifiers, timings, and response lengths.
+
 package sen6x
 
 import (

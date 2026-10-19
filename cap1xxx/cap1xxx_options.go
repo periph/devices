@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// CAP1xxx touch-controller sampling, cycle timing, and configuration options.
+
 package cap1xxx
 
 import (

@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Tests BME280 and BMP280 SPI/I²C setup, calibration, and measurements.
+
 package bmxx80
 
 import (

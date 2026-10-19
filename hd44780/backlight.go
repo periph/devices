@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// GPIO-controlled monochrome backlighting for character displays.
+
 package hd44780
 
 import (

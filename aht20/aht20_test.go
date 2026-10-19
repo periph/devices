@@ -2,13 +2,16 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Tests AHT20 initialization, environmental sensing, and errors.
+
 package aht20
 
 import (
+	"testing"
+
 	"periph.io/x/conn/v3/i2c"
 	"periph.io/x/conn/v3/i2c/i2ctest"
 	"periph.io/x/conn/v3/physic"
-	"testing"
 )
 
 const byteStatusInitialized = bitInitialized | 0x10

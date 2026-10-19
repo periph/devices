@@ -8,6 +8,8 @@
 // of display unit.
 package max7219
 
+// MAX7219 LED matrix and numeric display commands and drawing.
+
 import (
 	"errors"
 	"fmt"

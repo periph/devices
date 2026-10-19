@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Shared BMP180, BME280, and BMP280 configuration and device access.
+
 package bmxx80
 
 import (

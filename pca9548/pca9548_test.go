@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Tests PCA9548 multiplexer ports and bus registration.
+
 package pca9548
 
 import (

@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// MPU9250 SPI and I²C register transports with optional debug logging.
+
 package mpu9250
 
 import (

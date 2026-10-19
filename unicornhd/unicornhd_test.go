@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Tests Unicorn HAT HD SPI setup and image output.
+
 package unicornhd
 
 import (

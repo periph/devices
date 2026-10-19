@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// ADS1015 and ADS1115 ADC channels, conversion settings, and I²C sampling.
+
 package ads1x15
 
 import (

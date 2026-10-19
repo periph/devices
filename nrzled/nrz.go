@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Encode bytes as three-bit and four-bit NRZ LED pulse sequences.
+
 package nrzled
 
 // nrzMSB3 converts a byte into the MSB-first Non-Return-to-Zero encoded 24

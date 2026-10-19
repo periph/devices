@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Tests HTTP frame streaming, query validation, and multipart responses.
+
 package videosink
 
 import (
@@ -403,5 +405,22 @@ func TestWaitNextTerminate(t *testing.T) {
 
 	if got := c.waitNext(ctx); got {
 		t.Errorf("waitNext() returned %v, want %v", got, false)
+	}
+}
+
+func TestSnapshotOwnership(t *testing.T) {
+	d := New(&Options{Width: 2, Height: 2})
+	held := d.grabSnapshot(imageConfig{format: PNG})
+	t.Cleanup(func() { bufferPool.Put(held) })
+	initial := append([]byte(nil), held.Bytes()...)
+	for i := 0; i < 3; i++ {
+		if err := d.Draw(d.Bounds(), image.White, image.Point{}); err != nil {
+			t.Fatal(err)
+		}
+		newer := d.grabSnapshot(imageConfig{format: PNG})
+		bufferPool.Put(newer)
+	}
+	if !bytes.Equal(held.Bytes(), initial) {
+		t.Fatal("draw changed a frame already held by a client")
 	}
 }

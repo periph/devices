@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// HT16K33 alphanumeric display digits and string output.
+
 package ht16k33
 
 import (

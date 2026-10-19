@@ -2,15 +2,18 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Examples of ADXL345 accelerometer access.
+
 package adxl345
 
 import (
 	"fmt"
 	"log"
+	"time"
+
 	"periph.io/x/conn/v3/i2c/i2creg"
 	"periph.io/x/conn/v3/spi/spireg"
 	"periph.io/x/host/v3"
-	"time"
 )
 
 var I2CAddr uint16 = 0x53

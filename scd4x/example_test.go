@@ -5,6 +5,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Examples of SCD4x CO₂, temperature, and humidity sensing.
+
 package scd4x_test
 
 import (

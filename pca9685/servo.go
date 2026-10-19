@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Map servo angles to configured PCA9685 PWM ranges.
+
 package pca9685
 
 import (

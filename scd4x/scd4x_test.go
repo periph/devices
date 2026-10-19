@@ -7,6 +7,8 @@
 //
 // To use a live device, define the environment variable SCD4X and run go test.
 
+// Tests SCD4x CO₂, temperature, and humidity sensing.
+
 package scd4x
 
 import (

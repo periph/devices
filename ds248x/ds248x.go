@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// DS2482 and DS2483 I²C-to-1-wire bridges and pull-up configuration.
+
 package ds248x
 
 import (

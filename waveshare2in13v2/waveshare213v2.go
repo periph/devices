@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Waveshare 2.13 v2 device options, SPI construction, and image rendering.
+
 package waveshare2in13v2
 
 import (

@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Tests one-bit OLED image layout and pixel operations.
+
 package image1bit
 
 import (

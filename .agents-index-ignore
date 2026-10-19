@@ -1,0 +1,12 @@
+# Vendored and generated sources do not need file summaries.
+**/*_gen.go
+**/*_string.go
+**/testdata/**
+third_party/**
+vendor/**
+
+# GitHub submission forms and generated bus recordings are not source summaries.
+**/*bustestrecording_test.go
+.github/ISSUE_TEMPLATE/bug_report.md
+.github/ISSUE_TEMPLATE/feature_request.md
+.github/pull_request_template.md

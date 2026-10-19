@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Tests DS18B20 temperature conversions and 1-wire transactions.
+
 package ds18b20
 
 import (

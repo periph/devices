@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// FLIR Lepton camera commands, status values, calibration, and shutter control.
+
 //go:generate go tool stringer -output=strings_gen.go -type=CameraStatus,command,FFCShutterMode,FFCState,ShutterPos,ShutterTempLockoutState
 
 package cci

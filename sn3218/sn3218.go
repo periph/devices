@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// SN3218 LED channel brightness, power modes, and reset.
+
 package sn3218
 
 import (

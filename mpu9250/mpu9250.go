@@ -16,6 +16,7 @@
 package mpu9250
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"time"
@@ -57,14 +58,17 @@ type SelfTestResult struct {
 
 // MPU9250 defines the structure to keep reference to the transport.
 type MPU9250 struct {
-	transport Transport
+	transport *Transport
 	debug     func(string, ...interface{})
 }
 
 // New creates the new instance of the driver.
 //
-// transport the transport interface.
-func New(transport Transport) (*MPU9250, error) {
+// transport is created by NewSpiTransport or NewI2cTransport.
+func New(transport *Transport) (*MPU9250, error) {
+	if transport == nil {
+		return nil, errors.New("mpu9250: transport is required")
+	}
 	return &MPU9250{transport: transport, debug: noop}, nil
 }
 

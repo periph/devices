@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// MFRC522 card-operation command constants.
+
 package commands
 
 // Operation constants

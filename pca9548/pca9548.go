@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// PCA9548 I²C multiplexer ports, bus registration, and channel selection.
+
 package pca9548
 
 import (

@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Tests Waveshare 2.13 v3 drawing geometry and pixel transfer.
+
 package waveshare2in13v3
 
 import (

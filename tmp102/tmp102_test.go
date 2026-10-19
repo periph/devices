@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Tests TMP102 temperature conversion, alerts, and continuous sensing.
+
 package tmp102
 
 import (

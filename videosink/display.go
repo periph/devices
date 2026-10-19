@@ -18,6 +18,7 @@
 package videosink
 
 import (
+	"bytes"
 	"image"
 	"image/color"
 	"image/draw"
@@ -75,7 +76,7 @@ type Display struct {
 	mu       sync.Mutex
 	buffer   *image.RGBA
 	clients  map[*client]struct{}
-	snapshot map[imageConfig][]byte
+	snapshot map[imageConfig]*bytes.Buffer
 }
 
 var _ display.Drawer = (*Display)(nil)
@@ -97,7 +98,7 @@ func New(opt *Options) *Display {
 
 		buffer:        buffer,
 		clients:       map[*client]struct{}{},
-		snapshot:      map[imageConfig][]byte{},
+		snapshot:      map[imageConfig]*bytes.Buffer{},
 		defaultFormat: opt.Format,
 	}
 

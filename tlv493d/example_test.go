@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Examples of TLV493D magnetic-field and temperature sensing.
+
 package tlv493d_test
 
 import (

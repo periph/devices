@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Examples of DS248x bridge initialization and bus operations.
+
 package ds248x_test
 
 import (
