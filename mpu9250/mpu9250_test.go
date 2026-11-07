@@ -13,15 +13,12 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	if dev, err := New(nil); err == nil || dev != nil {
-		t.Fatal("nil transport was accepted")
-	}
 	bus := &i2ctest.Playback{Ops: []i2ctest.IO{{Addr: 0x68, W: []byte{0x75}, R: []byte{0x71}}}}
 	tr, err := NewI2cTransport(bus, 0x68)
 	if err != nil {
 		t.Fatal(err)
 	}
-	dev, err := New(tr)
+	dev, err := New(*tr)
 	if err != nil {
 		t.Fatal(err)
 	}

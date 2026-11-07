@@ -75,14 +75,6 @@ func sen66MeasurementOps(t *testing.T, withGetDataReady bool) []i2ctest.IO {
 }
 
 func TestSenseContinuous(t *testing.T) {
-	// Set the device's sampling interval to a small value so that tests run
-	// quickly. Set it back after the tests finish.
-	originalSamplingInterval := deviceSamplingInterval
-	defer func() {
-		deviceSamplingInterval = originalSamplingInterval
-	}()
-	deviceSamplingInterval = 2 * time.Millisecond
-
 	// We'll use intervals shorter and longer than the device's native interval.
 	shortTestInterval := deviceSamplingInterval - time.Millisecond
 	longTestInterval := deviceSamplingInterval + time.Millisecond

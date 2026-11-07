@@ -23,7 +23,7 @@ const i2cAddr = 0x6b
 // deviceSamplingInterval is the sensor's native sampling interval. The
 // datasheet specifies a sampling interval of 1 ± 0.03 seconds so we take
 // the maximum value to be safe.
-var deviceSamplingInterval = 1030 * time.Millisecond
+const deviceSamplingInterval = 1030 * time.Millisecond
 
 // SensorValues contains the measurements returned from the device.
 // Any values not relevant to the sensor model being used will be nil.

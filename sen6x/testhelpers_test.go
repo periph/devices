@@ -8,6 +8,7 @@ package sen6x
 
 import (
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
@@ -131,63 +132,64 @@ type senseContinuousTestCase struct {
 
 // runSenseContinuousTests runs tests that exercise [Dev.SenseContinuous].
 func runSenseContinuousTests(t *testing.T, cases []senseContinuousTestCase) {
-	t.Helper()
-
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			bus := i2ctest.Playback{
-				Ops:       tc.ops,
-				DontPanic: tc.dontPanic,
-			}
-			defer func() {
-				if err := bus.Close(); err != nil {
-					t.Error(err)
+			// Virtual time prevents a tick from racing with Halt after the last sample.
+			synctest.Test(t, func(t *testing.T) {
+				bus := i2ctest.Playback{
+					Ops:       tc.ops,
+					DontPanic: tc.dontPanic,
 				}
-			}()
+				t.Cleanup(func() {
+					if err := bus.Close(); err != nil {
+						t.Error(err)
+					}
+				})
 
-			d := newTestDev(t, &bus, tc.model)
+				d := newTestDev(t, &bus, tc.model)
 
-			ch, err := d.SenseContinuous(tc.interval)
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer func() {
-				if err := d.Halt(); err != nil {
+				ch, err := d.SenseContinuous(tc.interval)
+				if err != nil {
 					t.Fatal(err)
 				}
-			}()
-
-			// Verify double start returns error.
-			if _, err := d.SenseContinuous(tc.interval); err == nil {
-				t.Error("expected error on second SenseContinuous call")
-			}
-
-			received := 0
-		loop:
-			for {
-				select {
-				case sv, ok := <-ch:
-					if !ok {
-						break loop
+				t.Cleanup(func() {
+					if err := d.Halt(); err != nil {
+						t.Fatal(err)
 					}
-					received++
+				})
 
-					if sv == nil {
-						t.Error("received nil SensorValues")
-					}
-
-					if received == tc.expectedMeasurementCount {
-						break loop
-					}
-
-				case <-time.After(5 * time.Second):
-					t.Fatal("timed out waiting for measurements")
+				// Verify double start returns error.
+				if _, err := d.SenseContinuous(tc.interval); err == nil {
+					t.Error("expected error on second SenseContinuous call")
 				}
-			}
 
-			if received != tc.expectedMeasurementCount {
-				t.Errorf("received %d measurements, want %d", received, tc.expectedMeasurementCount)
-			}
+				received := 0
+			loop:
+				for {
+					select {
+					case sv, ok := <-ch:
+						if !ok {
+							break loop
+						}
+						received++
+
+						if sv == nil {
+							t.Error("received nil SensorValues")
+						}
+
+						if received == tc.expectedMeasurementCount {
+							break loop
+						}
+
+					case <-time.After(5 * time.Second):
+						t.Fatal("timed out waiting for measurements")
+					}
+				}
+
+				if received != tc.expectedMeasurementCount {
+					t.Errorf("received %d measurements, want %d", received, tc.expectedMeasurementCount)
+				}
+			})
 		})
 	}
 }
