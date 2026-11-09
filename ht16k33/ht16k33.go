@@ -38,7 +38,7 @@ const (
 	BlinkHalfHz = 0x06
 )
 
-// Dev is a handler to ht16k33 controller
+// Dev is a handler to ht16k33 controller.
 type Dev struct {
 	dev i2c.Dev
 }
@@ -54,26 +54,6 @@ func NewI2C(bus i2c.Bus, address uint16) (*Dev, error) {
 	}
 
 	return dev, nil
-}
-
-func (d *Dev) init() error {
-	// Turn on the oscillator.
-	if _, err := d.dev.Write([]byte{systemSetup | oscillatorOn}); err != nil {
-		return err
-	}
-
-	// Turn on display
-	if _, err := d.dev.Write([]byte{displaySetup | displayOn}); err != nil {
-		return err
-	}
-
-	// Set no blinking.
-	if err := d.SetBlink(BlinkOff); err != nil {
-		return err
-	}
-
-	// Set display to full brightness.
-	return d.SetBrightness(15)
 }
 
 // SetBlink Blink display at specified frequency.
@@ -101,10 +81,30 @@ func (d *Dev) WriteColumn(column int, data uint16) error {
 
 // Halt clear the contents of display buffer.
 func (d *Dev) Halt() error {
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		if err := d.WriteColumn(i, 0); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func (d *Dev) init() error {
+	// Turn on the oscillator.
+	if _, err := d.dev.Write([]byte{systemSetup | oscillatorOn}); err != nil {
+		return err
+	}
+
+	// Turn on display
+	if _, err := d.dev.Write([]byte{displaySetup | displayOn}); err != nil {
+		return err
+	}
+
+	// Set no blinking.
+	if err := d.SetBlink(BlinkOff); err != nil {
+		return err
+	}
+
+	// Set display to full brightness.
+	return d.SetBrightness(15)
 }

@@ -56,7 +56,7 @@ var pbConfiguration = []i2ctest.IO{
 	{Addr: DefaultSensorAddress, W: []uint8{0xe1, 0x9}, R: []uint8{0x38, 0x69, 0x37}},
 	{Addr: DefaultSensorAddress, W: []uint8{0xe1, 0x14}, R: []uint8{0xc9, 0x2d, 0x22}}}
 
-// playback for offset modification
+// playback for offset modification.
 var pbOffsets = []i2ctest.IO{
 	{Addr: DefaultSensorAddress, W: []uint8{0x23, 0x34}},
 	{Addr: DefaultSensorAddress, W: []uint8{0xe0, 0x0}, R: []uint8{0x70, 0x90, 0x83, 0x42, 0x10, 0x92}},
@@ -177,10 +177,12 @@ func getDev(t *testing.T, playbackOps ...[]i2ctest.IO) (*Dev, error) {
 			// Clear the operations buffer.
 			recorder.Ops = make([]i2ctest.IO, 0, 32)
 		}
-
 	} else {
 		if len(playbackOps) == 1 {
-			pb := bus.(*i2ctest.Playback)
+			pb, ok := bus.(*i2ctest.Playback)
+			if !ok {
+				t.Fatalf("bus type %T, want *i2ctest.Playback", bus)
+			}
 			pb.Ops = playbackOps[0]
 			pb.Count = 0
 		}
@@ -235,7 +237,6 @@ func TestConversions(t *testing.T) {
 			t.Errorf("unexpected humidity got %s (%d) expected %s (%d)", humidity, humidity, hTest.result, hTest.result)
 		}
 	}
-
 }
 
 // Tests the conversions of offsets to binary offset values used by the device.
@@ -274,7 +275,6 @@ func TestOffsetConversions(t *testing.T) {
 			t.Errorf("computeHumidityOffsetByte() Offset: %s Expected Value: 0x%x Received: 0x%x", test.humidity, test.expectedResult, res)
 		}
 	}
-
 }
 
 func TestBasic(t *testing.T) {
@@ -338,11 +338,9 @@ func TestSense(t *testing.T) {
 			)
 		}
 	}
-
 }
 
 func TestSenseContinuous(t *testing.T) {
-
 	readCount := int32(10)
 
 	// make 10 copies of the single reading playback data.
@@ -482,7 +480,6 @@ func TestOffsetModification(t *testing.T) {
 
 // Tests using alert values.
 func TestAlerts(t *testing.T) {
-
 	dev, err := getDev(t, pbAlerts)
 	if err != nil {
 		t.Fatalf("failed to initialize hd302x: %v", err)

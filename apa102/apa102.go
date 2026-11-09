@@ -242,7 +242,7 @@ func (d *Dev) raster(dst []byte, src []byte, srcHasAlpha bool) {
 	d.l.init(d.Intensity, d.Temperature, !d.DisableGlobalPWM)
 	if d.DisableGlobalPWM {
 		// Faster path when the global 5 bits PWM is forced to full intensity.
-		for i := 0; i < length; i++ {
+		for i := range length {
 			sOff := pBytes * i
 			dOff := 4 * i
 			r, g, b := d.l.r[src[sOff]], d.l.g[src[sOff+1]], d.l.b[src[sOff+2]]
@@ -251,7 +251,7 @@ func (d *Dev) raster(dst []byte, src []byte, srcHasAlpha bool) {
 		return
 	}
 
-	for i := 0; i < length; i++ {
+	for i := range length {
 		// The goal is to use brightness!=31 as little as possible.
 		//
 		// Global brightness frequency is 580Hz and color frequency at 19.2kHz.
@@ -356,7 +356,7 @@ func ramp(l uint8, max uint16) uint16 {
 	// ramp.
 	// Realign input to [0, 255-linearCutOff]. It now maps to
 	// [0, max-linearCutOff*max/255].
-	//const inRange = 255
+	// const inRange = 255
 	l32 -= linearCutOff
 	inRange := 255 - linearCutOff
 	outRange := uint32(max) - linearCutOff
@@ -419,11 +419,12 @@ func (l *lut) init(i uint8, t uint16, g bool) {
 			l.g[j] = ramp(uint8(j), maxG)
 		}
 	}
-	if maxB == maxR {
+	switch {
+	case maxB == maxR:
 		copy(l.b[:], l.r[:])
-	} else if maxB == maxG {
+	case maxB == maxG:
 		copy(l.b[:], l.g[:])
-	} else {
+	default:
 		for j := range l.b {
 			l.b[j] = ramp(uint8(j), maxB)
 		}

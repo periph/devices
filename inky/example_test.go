@@ -28,7 +28,11 @@ func Example() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer f.Close()
+	defer func() {
+		if closeErr := f.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	img, err := png.Decode(f)
 	if err != nil {
@@ -70,7 +74,11 @@ func ExampleNewImpression() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer f.Close()
+	defer func() {
+		if closeErr := f.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	m, _, err := image.Decode(f)
 	if err != nil {
@@ -94,7 +102,11 @@ func ExampleNewImpression() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer eeprom.Close()
+	defer func() {
+		if closeErr := eeprom.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	o, err := inky.DetectOpts(eeprom)
 	if err != nil {

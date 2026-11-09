@@ -26,7 +26,11 @@ func Example() {
 	if err != nil {
 		log.Fatalf("failed to open I²C: %v", err)
 	}
-	defer bus.Close()
+	defer func() {
+		if closeErr := bus.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	// Create the Sensor
 	sensor, err := hdc302x.NewI2C(bus, hdc302x.DefaultSensorAddress, hdc302x.RateFourHertz)

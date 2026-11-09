@@ -15,7 +15,7 @@ import (
 	"periph.io/x/conn/v3/physic"
 )
 
-// Family code of the specific device type
+// Family code of the specific device type.
 type Family byte
 
 func (f Family) String() string {
@@ -177,7 +177,7 @@ func (d *Dev) LastTemp() (physic.Temperature, error) {
 	return c, nil
 }
 
-// parseTemperature from scratchpad and handle special calculation for DS18S20
+// parseTemperature from scratchpad and handle special calculation for DS18S20.
 func (d *Dev) parseTemperature(spad []byte) physic.Temperature {
 	// spad[1] is MSB and spad[0] is LSB of the raw temperature value
 	rawTemp := int16(spad[1])<<8 | int16(spad[0])

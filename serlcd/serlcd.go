@@ -57,18 +57,18 @@ func NewSerLCD(writer io.Writer, rows, cols int) *Dev {
 }
 
 // Create a SerLCD display using a hardware interface that provides
-// conn.Conn. For example, a conn.spi.Conn
+// conn.Conn. For example, a conn.spi.Conn.
 func NewConn(conn conn.Conn, rows, cols int) *Dev {
 	dev := &Dev{conn: conn, rows: rows, cols: cols, w: nil}
 	return dev
 }
 
-// Enable/Disable auto scroll
-func (dev *Dev) AutoScroll(enabled bool) (err error) {
+// Enable/Disable auto scroll.
+func (dev *Dev) AutoScroll(_ bool) (err error) {
 	return wrap(display.ErrNotImplemented)
 }
 
-// Return the number of columns the display supports
+// Return the number of columns the display supports.
 func (dev *Dev) Cols() int {
 	return dev.cols
 }
@@ -81,7 +81,7 @@ func (dev *Dev) Clear() (err error) {
 }
 
 // Set the cursor mode. You can pass multiple arguments.
-// Cursor(CursorOff, CursorUnderline)
+// Cursor(CursorOff, CursorUnderline).
 func (dev *Dev) Cursor(mode ...display.CursorMode) (err error) {
 	dev.displayDCB &= 0x04
 	for _, cmd := range mode {
@@ -123,7 +123,7 @@ func (dev *Dev) Halt() (err error) {
 	return
 }
 
-// Move the cursor home (MinRow(),MinCol())
+// Move the cursor home (MinRow(),MinCol()).
 func (dev *Dev) Home() (err error) {
 	err = dev.MoveTo(dev.MinRow(), dev.MinCol())
 	time.Sleep(2 * time.Millisecond)
@@ -168,7 +168,7 @@ func (dev *Dev) MoveTo(row, col int) (err error) {
 		return errors.New("serlcd: invalid MoveTo() offset")
 	}
 	cmdByte := byte(0x80) + lineOffsets[row] + byte(col)
-	_, err = dev.Write([]byte{cmdMode, byte(cmdByte)})
+	_, err = dev.Write([]byte{cmdMode, cmdByte})
 	return
 }
 
@@ -177,7 +177,7 @@ func (dev *Dev) Rows() int {
 	return dev.rows
 }
 
-// Turn the display on / off
+// Turn the display on / off.
 func (dev *Dev) Display(on bool) (err error) {
 	if on {
 		dev.displayDCB |= 0x04
@@ -206,16 +206,13 @@ func (dev *Dev) Write(p []byte) (n int, err error) {
 		return
 	}
 	for n < len(p) {
-		bytesToWrite := len(p) - n
-		if bytesToWrite > _MAX_I2C_WRITE {
-			bytesToWrite = _MAX_I2C_WRITE
-		}
+		bytesToWrite := min(len(p)-n, _MAX_I2C_WRITE)
 		w := p[n : n+bytesToWrite]
 		err = dev.conn.Tx(w, nil)
 		if err != nil {
 			break
 		}
-		n = n + bytesToWrite
+		n += bytesToWrite
 		time.Sleep(time.Duration(40*bytesToWrite) * time.Microsecond)
 	}
 

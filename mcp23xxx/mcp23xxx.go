@@ -125,13 +125,13 @@ func makeDev(ra registerAccess, variant Variant, devicename string) (*Dev, error
 	}, nil
 }
 
-// SetEdgePin supplies a configured GPIO pin
-func (dev *Dev) SetEdgePin(pin *gpio.PinIn) {
-	dev.edgePin = pin
+// SetEdgePin supplies a configured GPIO pin.
+func (d *Dev) SetEdgePin(pin *gpio.PinIn) {
+	d.edgePin = pin
 }
 
-func (dev *Dev) String() string {
-	return string(dev.variant)
+func (d *Dev) String() string {
+	return string(d.variant)
 }
 
 func mcp23x178ports(devicename string, ra registerAccess) []port {

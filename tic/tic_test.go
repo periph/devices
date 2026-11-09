@@ -50,7 +50,11 @@ func TestNewI2C(t *testing.T) {
 				Ops:       test.ops,
 				DontPanic: true,
 			}
-			defer b.Close()
+			t.Cleanup(func() {
+				if err := b.Close(); err != nil {
+					t.Error(err)
+				}
+			})
 
 			_, err := NewI2C(&b, test.variant, I2CAddr)
 			if test.expectErr && err == nil {
@@ -98,7 +102,15 @@ func TestGetTargetPosition(t *testing.T) {
 				Ops:       test.ops,
 				DontPanic: true,
 			}
-			defer b.Close()
+			t.Cleanup(func() {
+				// Failed transactions can leave deliberately unused playback operations.
+				if test.expectErr != nil {
+					return
+				}
+				if err := b.Close(); err != nil {
+					t.Error(err)
+				}
+			})
 
 			dev := Dev{
 				c:       &i2c.Dev{Bus: &b, Addr: I2CAddr},
@@ -157,7 +169,15 @@ func TestSetStepMode(t *testing.T) {
 				Ops:       test.ops,
 				DontPanic: true,
 			}
-			defer b.Close()
+			t.Cleanup(func() {
+				// Failed transactions can leave deliberately unused playback operations.
+				if test.expectErr != nil {
+					return
+				}
+				if err := b.Close(); err != nil {
+					t.Error(err)
+				}
+			})
 
 			dev := Dev{
 				c:       &i2c.Dev{Bus: &b, Addr: I2CAddr},
@@ -222,7 +242,15 @@ func TestSetDecayMode(t *testing.T) {
 				Ops:       test.ops,
 				DontPanic: true,
 			}
-			defer b.Close()
+			t.Cleanup(func() {
+				// Failed transactions can leave deliberately unused playback operations.
+				if test.expectErr != nil {
+					return
+				}
+				if err := b.Close(); err != nil {
+					t.Error(err)
+				}
+			})
 
 			dev := Dev{
 				c:       &i2c.Dev{Bus: &b, Addr: I2CAddr},
@@ -286,7 +314,11 @@ func TestGetCurrentLimit(t *testing.T) {
 				Ops:       test.ops,
 				DontPanic: true,
 			}
-			defer b.Close()
+			t.Cleanup(func() {
+				if err := b.Close(); err != nil {
+					t.Error(err)
+				}
+			})
 
 			dev := Dev{
 				c:       &i2c.Dev{Bus: &b, Addr: I2CAddr},
@@ -350,7 +382,11 @@ func TestSetCurrentLimit(t *testing.T) {
 				Ops:       test.ops,
 				DontPanic: true,
 			}
-			defer b.Close()
+			t.Cleanup(func() {
+				if err := b.Close(); err != nil {
+					t.Error(err)
+				}
+			})
 
 			dev := Dev{
 				c:       &i2c.Dev{Bus: &b, Addr: I2CAddr},
@@ -393,7 +429,11 @@ func TestGetEnergized(t *testing.T) {
 				Ops:       test.ops,
 				DontPanic: true,
 			}
-			defer b.Close()
+			t.Cleanup(func() {
+				if err := b.Close(); err != nil {
+					t.Error(err)
+				}
+			})
 
 			dev := Dev{
 				c:       &i2c.Dev{Bus: &b, Addr: I2CAddr},
@@ -421,7 +461,11 @@ func TestGetErrorsOccurred(t *testing.T) {
 		},
 		DontPanic: true,
 	}
-	defer b.Close()
+	t.Cleanup(func() {
+		if err := b.Close(); err != nil {
+			t.Error(err)
+		}
+	})
 
 	dev := Dev{
 		c:       &i2c.Dev{Bus: &b, Addr: I2CAddr},
@@ -469,7 +513,15 @@ func TestGetPinState(t *testing.T) {
 				Ops:       test.ops,
 				DontPanic: true,
 			}
-			defer b.Close()
+			t.Cleanup(func() {
+				// Failed transactions can leave deliberately unused playback operations.
+				if test.expectErr != nil {
+					return
+				}
+				if err := b.Close(); err != nil {
+					t.Error(err)
+				}
+			})
 
 			dev := Dev{
 				c:       &i2c.Dev{Bus: &b, Addr: I2CAddr},

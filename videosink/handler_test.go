@@ -196,10 +196,7 @@ func TestMultipartResponse(t *testing.T) {
 
 			var wg sync.WaitGroup
 
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-
+			wg.Go(func() {
 				for {
 					if err := d.Draw(d.Bounds(), image.Black, image.Point{}); err != nil {
 						t.Errorf("Draw() failed: %v", err)
@@ -215,12 +212,19 @@ func TestMultipartResponse(t *testing.T) {
 
 					time.Sleep(10 * time.Millisecond)
 				}
-			}()
+			})
 
-			if resp, err := srv.Client().Get(srv.URL + tc.target); err != nil {
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, srv.URL+tc.target, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if resp, err := srv.Client().Do(req); err != nil {
 				t.Errorf("Get() failed: %v", err)
 			} else {
 				tc.validateResponse(t, resp)
+				if err := resp.Body.Close(); err != nil {
+					t.Error(err)
+				}
 			}
 
 			if t.Failed() {
@@ -272,9 +276,14 @@ func TestRequestStatus(t *testing.T) {
 
 			if resp, err := srv.Client().Do(req); err != nil {
 				t.Errorf("Get() failed: %v", err)
-			} else if got, want := resp.StatusCode, tc.wantStatus; got != want {
-				t.Errorf("Request for %s %s returned status %d (%s), want %d",
-					req.Method, req.URL.String(), got, resp.Status, want)
+			} else {
+				if got, want := resp.StatusCode, tc.wantStatus; got != want {
+					t.Errorf("Request for %s %s returned status %d (%s), want %d",
+						req.Method, req.URL.String(), got, resp.Status, want)
+				}
+				if err := resp.Body.Close(); err != nil {
+					t.Error(err)
+				}
 			}
 		})
 	}
@@ -308,13 +317,10 @@ func TestWaitNextRateLimit(t *testing.T) {
 			quit := make(chan struct{})
 
 			var wg sync.WaitGroup
-			wg.Add(1)
 
-			go func() {
-				defer wg.Done()
-
+			wg.Go(func() {
 				for {
-					time.Sleep(time.Duration(rand.Intn(int(tc.interval / 10))))
+					time.Sleep(time.Duration(rand.Intn(int(tc.interval / 10)))) // #nosec G404 -- Randomness only varies test inputs.
 
 					select {
 					case c.refresh <- struct{}{}:
@@ -322,15 +328,11 @@ func TestWaitNextRateLimit(t *testing.T) {
 						return
 					}
 				}
-			}()
+			})
 
-			count := int(time.Second / 10 / tc.interval)
+			count := max(int(time.Second/10/tc.interval), 10)
 
-			if count < 10 {
-				count = 10
-			}
-
-			for i := 0; i < count; i++ {
+			for range count {
 				begin := time.Now()
 				c.mostRecent = begin
 
@@ -413,7 +415,7 @@ func TestSnapshotOwnership(t *testing.T) {
 	held := d.grabSnapshot(imageConfig{format: PNG})
 	t.Cleanup(func() { bufferPool.Put(held) })
 	initial := append([]byte(nil), held.Bytes()...)
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		if err := d.Draw(d.Bounds(), image.White, image.Point{}); err != nil {
 			t.Fatal(err)
 		}

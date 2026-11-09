@@ -29,7 +29,7 @@ type AvgSampling uint8
 
 // Valid AvgSampling values.
 const (
-	// Avg1 means that 1 sample is taken per measurement
+	// Avg1 means that 1 sample is taken per measurement.
 	Avg1   AvgSampling = iota // 0
 	Avg2                      // 1
 	Avg4                      // 2

@@ -88,7 +88,7 @@ func TestSense(t *testing.T) {
 }
 
 // TestParseTemperature tests a temperature parsing from scratchpad for DS18S20
-// and DS18B20
+// and DS18B20.
 func TestParseTemperature(t *testing.T) {
 	var testData = []struct {
 		family       Family

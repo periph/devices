@@ -9,7 +9,6 @@ package tca95xx
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
 	"time"
 
@@ -38,18 +37,6 @@ type port struct {
 	ipol   registerCache // polarity setting
 }
 
-func (p *port) pins(count int) []Pin {
-	result := make([]Pin, count)
-	var i uint8
-	for i = 0; i < uint8(count); i++ {
-		result[i] = &portpin{
-			port:   p,
-			pinbit: i,
-		}
-	}
-	return result
-}
-
 // Tx takes bytes to either read or write.  Only half duplex is supported so it
 // is an error to pass 2 buffers at once.  The bytes are written or read from
 // the same connection sequentially.
@@ -58,9 +45,9 @@ func (p *port) Tx(w, r []byte) (err error) {
 	get := len(r)
 	switch {
 	case send > 0 && get > 0:
-		return fmt.Errorf("tca95xx: only conn.Half duplex is supported")
+		return errors.New("tca95xx: only conn.Half duplex is supported")
 	case send > 0:
-		for i := 0; i < send; i++ {
+		for i := range send {
 			err = p.output.writeValue(w[i], false)
 			if err != nil {
 				return err
@@ -68,7 +55,7 @@ func (p *port) Tx(w, r []byte) (err error) {
 		}
 	case get > 0:
 		var in uint8
-		for i := 0; i < get; i++ {
+		for i := range get {
 			in, err = p.input.readValue(false)
 			if err != nil {
 				return err
@@ -146,7 +133,7 @@ func (p *portpin) Read() gpio.Level {
 	return gpio.Low
 }
 
-func (p *portpin) WaitForEdge(timeout time.Duration) bool {
+func (p *portpin) WaitForEdge(_ time.Duration) bool {
 	return false
 }
 
@@ -166,7 +153,7 @@ func (p *portpin) Out(l gpio.Level) error {
 	return p.port.output.getAndSetBit(p.pinbit, l == gpio.High, true)
 }
 
-func (p *portpin) PWM(duty gpio.Duty, f physic.Frequency) error {
+func (p *portpin) PWM(_ gpio.Duty, _ physic.Frequency) error {
 	return errors.New("tca95xx: PWM is not supported")
 }
 
@@ -203,3 +190,14 @@ func (p *portpin) IsPolarityInverted() (bool, error) {
 }
 
 var supportedFuncs = [...]pin.Func{gpio.IN, gpio.OUT}
+
+func (p *port) pins(count int) []Pin {
+	result := make([]Pin, count)
+	for i := range uint8(count) {
+		result[i] = &portpin{
+			port:   p,
+			pinbit: i,
+		}
+	}
+	return result
+}

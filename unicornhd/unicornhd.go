@@ -91,7 +91,7 @@ func (device *Dev) flush() error {
 	device.txBuffer[0] = prefix
 	x := 0
 	y := 0
-	for i := 0; i < width*height; i++ {
+	for i := range width * height {
 		color := device.pixels.NRGBAAt(x, y)
 		x++
 		if x >= width {

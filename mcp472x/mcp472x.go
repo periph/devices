@@ -32,7 +32,7 @@ import (
 type Variant string
 
 const (
-	// The internal precision reference for the MCP4728
+	// The internal precision reference for the MCP4728.
 	MCP4728InternalRef physic.ElectricPotential = 2048 * physic.MilliVolt
 	MCP4725            Variant                  = "MCP4725"
 	MCP4728            Variant                  = "MCP4728"
@@ -87,20 +87,20 @@ type Dev struct {
 // channel.
 type SetOutputParam struct {
 	// DAC is the D/A channel number. Always 0 for MCP4725.
-	DAC byte
+	DAC byte `json:"DAC"`
 	// V is the voltage to set the output to. For external reference, the
 	// value can be 0-VCC. For the MCP4728 using the internal precision
 	// reference, the value can be 0 - (2 * MCP4728_INTERNAL_REF)
-	V physic.ElectricPotential
+	V physic.ElectricPotential `json:"V"`
 	// For the MCP4728 using the internal reference, you can boost the
 	// gain of the output to 2 * MCP4728_INTERNAL_REF, at the cost of
 	// resolution. vOut cannot exceed VCC. If you need vOut > 3.3V,
 	// ensure VCC=5v.
-	BoostGain bool
+	BoostGain bool `json:"BoostGain"`
 	// True to use the internal reference. Used only for MCP4728.
-	UseInternalRef bool
+	UseInternalRef bool `json:"UseInternalRef"`
 	// Powerdown mode for this channel
-	PDMode PDMode
+	PDMode PDMode `json:"PDMode"`
 }
 
 // New creates and returns a representation of a MCP472X Digital to Analog
@@ -143,71 +143,9 @@ func (d *Dev) PotentialToCount(v physic.ElectricPotential) (uint16, bool, error)
 	count := uint16(float64(v)/float64(stepValue) + 0.5)
 	if count > maxCount && d.variant == MCP4728 {
 		boost = true
-		count = count >> 1
+		count >>= 1
 	}
 	return count, boost, nil
-}
-
-// Convert the current and EEPROM registers for a 4725. The bit structure is
-// different between the two models...
-func (d *Dev) convert4725(bytes []byte) ([]SetOutputParam, []SetOutputParam, error) {
-	busy := bytes[0]&busyFlag == 0x0
-	step := float64(d.vRef) / float64(maxCount)
-	count := float64((uint16(bytes[1]&0xf0) << 4) | (uint16(bytes[1]&0x0f) << 4) | (uint16(bytes[2]) >> 4))
-	op := SetOutputParam{V: physic.ElectricPotential(step * count)}
-	op.PDMode = PDMode((bytes[0] >> 1) & pdMask)
-	current := []SetOutputParam{op}
-
-	count = float64(uint16(bytes[4]) | (uint16(bytes[3]&0x0f) << 8))
-	op = SetOutputParam{V: physic.ElectricPotential(step * count)}
-	op.PDMode = PDMode((bytes[3] >> 5) & pdMask)
-	eeprom := []SetOutputParam{op}
-	var err error
-	if busy {
-		err = errBusy
-	}
-	return current, eeprom, err
-}
-
-// convert4728 converts the bytes read for current and EEPROM registers for
-// an MCP4728 to SetOutputParams Refer to the datasheet for more information.
-func (d *Dev) convert4728(bytes []byte) ([]SetOutputParam, []SetOutputParam, error) {
-	step := d.vRef / maxCount
-	current, eeprom := make([]SetOutputParam, 0), make([]SetOutputParam, 0)
-	pos := 0
-	vals := make([]SetOutputParam, 2)
-	busy := false
-	// A-D
-	for channelID := range d.maxChannels {
-		// Current Output Parameters, and EEPROM Parameters
-		for i := range 2 {
-			busy = busy || bytes[pos]&busyFlag == 0x0
-			count := physic.ElectricPotential(uint16(bytes[pos+2]) | uint16(bytes[pos+1]&0x0f)<<8)
-			pdMode := PDMode(bytes[pos+1] >> 5 & pdMask)
-			boost := bytes[pos+1]&boostBit == boostBit
-			vref := bytes[pos+1]&cmdInternalRef == cmdInternalRef
-			if boost && vref {
-				// Boost Gain is turned on, and it's using the internal reference, so
-				// double the count...
-				count *= 2
-			}
-			vals[i] = SetOutputParam{
-				DAC:            byte(channelID),
-				V:              physic.ElectricPotential(step * count),
-				PDMode:         pdMode,
-				BoostGain:      boost,
-				UseInternalRef: vref,
-			}
-			pos += 3
-		}
-		current = append(current, vals[0])
-		eeprom = append(eeprom, vals[1])
-	}
-	var err error
-	if busy {
-		err = errBusy
-	}
-	return current, eeprom, err
 }
 
 // FastWrite sends raw A/D count values to the converter. Bits 0-11 represent,
@@ -298,7 +236,7 @@ func (d *Dev) SetOutput(params ...SetOutputParam) (err error) {
 func (d *Dev) SetOutputWithSave(params ...SetOutputParam) (err error) {
 	if len(params) == 0 || len(params) > d.maxChannels {
 		err = errInvalidInputCount
-		return
+		return err
 	}
 	var w []byte
 	for _, param := range params {
@@ -312,7 +250,7 @@ func (d *Dev) SetOutputWithSave(params ...SetOutputParam) (err error) {
 		if err != nil {
 			err = fmt.Errorf("mcp472x: error writing to device: %w", err)
 		}
-		return
+		return err
 	}
 
 	w[0] |= cmdWriteWithSave4728
@@ -324,16 +262,15 @@ func (d *Dev) SetOutputWithSave(params ...SetOutputParam) (err error) {
 	if err != nil {
 		err = fmt.Errorf("mcp472x: error writing to device: %w", err)
 	}
-	return
-
+	return err
 }
 
-// Implements conn.Resource
+// Implements conn.Resource.
 func (d *Dev) Halt() error {
 	return nil
 }
 
-// String returns the variant name
+// String returns the variant name.
 func (d *Dev) String() string {
 	return string(d.variant)
 }
@@ -352,7 +289,7 @@ func (d *Dev) paramToBytes(op *SetOutputParam) (bytes []byte) {
 	}
 	// 4728
 	// set the DAC Channel bits, and UDAC
-	bytes = append(bytes, byte(((op.DAC&dacMask)<<1)&0xff))
+	bytes = append(bytes, ((op.DAC&dacMask)<<1)&0xff)
 	b := byte(count>>8) & 0xff
 	if op.UseInternalRef {
 		b |= cmdInternalRef
@@ -375,8 +312,73 @@ func (op SetOutputParam) Equal(op2 SetOutputParam) bool {
 		op.PDMode == op2.PDMode
 }
 
-// String returns a JSON representation of the Output Parameter
+// String returns a JSON representation of the Output Parameter.
 func (op SetOutputParam) String() string {
-	bytes, _ := json.Marshal(&op)
-	return string(bytes)
+	data, err := json.Marshal(&op)
+	if err != nil {
+		return fmt.Sprintf("invalid output parameters: %v", err)
+	}
+	return string(data)
+}
+
+// Convert the current and EEPROM registers for a 4725. The bit structure is
+// different between the two models...
+func (d *Dev) convert4725(bytes []byte) ([]SetOutputParam, []SetOutputParam, error) {
+	busy := bytes[0]&busyFlag == 0x0
+	step := float64(d.vRef) / float64(maxCount)
+	count := float64((uint16(bytes[1]&0xf0) << 4) | (uint16(bytes[1]&0x0f) << 4) | (uint16(bytes[2]) >> 4))
+	op := SetOutputParam{V: physic.ElectricPotential(step * count)}
+	op.PDMode = PDMode((bytes[0] >> 1) & pdMask)
+	current := []SetOutputParam{op}
+
+	count = float64(uint16(bytes[4]) | (uint16(bytes[3]&0x0f) << 8))
+	op = SetOutputParam{V: physic.ElectricPotential(step * count)}
+	op.PDMode = PDMode((bytes[3] >> 5) & pdMask)
+	eeprom := []SetOutputParam{op}
+	var err error
+	if busy {
+		err = errBusy
+	}
+	return current, eeprom, err
+}
+
+// convert4728 converts the bytes read for current and EEPROM registers for
+// an MCP4728 to SetOutputParams Refer to the datasheet for more information.
+func (d *Dev) convert4728(bytes []byte) ([]SetOutputParam, []SetOutputParam, error) {
+	step := d.vRef / maxCount
+	current, eeprom := make([]SetOutputParam, 0), make([]SetOutputParam, 0)
+	pos := 0
+	vals := make([]SetOutputParam, 2)
+	busy := false
+	// A-D
+	for channelID := range d.maxChannels {
+		// Current Output Parameters, and EEPROM Parameters
+		for i := range 2 {
+			busy = busy || bytes[pos]&busyFlag == 0x0
+			count := physic.ElectricPotential(uint16(bytes[pos+2]) | uint16(bytes[pos+1]&0x0f)<<8)
+			pdMode := PDMode(bytes[pos+1] >> 5 & pdMask)
+			boost := bytes[pos+1]&boostBit == boostBit
+			vref := bytes[pos+1]&cmdInternalRef == cmdInternalRef
+			if boost && vref {
+				// Boost Gain is turned on, and it's using the internal reference, so
+				// double the count...
+				count *= 2
+			}
+			vals[i] = SetOutputParam{
+				DAC:            byte(channelID),
+				V:              step * count,
+				PDMode:         pdMode,
+				BoostGain:      boost,
+				UseInternalRef: vref,
+			}
+			pos += 3
+		}
+		current = append(current, vals[0])
+		eeprom = append(eeprom, vals[1])
+	}
+	var err error
+	if busy {
+		err = errBusy
+	}
+	return current, eeprom, err
 }

@@ -25,7 +25,7 @@ const (
 	pcf_rwPin        = 1
 )
 
-// This function returns a display configured to use the pcf8574 i2c backpacks.
+// NewPCF857xBackpack configures a display for a PCF8574 I2C backpack.
 //
 // # Product Information
 //
@@ -44,9 +44,8 @@ func NewPCF857xBackpack(bus i2c.Bus, address uint16, rows, cols int) (*HD44780, 
 
 	// Create our gpio.Group
 	gr, _ := pcf.Group(pcf_d4, pcf_d5, pcf_d6, pcf_d7, pcf_rsPin, pcf_enablePin, pcf_backlightPin)
-	grPins := gr.Pins()
-	reset := grPins[4].(gpio.PinOut)
-	enable := grPins[5].(gpio.PinOut)
-	bl := grPins[6].(gpio.PinOut)
+	reset := pcf.Pins[pcf_rsPin]
+	enable := pcf.Pins[pcf_enablePin]
+	bl := pcf.Pins[pcf_backlightPin]
 	return NewHD44780(gr, reset, enable, NewBacklight(bl), rows, cols)
 }

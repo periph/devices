@@ -17,7 +17,7 @@ import (
 // lineTwo offset for the second line in the LCD buffer.
 const lineTwo = 0x40
 
-// Deprecated: Use HD44780
+// Deprecated: Use HD44780.
 type Dev struct {
 	// data pins
 	dataPins []gpio.PinOut
@@ -77,7 +77,7 @@ func (r *Dev) String() string {
 	return "HD44870, 4 bit mode"
 }
 
-// Halt clears the LCD screen
+// Halt clears the LCD screen.
 func (r *Dev) Halt() error {
 	if err := r.writeInstruction(0x01); err != nil {
 		return err

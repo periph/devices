@@ -21,7 +21,7 @@ import (
 type LEDStructure byte
 
 const (
-	// LEDs are connected in OpenDrain format
+	// LEDs are connected in OpenDrain format.
 	STRUCT_OPENDRAIN LEDStructure = iota
 	// LEDs are connected in TotemPole format.
 	STRUCT_TOTEMPOLE
@@ -40,7 +40,7 @@ const (
 )
 
 const (
-	// Register offsets from the datasheet
+	// Register offsets from the datasheet.
 	_DEV_MODE1 byte = iota
 	_DEV_MODE2
 	_PWM0
@@ -80,18 +80,6 @@ func New(bus i2c.Bus, address uint16, ledStructure LEDStructure) (*Dev, error) {
 	return dev, dev.init()
 }
 
-func (dev *Dev) init() error {
-	// We have to write 0 to bit 5 to turn on the PWM oscillator...
-	err := dev.d.Tx([]byte{_DEV_MODE1, _DEV_MODE1_DEFAULT}, nil)
-	if err == nil {
-		err = dev.d.Tx([]byte{_DEV_MODE2, dev.devMode2}, nil)
-		if err == nil {
-			err = dev.SetModes(MODE_FULL_OFF, MODE_FULL_OFF, MODE_FULL_OFF, MODE_FULL_OFF)
-		}
-	}
-	return wrap(err)
-}
-
 func wrap(err error) error {
 	if err == nil {
 		return nil
@@ -100,7 +88,7 @@ func wrap(err error) error {
 }
 
 // Halt stops all LED display by setting them all to MODE_FULL_OFF. Implements
-// conn.Resource
+// conn.Resource.
 func (dev *Dev) Halt() error {
 	return dev.SetModes(MODE_FULL_OFF, MODE_FULL_OFF, MODE_FULL_OFF, MODE_FULL_OFF)
 }
@@ -111,12 +99,13 @@ func (dev *Dev) Halt() error {
 func (dev *Dev) Out(intensities ...display.Intensity) error {
 	newModes := make([]LEDMode, len(dev.modes))
 	copy(newModes, dev.modes)
-	for ix := range len(intensities) {
-		if intensities[ix] == 0 {
+	for ix := range intensities {
+		switch {
+		case intensities[ix] == 0:
 			newModes[ix] = MODE_FULL_OFF
-		} else if intensities[ix] >= 0xff && dev.modes[ix] == MODE_FULL_OFF {
+		case intensities[ix] >= 0xff && dev.modes[ix] == MODE_FULL_OFF:
 			newModes[ix] = MODE_FULL_ON
-		} else {
+		default:
 			if dev.modes[ix] != MODE_PWM && dev.modes[ix] != MODE_PWM_PLUS_GROUP {
 				newModes[ix] = MODE_PWM
 			}
@@ -135,7 +124,7 @@ func (dev *Dev) Out(intensities ...display.Intensity) error {
 //
 // Refer to the datasheet on this functionality. If the mode is not blink,
 // then it's group PWM, but group PWM is only applied if the individual led
-// mode is MODE_PWM_PLUS_GROUP
+// mode is MODE_PWM_PLUS_GROUP.
 func (dev *Dev) SetGroupPWMBlink(intensity display.Intensity, blinkDuration time.Duration) error {
 	periodIncrement := 41_666 * time.Microsecond
 	newDevMode := dev.devMode2
@@ -143,11 +132,12 @@ func (dev *Dev) SetGroupPWMBlink(intensity display.Intensity, blinkDuration time
 		// calculate the duration value.
 		var blinkSetting int
 		cnt := int(blinkDuration / periodIncrement)
-		if cnt < 0 {
+		switch {
+		case cnt < 0:
 			blinkSetting = 0
-		} else if cnt > 0xff {
+		case cnt > 0xff:
 			blinkSetting = 0xff
-		} else {
+		default:
 			blinkSetting = cnt
 		}
 		if blinkSetting == 0 {
@@ -161,10 +151,8 @@ func (dev *Dev) SetGroupPWMBlink(intensity display.Intensity, blinkDuration time
 				newDevMode |= _DEV_MODE_BLINK
 			}
 		}
-	} else {
-		if dev.devMode2&_DEV_MODE_BLINK == _DEV_MODE_BLINK {
-			newDevMode ^= _DEV_MODE_BLINK
-		}
+	} else if dev.devMode2&_DEV_MODE_BLINK == _DEV_MODE_BLINK {
+		newDevMode ^= _DEV_MODE_BLINK
 	}
 	if newDevMode != dev.devMode2 {
 		err := dev.d.Tx([]byte{_DEV_MODE2, newDevMode}, nil)
@@ -195,7 +183,7 @@ func (dev *Dev) SetInvert(invert bool) error {
 func (dev *Dev) SetModes(modes ...LEDMode) error {
 	var mode byte
 	var changed bool
-	for i := range len(modes) {
+	for i := range modes {
 		changed = changed || (modes[i] != dev.modes[i])
 		mode |= (byte(modes[i]) << (i * 2))
 	}
@@ -209,4 +197,16 @@ func (dev *Dev) SetModes(modes ...LEDMode) error {
 
 func (dev *Dev) String() string {
 	return fmt.Sprintf("PCA9633::%#v", dev.d)
+}
+
+func (dev *Dev) init() error {
+	// We have to write 0 to bit 5 to turn on the PWM oscillator...
+	err := dev.d.Tx([]byte{_DEV_MODE1, _DEV_MODE1_DEFAULT}, nil)
+	if err == nil {
+		err = dev.d.Tx([]byte{_DEV_MODE2, dev.devMode2}, nil)
+		if err == nil {
+			err = dev.SetModes(MODE_FULL_OFF, MODE_FULL_OFF, MODE_FULL_OFF, MODE_FULL_OFF)
+		}
+	}
+	return wrap(err)
 }

@@ -18,6 +18,7 @@ package nxp74hc595
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -63,24 +64,6 @@ func New(conn spi.Conn) (*Dev, error) {
 	return &dev, nil
 }
 
-// write does the low-level write to the device.
-func (dev *Dev) write(value, mask gpio.GPIOValue) error {
-
-	dev.mu.Lock()
-	defer dev.mu.Unlock()
-	newValue := (dev.value & (devMask ^ mask)) | (value & mask)
-	if dev.value == newValue {
-		return nil
-	}
-	var err error
-	var w = []byte{byte(newValue)}
-	err = dev.conn.Tx(w, nil)
-	if err == nil {
-		dev.value = newValue
-	}
-	return err
-}
-
 // Group returns a subset of pins on the device as a gpio.Group. A Group
 // allows you to write to multiple pins in a single transaction.
 func (dev *Dev) Group(pins ...int) (gpio.Group, error) {
@@ -93,7 +76,7 @@ func (dev *Dev) Group(pins ...int) (gpio.Group, error) {
 	return &gr, nil
 }
 
-// Halt disables the device
+// Halt disables the device.
 func (dev *Dev) Halt() (err error) {
 	dev.mu.Lock()
 	defer dev.mu.Unlock()
@@ -113,7 +96,6 @@ func (gr *Group) Pins() []pin.Pin {
 		result[ix] = &p
 	}
 	return result
-
 }
 
 // Given an offset of a pin into the group, return that pin.
@@ -162,12 +144,12 @@ func (gr *Group) Out(value, mask gpio.GPIOValue) error {
 }
 
 // Read is not available for this device.
-func (gr *Group) Read(mask gpio.GPIOValue) (gpio.GPIOValue, error) {
+func (gr *Group) Read(_ gpio.GPIOValue) (gpio.GPIOValue, error) {
 	return 0, ErrNotImplemented
 }
 
 // WaitForEdge is not available for this device.
-func (gr *Group) WaitForEdge(timeout time.Duration) (int, gpio.Edge, error) {
+func (gr *Group) WaitForEdge(_ time.Duration) (int, gpio.Edge, error) {
 	return 0, gpio.NoEdge, ErrNotImplemented
 }
 
@@ -179,12 +161,31 @@ func (gr *Group) Halt() error {
 
 func (gr *Group) String() string {
 	s := gr.dev.String() + "[ "
+	var sSb182 strings.Builder
 	for ix := range len(gr.pins) {
-		s += fmt.Sprintf("%d ", gr.pins[ix].number)
+		sSb182.WriteString(fmt.Sprintf("%d ", gr.pins[ix].number))
 	}
+	s += sSb182.String()
 	s += "]"
 	return s
 }
 
 var _ gpio.PinOut = &Pin{}
 var _ gpio.Group = &Group{}
+
+// write does the low-level write to the device.
+func (dev *Dev) write(value, mask gpio.GPIOValue) error {
+	dev.mu.Lock()
+	defer dev.mu.Unlock()
+	newValue := (dev.value & (devMask ^ mask)) | (value & mask)
+	if dev.value == newValue {
+		return nil
+	}
+	var err error
+	var w = []byte{byte(newValue)}
+	err = dev.conn.Tx(w, nil)
+	if err == nil {
+		dev.value = newValue
+	}
+	return err
+}

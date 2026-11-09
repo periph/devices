@@ -3,7 +3,7 @@
 // that can be found in the LICENSE file.
 
 // Marc-Antoine Ruel hereby grants a license to The Periph Authors under the
-// the appropriate license.
+// appropriate license.
 
 // This code originates from https://github.com/maruel/temperature. Please keep
 // in sync.

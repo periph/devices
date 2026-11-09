@@ -8,6 +8,7 @@ package inky
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -82,7 +83,7 @@ func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, o *Opts
 
 	c, err := p.Connect(488*physic.KiloHertz, spi.Mode0, 8)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to inky over spi: %v", err)
+		return nil, fmt.Errorf("failed to connect to inky over spi: %w", err)
 	}
 
 	// Get the maxTxSize from the conn if it implements the conn.Limits interface,
@@ -218,9 +219,9 @@ func (d *Dev) Bounds() image.Rectangle {
 }
 
 // Draw implements interface [display.Drawer].
-func (d *Dev) Draw(dstRect image.Rectangle, src image.Image, srcPtrs image.Point) error {
+func (d *Dev) Draw(dstRect image.Rectangle, src image.Image, _ image.Point) error {
 	if dstRect != d.Bounds() {
-		return fmt.Errorf("partial update not supported")
+		return errors.New("partial update not supported")
 	}
 
 	if src.Bounds() != d.Bounds() {
@@ -286,8 +287,8 @@ func (d *Dev) update(border byte, black []byte, red []byte) error {
 		{0x11, []byte{0x03}},             // Data entry mode setting 0x03 = X/Y increment
 		{0x2c, []byte{0x3c}},             // VCOM Register, 0x3c = -1.5v?
 		{0x3c, []byte{0x00}},
-		{0x3c, []byte{byte(border)}}, // Border colour
-		{0x32, modelLUT[d.color]},    // Set LUTs.
+		{0x3c, []byte{border}},    // Border colour
+		{0x32, modelLUT[d.color]}, // Set LUTs.
 		{0x44, []byte{0x00, byte(d.Bounds().Size().X/8) - 1}}, // Set RAM Y Start/End
 		{0x45, h[:]},               // Set RAM X Start/End
 		{0x4e, []byte{0x00}},       // Set RAM X Pointer Start
@@ -342,7 +343,7 @@ func (d *Dev) reset() (err error) {
 		}
 	}()
 	if err := d.sendCommand(0x12, nil); err != nil { // Soft Reset
-		return fmt.Errorf("inky: failed to reset inky: %v", err)
+		return fmt.Errorf("inky: failed to reset inky: %w", err)
 	}
 	d.busy.WaitForEdge(-1)
 	return
@@ -375,7 +376,7 @@ func (d *Dev) sendCommand(command byte, data []byte) (err error) {
 		return
 	}
 	if err = d.c.Tx([]byte{command}, nil); err != nil {
-		err = fmt.Errorf("inky: failed to send command %x to inky: %v", command, err)
+		err = fmt.Errorf("inky: failed to send command %x to inky: %w", command, err)
 		return
 	}
 	err = d.setCSPin(csDisabled)
@@ -385,7 +386,7 @@ func (d *Dev) sendCommand(command byte, data []byte) (err error) {
 
 	if data != nil {
 		if err = d.sendData(data); err != nil {
-			err = fmt.Errorf("inky: failed to send data for command %x to inky: %v", command, err)
+			err = fmt.Errorf("inky: failed to send data for command %x to inky: %w", command, err)
 			return
 		}
 	}
@@ -409,7 +410,7 @@ func (d *Dev) sendData(data []byte) (err error) {
 			chunk, data = data, nil
 		}
 		if err = d.c.Tx(chunk, nil); err != nil {
-			err = fmt.Errorf("inky: failed to send data to inky: %v", err)
+			err = fmt.Errorf("inky: failed to send data to inky: %w", err)
 			return
 		}
 	}

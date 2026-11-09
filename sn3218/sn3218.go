@@ -76,7 +76,7 @@ func (d *Dev) Switch(channel int, state bool) error {
 
 // SwitchAll switches all channels according to the state (on/off).
 func (d *Dev) SwitchAll(state bool) error {
-	for i := 0; i < 18; i++ {
+	for i := range 18 {
 		d.on[i] = state
 	}
 	return d.updateStates()
@@ -93,7 +93,7 @@ func (d *Dev) Brightness(channel int, value byte) error {
 
 // BrightnessAll sets the brightness of all channels to the value (0..255).
 func (d *Dev) BrightnessAll(value byte) error {
-	for i := 0; i < 18; i++ {
+	for i := range 18 {
 		d.brightness[i] = value
 	}
 	return d.updateBrightness()
@@ -109,7 +109,7 @@ func (d *Dev) reset() error {
 
 func (d *Dev) stateArrayToInt() uint {
 	var result uint
-	for i := uint(0); i < uint(18); i++ {
+	for i := range uint(18) {
 		state := uint(1)
 		if !d.on[i] {
 			state = uint(0)

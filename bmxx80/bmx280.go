@@ -133,10 +133,10 @@ func newCalibration(tph, h []byte) (c calibration280) {
 	c.p7 = int16(tph[18]) | int16(tph[19])<<8
 	c.p8 = int16(tph[20]) | int16(tph[21])<<8
 	c.p9 = int16(tph[22]) | int16(tph[23])<<8
-	c.h1 = uint8(tph[25])
+	c.h1 = tph[25]
 
 	c.h2 = int16(h[0]) | int16(h[1])<<8
-	c.h3 = uint8(h[2])
+	c.h3 = h[2]
 	c.h4 = int16(h[3])<<4 | int16(h[4])&0xF
 	c.h5 = int16(h[4])>>4 | int16(h[5])<<4
 	c.h6 = int8(h[6])
@@ -203,7 +203,7 @@ func (c *calibration280) compensateHumidityInt(raw, tFine int32) uint32 {
 	x5 := (x3 * (x4 + 32768)) >> 10
 	x6 := ((x5+2097152)*int32(c.h2) + 8192) >> 14
 	x = x2 * x6
-	x = x - ((((x>>15)*(x>>15))>>7)*int32(c.h1))>>4
+	x -= ((((x >> 15) * (x >> 15)) >> 7) * int32(c.h1)) >> 4
 	if x < 0 {
 		return 0
 	}

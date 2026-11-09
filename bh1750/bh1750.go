@@ -72,7 +72,7 @@ const (
 	reset                   uint8 = 0x07
 )
 
-// Dev is a handler to bh1750 controller
+// Dev is a handler to bh1750 controller.
 type Dev struct {
 	dev  i2c.Dev
 	res  Resolution
@@ -89,19 +89,6 @@ func NewI2C(bus i2c.Bus, address uint16) (*Dev, error) {
 		return nil, err
 	}
 	return dev, nil
-}
-
-func (d *Dev) init() error {
-	if err := d.SetMode(PowerOn); err != nil {
-		return err
-	}
-
-	if err := d.SetResolution(ContinuousHighResMode); err != nil {
-		return err
-	}
-
-	_, err := d.dev.Write([]byte{reset})
-	return err
 }
 
 // SetMode set the sleep mode of the sensor.
@@ -139,4 +126,17 @@ func (d *Dev) Sense() (physic.LuminousFlux, error) {
 // Halt turn off device.
 func (d *Dev) Halt() error {
 	return d.SetMode(PowerDown)
+}
+
+func (d *Dev) init() error {
+	if err := d.SetMode(PowerOn); err != nil {
+		return err
+	}
+
+	if err := d.SetResolution(ContinuousHighResMode); err != nil {
+		return err
+	}
+
+	_, err := d.dev.Write([]byte{reset})
+	return err
 }

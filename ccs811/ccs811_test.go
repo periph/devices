@@ -7,6 +7,7 @@
 package ccs811
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -36,13 +37,17 @@ func TestBasicInitialisationAndDataRead(t *testing.T) {
 	data := &SensorValues{}
 	if err := dev.Sense(data); err == nil {
 		var vExpected physic.ElectricPotential
-		vExpected.Set("1.65V") // 682 units
+		if callErr := vExpected.Set("1.65V"); callErr != nil {
+			t.Fatal(callErr)
+		}
 		var cExpected physic.ElectricCurrent
-		cExpected.Set("63uA")
+		if callErr := cExpected.Set("63uA"); callErr != nil {
+			t.Fatal(callErr)
+		}
 		if data.ECO2 != 0x102 &&
 			data.VOC != 0x203 &&
 			data.Status != 0xF &&
-			data.Error != fmt.Errorf("sensor error: %s", "HEATER_FAULT: The Heater current in the CCS811 is not in range.") &&
+			!errors.Is(data.Error, fmt.Errorf("sensor error: %s", "HEATER_FAULT: The Heater current in the CCS811 is not in range.")) &&
 			data.RawDataCurrent != cExpected &&
 			data.RawDataVoltage != vExpected {
 			t.Fatalf("Data parsed incorrectly, got %v", data)
@@ -78,7 +83,6 @@ func TestMeasurementModeRegisterRead(t *testing.T) {
 		mode.MeasurementMode != MeasurementModeConstant250 {
 		t.Fatalf("Parsing of Measurement Mode register failed. Got: %+v", mode)
 	}
-
 }
 func TestGetFirmwareData(t *testing.T) {
 	bus := i2ctest.Playback{
@@ -110,7 +114,6 @@ func TestGetFirmwareData(t *testing.T) {
 		versions.ApplicationVersion != "8.9.32" {
 		t.Fatalf("Parsing of firmware version data failed. Got: %+v", versions)
 	}
-
 }
 
 func TestInvalidSensorAddress(t *testing.T) {
@@ -137,8 +140,12 @@ func TestSetEnvironmentData(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dev.SetEnvironmentData(25, 48.5)
-	dev.SetEnvironmentData(23.5, 50)
+	if err := dev.SetEnvironmentData(25, 48.5); err != nil {
+		t.Fatal(err)
+	}
+	if err := dev.SetEnvironmentData(23.5, 50); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestBaseline(t *testing.T) {
@@ -158,7 +165,9 @@ func TestBaseline(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dev.SetBaseline(base)
+	if err := dev.SetBaseline(base); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestReadRawData(t *testing.T) {
@@ -178,9 +187,13 @@ func TestReadRawData(t *testing.T) {
 		t.Fatal(err)
 	}
 	var vExpected physic.ElectricPotential
-	vExpected.Set("1.1V") // 682 units
+	if err := vExpected.Set("1.1V"); err != nil {
+		t.Fatal(err)
+	}
 	var cExpected physic.ElectricCurrent
-	cExpected.Set("37uA")
+	if err := cExpected.Set("37uA"); err != nil {
+		t.Fatal(err)
+	}
 
 	if cur != cExpected || vol != vExpected {
 		t.Fatalf("Raw data reading failed got values: %d, %d", cur, vol)
@@ -189,9 +202,13 @@ func TestReadRawData(t *testing.T) {
 
 func TestRawDataParsing(t *testing.T) {
 	var vExpected physic.ElectricPotential
-	vExpected.Set("0.825806451V") // 512 units
+	if err := vExpected.Set("0.825806451V"); err != nil {
+		t.Fatal(err)
+	}
 	var cExpected physic.ElectricCurrent
-	cExpected.Set("62uA")
+	if err := cExpected.Set("62uA"); err != nil {
+		t.Fatal(err)
+	}
 	c, v := valuesFromRawData([]byte{0xFA, 0x0})
 	if c != cExpected && v != vExpected {
 		t.Fatal("current and/or voltage data parsed incorrectly")
@@ -212,5 +229,7 @@ func TestReset(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dev.Reset()
+	if err := dev.Reset(); err != nil {
+		t.Fatal(err)
+	}
 }

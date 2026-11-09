@@ -35,7 +35,11 @@ func Example() {
 		log.Fatal(err)
 	}
 
-	defer conn.Close()
+	defer func() {
+		if closeErr := conn.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	dc := gpioreg.ByName("6")
 	reset := gpioreg.ByName("5")
@@ -59,21 +63,25 @@ func Example() {
 
 	defer func() {
 		fmt.Println("halting device")
-		dev.Halt()
+		if callErr := dev.Halt(); callErr != nil {
+			log.Fatal(callErr)
+		}
 	}()
 
-	//Control-C trap
+	// Control-C trap
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
 		fmt.Println("halting device")
-		dev.Halt()
+		if callErr := dev.Halt(); callErr != nil {
+			log.Fatal(callErr)
+		}
 		os.Exit(1)
 	}()
 
-	for x := 0; x < st7567.Width; x++ {
-		for y := 0; y < st7567.Height; y++ {
+	for x := range st7567.Width {
+		for y := range st7567.Height {
 			dev.SetPixel(x, y, true)
 		}
 
@@ -84,7 +92,7 @@ func Example() {
 		time.Sleep(40 * time.Millisecond)
 	}
 
-	for i := 0; i < 64; i++ {
+	for i := range 64 {
 		fmt.Printf("current contrast value: %d\n", i)
 
 		if err = dev.SetContrast(byte(i)); err != nil {

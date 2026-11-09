@@ -32,7 +32,11 @@ func Example() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer b.Close()
+	defer func() {
+		if closeErr := b.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	dev, err := waveshare2in13v4.NewHat(b, &waveshare2in13v4.EPD2in13v4) // Display config and size
 	if err != nil {
@@ -72,7 +76,11 @@ func Example_other() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer b.Close()
+	defer func() {
+		if closeErr := b.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	dev, err := waveshare2in13v4.NewHat(b, &waveshare2in13v4.EPD2in13v4) // Display config and size
 	if err != nil {

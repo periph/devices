@@ -204,8 +204,8 @@ func TestTurnOnDisplayPart(t *testing.T) {
 func TestClear(t *testing.T) {
 	var buff []byte
 	const linewidth = int(122/8) + 1
-	for j := 0; j < 250; j++ {
-		for i := 0; i < linewidth; i++ {
+	for range 250 {
+		for range linewidth {
 			buff = append(buff, 0x00)
 		}
 	}

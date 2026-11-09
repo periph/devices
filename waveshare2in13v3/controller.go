@@ -7,8 +7,8 @@
 package waveshare2in13v3
 
 type controller interface {
-	sendCommand(byte)
-	sendData([]byte)
+	sendCommand(command byte)
+	sendData(data []byte)
 	waitUntilIdle()
 }
 
@@ -99,7 +99,7 @@ func updateDisplay(ctrl controller, mode PartialUpdate) {
 
 // new
 
-// turnOnDisplay turns on the display if mode = true it does a partial display
+// turnOnDisplay turns on the display if mode = true it does a partial display.
 func turnOnDisplay(ctrl controller, mode PartialUpdate) {
 	var upMode byte = 0xC7
 	if mode {
@@ -149,15 +149,15 @@ func setCursor(ctrl controller, x int, y int) {
 func clear(ctrl controller, color byte, opts *Opts) {
 	var linewidth int
 	if opts.Width%8 == 0 {
-		linewidth = int(opts.Width / 8)
+		linewidth = opts.Width / 8
 	} else {
-		linewidth = int(opts.Width/8) + 1
+		linewidth = opts.Width/8 + 1
 	}
 
 	var buff []byte
 	ctrl.sendCommand(writeRAMBW)
-	for j := 0; j < opts.Height; j++ {
-		for i := 0; i < linewidth; i++ {
+	for range opts.Height {
+		for range linewidth {
 			buff = append(buff, color)
 		}
 	}

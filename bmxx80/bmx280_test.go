@@ -46,34 +46,32 @@ var calib280 = calibration280{
 
 func TestSPISenseBME280_success(t *testing.T) {
 	s := spitest.Playback{
-		Playback: conntest.Playback{
-			Ops: []conntest.IO{
-				// Chip ID detection.
-				{
-					W: []byte{0xD0, 0x00},
-					R: []byte{0x00, 0x60},
-				},
-				// Calibration data.
-				{
-					W: []byte{0x88, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-					R: []byte{0x00, 0xC9, 0x6C, 0x63, 0x65, 0x32, 0x00, 0x77, 0x93, 0x98, 0xD5, 0xD0, 0x0B, 0x67, 0x23, 0xBA, 0x00, 0xF9, 0xFF, 0xAC, 0x26, 0x0A, 0xD8, 0xBD, 0x10, 0x00, 0x4B},
-				},
-				// Calibration data humidity.
-				{
-					W: []byte{0xE1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-					R: []byte{0x00, 0x5C, 0x01, 0x00, 0x15, 0x0F, 0x00, 0x1E},
-				},
-				// Config.
-				{W: []byte{0x74, 0xB4, 0x72, 0x05, 0x75, 0xA0, 0x74, 0xB4}},
-				// Forced mode.
-				{W: []byte{0x74, 0xB5}},
-				// Check if idle.
-				{W: []byte{0xF3, 0x00}, R: []byte{0, 0}},
-				// Read measurement data.
-				{
-					W: []byte{0xF7, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-					R: []byte{0x00, 0x51, 0x9F, 0xC0, 0x9E, 0x3A, 0x50, 0x5E, 0x5B},
-				},
+		Ops: []conntest.IO{
+			// Chip ID detection.
+			{
+				W: []byte{0xD0, 0x00},
+				R: []byte{0x00, 0x60},
+			},
+			// Calibration data.
+			{
+				W: []byte{0x88, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+				R: []byte{0x00, 0xC9, 0x6C, 0x63, 0x65, 0x32, 0x00, 0x77, 0x93, 0x98, 0xD5, 0xD0, 0x0B, 0x67, 0x23, 0xBA, 0x00, 0xF9, 0xFF, 0xAC, 0x26, 0x0A, 0xD8, 0xBD, 0x10, 0x00, 0x4B},
+			},
+			// Calibration data humidity.
+			{
+				W: []byte{0xE1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+				R: []byte{0x00, 0x5C, 0x01, 0x00, 0x15, 0x0F, 0x00, 0x1E},
+			},
+			// Config.
+			{W: []byte{0x74, 0xB4, 0x72, 0x05, 0x75, 0xA0, 0x74, 0xB4}},
+			// Forced mode.
+			{W: []byte{0x74, 0xB5}},
+			// Check if idle.
+			{W: []byte{0xF3, 0x00}, R: []byte{0, 0}},
+			// Read measurement data.
+			{
+				W: []byte{0xF7, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+				R: []byte{0x00, 0x51, 0x9F, 0xC0, 0x9E, 0x3A, 0x50, 0x5E, 0x5B},
 			},
 		},
 	}
@@ -118,16 +116,14 @@ func TestNewSPIBME280_fail_Connect(t *testing.T) {
 
 func TestNewSPIBME280_fail_len(t *testing.T) {
 	s := spitest.Playback{
-		Playback: conntest.Playback{
-			Ops: []conntest.IO{
-				{
-					// Chip ID detection.
-					W: []byte{0xD0, 0x00},
-					R: []byte{0x00},
-				},
+		Ops: []conntest.IO{
+			{
+				// Chip ID detection.
+				W: []byte{0xD0, 0x00},
+				R: []byte{0x00},
 			},
-			DontPanic: true,
 		},
+		DontPanic: true,
 	}
 	if dev, err := NewSPI(&s, &DefaultOpts); dev != nil || err == nil {
 		t.Fatal("read failed")
@@ -141,13 +137,11 @@ func TestNewSPIBME280_fail_len(t *testing.T) {
 
 func TestNewSPIBME280_fail_chipid(t *testing.T) {
 	s := spitest.Playback{
-		Playback: conntest.Playback{
-			Ops: []conntest.IO{
-				{
-					// Chip ID detection.
-					W: []byte{0xD0, 0x00},
-					R: []byte{0x00, 0xFF},
-				},
+		Ops: []conntest.IO{
+			{
+				// Chip ID detection.
+				W: []byte{0xD0, 0x00},
+				R: []byte{0x00, 0xFF},
 			},
 		},
 	}
@@ -729,7 +723,7 @@ func TestCalibration280_limits_0(t *testing.T) {
 	}
 }
 
-func TestCalibration280_limits_419430400(t *testing.T) {
+func TestCalibration280_limits_419430400(_ *testing.T) {
 	// TODO(maruel): Reverse the equation to overflow  419430400
 }
 
@@ -854,7 +848,7 @@ func BenchmarkCalibration280Int32(b *testing.B) {
 	tRaw := int32(524112)
 	pRaw := int32(309104)
 	hRaw := int32(30987)
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		temp, tFine := calib280.compensateTempInt(tRaw)
 		pres := calib280.compensatePressureInt32(pRaw, tFine)
 		humi := calib280.compensateHumidityInt(hRaw, tFine)
@@ -881,7 +875,7 @@ func BenchmarkCalibration280Int64(b *testing.B) {
 	tRaw := int32(524112)
 	pRaw := int32(309104)
 	hRaw := int32(30987)
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		temp, tFine := calib280.compensateTempInt(tRaw)
 		pres := calib280.compensatePressureInt64(pRaw, tFine)
 		humi := calib280.compensateHumidityInt(hRaw, tFine)
@@ -908,7 +902,7 @@ func BenchmarkCalibration280Float64(b *testing.B) {
 	tRaw := int32(524112)
 	pRaw := int32(309104)
 	hRaw := int32(30987)
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		tempf, tFine := calib280.compensateTempFloat(tRaw)
 		presf := calib280.compensatePressureFloat(pRaw, tFine)
 		humif := calib280.compensateHumidityFloat(hRaw, tFine)
@@ -1023,7 +1017,7 @@ type spiFail struct {
 	spitest.Playback
 }
 
-func (s *spiFail) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, error) {
+func (s *spiFail) Connect(_ physic.Frequency, _ spi.Mode, _ int) (spi.Conn, error) {
 	return nil, errors.New("failing")
 }
 

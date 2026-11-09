@@ -42,7 +42,7 @@ const (
 	ActivityStatus   = 0x2A // Source of activity detection
 	InactivityStatus = 0x2B // Source of inactivity detection
 
-	// Control registers
+	// Control registers.
 
 	BwRate     = 0x2C // Data rate and power mode control
 	PowerCtl   = 0x2D // Power saving features control
@@ -51,7 +51,7 @@ const (
 	IntSource  = 0x30 // Source of interrupts
 	DataFormat = 0x31 // Data format control
 
-	// Data registers
+	// Data registers.
 	DataX0 = 0x32 // X-Axis Data 0
 	DataX1 = 0x33 // X-Axis Data 1
 	DataY0 = 0x34 // Y-Axis Data 0
@@ -59,7 +59,7 @@ const (
 	DataZ0 = 0x36 // Z-Axis Data 0
 	DataZ1 = 0x37 // Z-Axis Data 1
 
-	// FIFO control
+	// FIFO control.
 	FifoCtl    = 0x38 // FIFO control
 	FifoStatus = 0x39 // FIFO status
 
@@ -110,18 +110,6 @@ type Dev struct {
 	sensitivity Sensitivity
 }
 
-func (d *Dev) Mode() string {
-	if d.isSPI {
-		return "SPI"
-	} else {
-		return "I²C"
-	}
-}
-
-func (d *Dev) String() string {
-	return fmt.Sprintf("%s{Sensitivity:%s, Mode:%s}", d.name, d.sensitivity, d.Mode())
-}
-
 // NewI2C returns an object that communicates over I²C to ADXL345
 // accelerometer.
 //
@@ -155,6 +143,92 @@ func NewSpi(p spi.Port, o *Opts) (*Dev, error) {
 		return nil, err
 	}
 	return d, nil
+}
+
+func (d *Dev) Mode() string {
+	if d.isSPI {
+		return "SPI"
+	}
+	return "I²C"
+}
+
+func (d *Dev) String() string {
+	return fmt.Sprintf("%s{Sensitivity:%s, Mode:%s}", d.name, d.sensitivity, d.Mode())
+}
+
+// TurnOn turns on the measurement mode of the ADXL345.
+// This is required before reading data from the device.
+func (d *Dev) TurnOn() error {
+	return d.Write(PowerCtl, 0x08)
+}
+
+// TurnOff turns off the measurement mode of the ADXL345.
+func (d *Dev) TurnOff() error {
+	return d.Write(PowerCtl, 0x00)
+}
+
+// Update reads the acceleration values from the ADXL345.
+// By reading the acceleration the 3 axes acceleration values.
+// This is a simple synchronous implementation.
+func (d *Dev) Update() Acceleration {
+	return Acceleration{
+		X: d.readAndCombine(DataX0, DataX1),
+		Y: d.readAndCombine(DataY0, DataY1),
+		Z: d.readAndCombine(DataZ0, DataZ1),
+	}
+}
+
+// Read reads a 16-bit value from the specified register address.
+func (d *Dev) Read(regAddress byte) (int16, error) {
+	// Send a two-byte sequence:
+	// - The first byte contains the address with bit 7 set high to indicate read op
+	// - The second byte is a "don't care" value, usually zero
+	tx := []byte{regAddress | 0x80, 0x00}
+	rx := make([]byte, len(tx))
+	err := d.c.Tx(tx, rx)
+	if err != nil {
+		return 0, err
+	}
+	return int16(binary.LittleEndian.Uint16(rx)), nil
+}
+
+// Write writes a 1 byte value to the specified register address.
+func (d *Dev) Write(regAddress byte, value byte) error {
+	return d.c.Tx([]byte{regAddress, value}, nil)
+}
+
+// Acceleration represents the acceleration on the three axes X,Y,Z.
+// The sensitivity can be set to different levels: ±2g, ±4g, ±8g, or ±16g. (S2G, S4G, S8G, S16G)
+// The output are 16-bit integers, so the device measures between -32768 and +32767 for each axis.
+// For example, if the sensitivity is set to ±2g and you're getting a reading of 16384 on the X axis, that would correspond to 1g of acceleration along the X axis.
+// To convert the raw values to a physical unit (like g or m/s²), you would need to know the sensitivity setting of your device.
+// For instance, if your sensitivity is set to ±2g, the conversion factor would be 2 / 32768 = 0.000061g per count.
+// So, you would multiply the raw acceleration values by this factor to get the acceleration in `g`.
+type Acceleration struct {
+	X int16
+	Y int16
+	Z int16
+}
+
+// String returns a string representation of the Acceleration.
+func (a Acceleration) String() string {
+	return fmt.Sprintf("X:%d Y:%d Z:%d", a.X, a.Y, a.Z)
+}
+
+// Sensitivity returns the sensitivity of the device as a human-readable string.
+func (s Sensitivity) String() string {
+	switch s {
+	case S2G:
+		return "+/-2g"
+	case S4G:
+		return "+/-4g"
+	case S8G:
+		return "+/-8g"
+	case S16G:
+		return "+/-16g"
+	default:
+		return fmt.Sprintf("unknown sensitivity: %#x", byte(s))
+	}
 }
 
 // makeDev turns on with the expected sensitivity and verifies if it is a supported device.
@@ -201,28 +275,6 @@ func (d *Dev) setSensitivity(sensitivity Sensitivity) error {
 	}
 }
 
-// TurnOn turns on the measurement mode of the ADXL345.
-// This is required before reading data from the device.
-func (d *Dev) TurnOn() error {
-	return d.Write(PowerCtl, 0x08)
-}
-
-// TurnOff turns off the measurement mode of the ADXL345.
-func (d *Dev) TurnOff() error {
-	return d.Write(PowerCtl, 0x00)
-}
-
-// Update reads the acceleration values from the ADXL345.
-// By reading the acceleration the 3 axes acceleration values.
-// This is a simple synchronous implementation.
-func (d *Dev) Update() Acceleration {
-	return Acceleration{
-		X: d.readAndCombine(DataX0, DataX1),
-		Y: d.readAndCombine(DataY0, DataY1),
-		Z: d.readAndCombine(DataZ0, DataZ1),
-	}
-}
-
 // readAndCombine combines two registers to form a 16-bit value.
 // The ADXL345 uses two 8-bit registers to store the output data for each axis.
 // X := d.readAndCombine(DataX0, DataX1) where:
@@ -233,58 +285,5 @@ func (d *Dev) Update() Acceleration {
 func (d *Dev) readAndCombine(reg1, reg2 byte) int16 {
 	low, _ := d.Read(reg1)
 	high, _ := d.Read(reg2)
-	return int16(uint16(high)<<8) | int16(low)
-}
-
-// Read reads a 16-bit value from the specified register address.
-func (d *Dev) Read(regAddress byte) (int16, error) {
-	// Send a two-byte sequence:
-	// - The first byte contains the address with bit 7 set high to indicate read op
-	// - The second byte is a "don't care" value, usually zero
-	tx := []byte{regAddress | 0x80, 0x00}
-	rx := make([]byte, len(tx))
-	err := d.c.Tx(tx, rx)
-	if err != nil {
-		return 0, err
-	}
-	return int16(binary.LittleEndian.Uint16(rx)), nil
-}
-
-// Write writes a 1 byte value to the specified register address.
-func (d *Dev) Write(regAddress byte, value byte) error {
-	return d.c.Tx([]byte{regAddress, value}, nil)
-}
-
-// Acceleration represents the acceleration on the three axes X,Y,Z.
-// The sensitivity can be set to different levels: ±2g, ±4g, ±8g, or ±16g. (S2G, S4G, S8G, S16G)
-// The output are 16-bit integers, so the device measures between -32768 and +32767 for each axis.
-// For example, if the sensitivity is set to ±2g and you're getting a reading of 16384 on the X axis, that would correspond to 1g of acceleration along the X axis.
-// To convert the raw values to a physical unit (like g or m/s²), you would need to know the sensitivity setting of your device.
-// For instance, if your sensitivity is set to ±2g, the conversion factor would be 2 / 32768 = 0.000061g per count.
-// So, you would multiply the raw acceleration values by this factor to get the acceleration in `g`.
-type Acceleration struct {
-	X int16
-	Y int16
-	Z int16
-}
-
-// String returns a string representation of the Acceleration
-func (a Acceleration) String() string {
-	return fmt.Sprintf("X:%d Y:%d Z:%d", a.X, a.Y, a.Z)
-}
-
-// Sensitivity returns the sensitivity of the device as a human-readable string.
-func (s Sensitivity) String() string {
-	switch s {
-	case S2G:
-		return "+/-2g"
-	case S4G:
-		return "+/-4g"
-	case S8G:
-		return "+/-8g"
-	case S16G:
-		return "+/-16g"
-	default:
-		return fmt.Sprintf("unknown sensitivity: %#x", byte(s))
-	}
+	return int16(uint16(high)<<8) | low
 }

@@ -30,7 +30,11 @@ func Example() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer p.Close()
+	defer func() {
+		if closeErr := p.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	rfid, err := mfrc522.NewSPI(p, rpi.P1_13, rpi.P1_11)
 	if err != nil {
@@ -38,10 +42,16 @@ func Example() {
 	}
 
 	// Idling device on exit.
-	defer rfid.Halt()
+	defer func() {
+		if closeErr := rfid.Halt(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	// Setting the antenna signal strength.
-	rfid.SetAntennaGain(5)
+	if err := rfid.SetAntennaGain(5); err != nil {
+		log.Fatal(err)
+	}
 
 	// Converting access key.
 	// This value corresponds to first pi "numbers": 3 14 15 92 65 35.
@@ -116,7 +126,11 @@ func ExampleDev_ReadUID() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer p.Close()
+	defer func() {
+		if closeErr := p.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	rfid, err := mfrc522.NewSPI(p, rpi.P1_22, rpi.P1_18)
 	if err != nil {
@@ -124,10 +138,16 @@ func ExampleDev_ReadUID() {
 	}
 
 	// Idling device on exit.
-	defer rfid.Halt()
+	defer func() {
+		if closeErr := rfid.Halt(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	// Setting the antenna signal strength.
-	rfid.SetAntennaGain(5)
+	if err := rfid.SetAntennaGain(5); err != nil {
+		log.Fatal(err)
+	}
 
 	timedOut := false
 	cb := make(chan []byte)

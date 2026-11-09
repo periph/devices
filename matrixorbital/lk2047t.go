@@ -84,7 +84,7 @@ func wrapErr(err error) error {
 	return fmt.Errorf("lk2047t: %w", err)
 }
 
-// Create a new LCD device using a periph.io/conn/Conn
+// Create a new LCD device using a periph.io/conn/Conn.
 func NewConnLK2047T(conn conn.Conn, rows, cols int) *LK2047T {
 	dev := &LK2047T{d: conn, rows: rows, cols: cols, Pins: make([]gpio.PinOut, 6)}
 	a := GPOEnabledDisplay(dev)
@@ -194,7 +194,7 @@ func (dev *LK2047T) Home() (err error) {
 }
 
 // MinCol returns the numbering scheme of the device's minimum column number.
-// Generally, it will be 0 or 1
+// Generally, it will be 0 or 1.
 func (dev *LK2047T) MinCol() int {
 	return 1
 }
@@ -283,14 +283,14 @@ func (dev *LK2047T) Rows() int {
 }
 
 // Set the intensity of the backlight. Refer to the docs in the lcd package
-// for warnings on this function. Provides periph.io/x/conn/v3/display.Backlight
+// for warnings on this function. Provides periph.io/x/conn/v3/display.Backlight.
 func (dev *LK2047T) Backlight(intensity display.Intensity) error {
 	_, err := dev.Write([]byte{setBrightness[0], setBrightness[1], byte(intensity)})
 	return err
 }
 
 // Set the constrast of the display.  Refer to the docs in the lcd package
-// for warnings on this function. Provides periph.io/x/conn/v3/display.DisplayContrast
+// for warnings on this function. Provides periph.io/x/conn/v3/display.DisplayContrast.
 func (dev *LK2047T) Contrast(contrast display.Contrast) error {
 	_, err := dev.Write([]byte{setContrast[0], setContrast[1], byte(contrast)})
 	return err
@@ -316,7 +316,6 @@ func (dev *LK2047T) KeypadBacklight(on bool) error {
 
 // Set the specified output pin state.
 func (dev *LK2047T) GPO(pin int, on gpio.Level) (err error) {
-
 	if on {
 		_, err = dev.Write([]byte{setGPOOn[0], setGPOOn[1], byte(pin)})
 	} else {
@@ -348,7 +347,7 @@ func (dev *LK2047T) String() string {
 	return fmt.Sprintf("MatrixOrbital LK204-7T LCD Display: Rows: %d Cols: %d Connection: %T", dev.rows, dev.cols, ioType)
 }
 
-// Write commands or data to the display
+// Write commands or data to the display.
 func (dev *LK2047T) Write(p []byte) (n int, err error) {
 	dev.mu.Lock()
 	defer dev.mu.Unlock()

@@ -73,10 +73,10 @@ const (
 	Power200mW
 
 	// Durations that you can turn the heater on for.
-	Duration100ms HeaterDuration = HeaterDuration(time.Duration(100 * time.Millisecond))
+	Duration100ms HeaterDuration = HeaterDuration(100 * time.Millisecond)
 	Duration1s    HeaterDuration = HeaterDuration(time.Second)
 
-	// Default I2C Address
+	// Default I2C Address.
 	DefaultAddress i2c.Addr = 0x44
 )
 
@@ -90,7 +90,7 @@ const (
 	cmdHeater20mW100ms  byte = 0x15
 
 	cmdSoftReset byte = 0x94
-	// Read at highest precision and repeatability
+	// Read at highest precision and repeatability.
 	cmdMeasure          byte = 0xfd
 	cmdReadSerialNumber byte = 0x89
 
@@ -105,7 +105,7 @@ const (
 	minSampleDuration = 10 * time.Millisecond
 )
 
-// Dev represents a SHT-4X series temperature/humidity sensor
+// Dev represents a SHT-4X series temperature/humidity sensor.
 type Dev struct {
 	d        *i2c.Dev
 	shutdown chan struct{}
@@ -115,36 +115,6 @@ type Dev struct {
 func New(bus i2c.Bus, addr i2c.Addr) (*Dev, error) {
 	dev := &Dev{d: &i2c.Dev{Bus: bus, Addr: uint16(addr)}}
 	return dev, nil
-}
-
-// If you try to read immediately after a write with this device, you'll get an
-// io error. This just wraps the write and adds a delay before attempting the
-// read.
-func (dev *Dev) txWithDelay(w, r *[]byte, delay time.Duration) (err error) {
-	if w != nil {
-		err = dev.d.Tx(*w, nil)
-		if err != nil {
-			err = fmt.Errorf("sht4x: error transmitting %w", err)
-			return
-		}
-	}
-	time.Sleep(delay)
-	if r != nil {
-		err = dev.d.Tx(nil, *r)
-		if err != nil {
-			err = fmt.Errorf("sht4x: error reading %w", err)
-		}
-		// All calls that return bytes return the same format. 2 bytes
-		// of data, a CRC, 2 bytes of data, and
-		// a CRC. Verify them
-		if common.CRC8((*r)[:2]) != (*r)[2] {
-			err = errors.New("sht4x: bytes[:2] read crc error")
-		}
-		if err == nil && common.CRC8((*r)[3:5]) != (*r)[5] {
-			err = errors.New("sht4x: bytes[3:5] read crc error")
-		}
-	}
-	return
 }
 
 // convert the count to a temperature value.
@@ -179,7 +149,7 @@ func (dev *Dev) Precision(e *physic.Env) {
 }
 
 // Halt shuts down the device and terminates a SenseContinuous
-// command if running. Implements conn.Resource
+// command if running. Implements conn.Resource.
 func (dev *Dev) Halt() error {
 	dev.mu.Lock()
 	defer dev.mu.Unlock()
@@ -189,7 +159,7 @@ func (dev *Dev) Halt() error {
 	return nil
 }
 
-// Reset issues a soft-reset to the device
+// Reset issues a soft-reset to the device.
 func (dev *Dev) Reset() error {
 	dev.mu.Lock()
 	defer dev.mu.Unlock()
@@ -218,9 +188,8 @@ func (dev *Dev) Sense(e *physic.Env) error {
 }
 
 // SenseContinuous continuously reads from the device and sends the output
-// to the returned channel. To terminate the read, call Dev.Halt()
+// to the returned channel. To terminate the read, call Dev.Halt().
 func (dev *Dev) SenseContinuous(duration time.Duration) (<-chan physic.Env, error) {
-
 	if dev.shutdown != nil {
 		return nil, errors.New("sht4x: SenseContinuous already running")
 	}
@@ -326,3 +295,33 @@ func (dev *Dev) String() string {
 
 var _ conn.Resource = &Dev{}
 var _ physic.SenseEnv = &Dev{}
+
+// If you try to read immediately after a write with this device, you'll get an
+// io error. This just wraps the write and adds a delay before attempting the
+// read.
+func (dev *Dev) txWithDelay(w, r *[]byte, delay time.Duration) (err error) {
+	if w != nil {
+		err = dev.d.Tx(*w, nil)
+		if err != nil {
+			err = fmt.Errorf("sht4x: error transmitting %w", err)
+			return
+		}
+	}
+	time.Sleep(delay)
+	if r != nil {
+		err = dev.d.Tx(nil, *r)
+		if err != nil {
+			err = fmt.Errorf("sht4x: error reading %w", err)
+		}
+		// All calls that return bytes return the same format. 2 bytes
+		// of data, a CRC, 2 bytes of data, and
+		// a CRC. Verify them
+		if common.CRC8((*r)[:2]) != (*r)[2] {
+			err = errors.New("sht4x: bytes[:2] read crc error")
+		}
+		if err == nil && common.CRC8((*r)[3:5]) != (*r)[5] {
+			err = errors.New("sht4x: bytes[3:5] read crc error")
+		}
+	}
+	return
+}

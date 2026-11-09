@@ -12,6 +12,7 @@ import (
 )
 
 func TestImageFormat(t *testing.T) {
+	t.Parallel()
 	for _, tc := range []struct {
 		format       ImageFormat
 		wantString   string
@@ -43,6 +44,7 @@ func TestImageFormat(t *testing.T) {
 		},
 	} {
 		t.Run(fmt.Sprint(tc), func(t *testing.T) {
+			t.Parallel()
 			if got := tc.format.String(); got != tc.wantString {
 				t.Errorf("String() returned %q, want %q", got, tc.wantString)
 			}

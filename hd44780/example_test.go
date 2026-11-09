@@ -45,9 +45,19 @@ func Example() {
 		log.Fatal(err)
 	}
 	pins := ls.Pins()
-	reset := pins[4].(gpio.PinOut)
-	enable := pins[5].(gpio.PinOut)
-	bl := hd44780.NewBacklight(pins[6].(gpio.PinOut))
+	reset, ok := pins[4].(gpio.PinOut)
+	if !ok {
+		log.Fatal("reset pin does not support output")
+	}
+	enable, ok := pins[5].(gpio.PinOut)
+	if !ok {
+		log.Fatal("enable pin does not support output")
+	}
+	backlight, ok := pins[6].(gpio.PinOut)
+	if !ok {
+		log.Fatal("backlight pin does not support output")
+	}
+	bl := hd44780.NewBacklight(backlight)
 	lcd, err := hd44780.NewHD44780(ls, reset, enable, bl, 2, 16)
 	if err != nil {
 		log.Fatal(err)
@@ -88,7 +98,11 @@ func ExampleNewAdafruitI2CBackpack() {
 	if err != nil {
 		log.Fatalf("failed to open I²C: %v", err)
 	}
-	defer bus.Close()
+	defer func() {
+		if closeErr := bus.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 	dev, err := hd44780.NewAdafruitI2CBackpack(bus, 0x20, 4, 20)
 	fmt.Println(dev.String())
 	if err != nil {
@@ -111,7 +125,11 @@ func ExampleNewAdafruitSPIBackpack() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer pc.Close()
+	defer func() {
+		if closeErr := pc.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 	conn, err := pc.Connect(physic.MegaHertz, spi.Mode1, 8)
 	if err != nil {
 		log.Fatal(err)
@@ -138,12 +156,15 @@ func ExampleNewPCF857xBackpack() {
 	if err != nil {
 		log.Fatalf("failed to open I²C: %v", err)
 	}
-	defer bus.Close()
+	defer func() {
+		if closeErr := bus.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 	dev, err := hd44780.NewPCF857xBackpack(bus, pcf857x.DefaultAddress, 4, 20)
 	fmt.Println(dev.String())
 	if err != nil {
 		log.Fatal(err)
-
 	}
 	for range 5 {
 		fmt.Println("toggling backlight")
@@ -151,7 +172,6 @@ func ExampleNewPCF857xBackpack() {
 		time.Sleep(500 * time.Millisecond)
 		_ = dev.Backlight(255)
 		time.Sleep(500 * time.Millisecond)
-
 	}
 	_ = dev.Clear()
 	_, _ = dev.WriteString("Hello")

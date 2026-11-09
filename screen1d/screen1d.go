@@ -120,7 +120,7 @@ func (d *Dev) refresh() (int, error) {
 	// This code is designed to minimize the amount of memory allocated per call.
 	d.buf.Reset()
 	_, _ = d.buf.WriteString("\r\033[0m")
-	for i := 0; i < len(d.pixels)/3; i++ {
+	for i := range len(d.pixels) / 3 {
 		c := color.NRGBA{d.pixels[3*i], d.pixels[3*i+1], d.pixels[3*i+2], 255}
 		_, _ = io.WriteString(&d.buf, d.palette.Block(c))
 	}

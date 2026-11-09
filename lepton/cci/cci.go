@@ -141,7 +141,7 @@ func New(i i2c.Bus) (*Dev, error) {
 		} else if status == StatusBootNormal|StatusBooted {
 			return d, nil
 		}
-		//log.Printf("lepton not yet booted: 0x%02x", status)
+		// log.Printf("lepton not yet booted: 0x%02x", status)
 		// Polling rocks.
 		sleep(5 * time.Millisecond)
 	}
@@ -348,7 +348,7 @@ func (c *cciConn) waitIdle() (StatusBit, error) {
 }
 
 // get returns an attribute by querying the device.
-func (c *cciConn) get(cmd command, data interface{}) error {
+func (c *cciConn) get(cmd command, data any) error {
 	if data == nil {
 		return errors.New("lepton-cci: get() argument must not be nil")
 	}
@@ -398,12 +398,12 @@ func (c *cciConn) get(cmd command, data interface{}) error {
 			return fmt.Errorf("invalid crc; expected 0x%04X; got 0x%04X", expected, crc)
 		}
 	*/
-	//log.Printf("get(%s) = %v", cmd, data)
+	// log.Printf("get(%s) = %v", cmd, data)
 	return nil
 }
 
 // set returns an attribute on the device.
-func (c *cciConn) set(cmd command, data interface{}) error {
+func (c *cciConn) set(cmd command, data any) error {
 	if data == nil {
 		return errors.New("lepton-cci: set() argument must not be nil")
 	}

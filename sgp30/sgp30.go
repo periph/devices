@@ -34,7 +34,7 @@ const (
 	i2CAddress uint16 = 0x58
 )
 
-// commandDuration maps the defined maximum measurement duration from the sensor
+// commandDuration maps the defined maximum measurement duration from the sensor.
 var commandDuration = map[uint16]time.Duration{
 	initAirQuality:       time.Millisecond * 10,
 	measureAirQuality:    time.Millisecond * 12,
@@ -48,7 +48,7 @@ var commandDuration = map[uint16]time.Duration{
 	setTVOCBaseline:      time.Millisecond * 10,
 }
 
-// commandResponseLength maps the defined response length including the CRC
+// commandResponseLength maps the defined response length including the CRC.
 var commandResponseLength = map[uint16]int{
 	measureAirQuality:    6,
 	getIAQBaseline:       6,
@@ -58,7 +58,7 @@ var commandResponseLength = map[uint16]int{
 	getTVOCBaseline:      3,
 }
 
-// CO2 represents the current carbon dioxide value in ppm
+// CO2 represents the current carbon dioxide value in ppm.
 type CO2 uint16
 
 func (c CO2) String() string {
@@ -69,7 +69,7 @@ func (c *CO2) set(b []byte) {
 	*c = (CO2)(binary.BigEndian.Uint16(b))
 }
 
-// TVOC represents the current total volatile organic compounds value in ppb
+// TVOC represents the current total volatile organic compounds value in ppb.
 type TVOC uint16
 
 func (t TVOC) String() string {
@@ -84,6 +84,13 @@ func (t *TVOC) set(b []byte) {
 type Env struct {
 	CO2  CO2
 	TVOC TVOC
+}
+
+// Dev is a handle to an initialized SGP30 device.
+type Dev struct {
+	d   conn.Conn
+	mu  sync.Mutex
+	env Env
 }
 
 // NewI2C returns an object that communicates over I2C to SGP30 environmental sensor.
@@ -103,14 +110,7 @@ func NewI2C(b i2c.Bus, ctx context.Context) (*Dev, error) {
 	return d, nil
 }
 
-// Dev is a handle to an initialized SGP30 device.
-type Dev struct {
-	d   conn.Conn
-	mu  sync.Mutex
-	env Env
-}
-
-// AirQuality return the value struct for the sensor
+// AirQuality return the value struct for the sensor.
 func (d *Dev) AirQuality() Env {
 	d.mu.Lock()
 	defer d.mu.Unlock()

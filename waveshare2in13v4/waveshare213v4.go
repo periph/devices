@@ -22,7 +22,7 @@ import (
 	"periph.io/x/host/v3/rpi"
 )
 
-// Commands
+// Commands.
 const (
 	driverOutputControl                byte = 0x01
 	gateDrivingVoltageControl          byte = 0x03
@@ -75,7 +75,7 @@ const (
 	nop                                byte = 0x7F
 )
 
-// Flags for the displayUpdateControl2 command
+// Flags for the displayUpdateControl2 command.
 const (
 	displayUpdateDisableClock byte = 1 << iota
 	displayUpdateDisableAnalog

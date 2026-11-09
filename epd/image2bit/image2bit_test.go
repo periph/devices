@@ -14,6 +14,7 @@ import (
 )
 
 func TestGetOffset(t *testing.T) {
+	t.Parallel()
 	tb := NewBitPlane(image.Rect(0, 0, 16, 16))
 
 	tests := []struct {
@@ -62,6 +63,7 @@ func TestGetOffset(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
 			byteIndex, bitIndex, mask := tb.getOffset(test.x, test.y)
 			if byteIndex != test.byteIndex || bitIndex != test.bitIndex || mask != test.mask {
 				t.Errorf("getOffset(%d,%d) failed: Got (%v, %v, %02x), expected (%v, %v, %02x)",
@@ -74,6 +76,7 @@ func TestGetOffset(t *testing.T) {
 }
 
 func TestStride(t *testing.T) {
+	t.Parallel()
 	var strides = []int{0, 8, 8, 8, 8, 8, 8, 8, 8, 16, 16, 16, 16, 16, 16, 16, 16, 24}
 	for width, stride := range strides {
 		b := NewBitPlane(image.Rect(0, 0, width, 2))
@@ -84,11 +87,12 @@ func TestStride(t *testing.T) {
 }
 
 func TestAllWhite(t *testing.T) {
+	t.Parallel()
 	// Default color is black. Test that setting everything to White
 	// touches all bits
 	tb := NewBitPlane(image.Rect(0, 0, 16, 2))
-	for y := 0; y < tb.Rect.Dy(); y++ {
-		for x := 0; x < tb.Rect.Dx(); x++ {
+	for y := range tb.Rect.Dy() {
+		for x := range tb.Rect.Dx() {
 			tb.Set(x, y, color.White)
 		}
 	}
@@ -98,9 +102,10 @@ func TestAllWhite(t *testing.T) {
 }
 
 func TestPlaneOrder(t *testing.T) {
+	t.Parallel()
 	tb := NewBitPlane(image.Rect(0, 0, 16, 2))
-	for y := 0; y < tb.Rect.Dy(); y++ {
-		for x := 0; x < tb.Rect.Dx(); x++ {
+	for y := range tb.Rect.Dy() {
+		for x := range tb.Rect.Dx() {
 			tb.Set(x, y, DarkGray)
 		}
 	}
@@ -112,6 +117,7 @@ func TestPlaneOrder(t *testing.T) {
 }
 
 func TestBitPlaneEncoding(t *testing.T) {
+	t.Parallel()
 	tb := NewBitPlane(image.Rect(0, 0, 8, 1))
 
 	// "golden image" test for a black image with two pixels set
@@ -127,6 +133,7 @@ func TestBitPlaneEncoding(t *testing.T) {
 }
 
 func TestOutOfBoundsRead(t *testing.T) {
+	t.Parallel()
 	tb := NewBitPlane(image.Rect(0, 0, 32, 32))
 
 	if tb.At(10000, 10000) != Black {
@@ -135,6 +142,7 @@ func TestOutOfBoundsRead(t *testing.T) {
 }
 
 func TestOutOfBoundsWrite(t *testing.T) {
+	t.Parallel()
 	tb := NewBitPlane(image.Rect(0, 0, 32, 32))
 
 	// will panic if bounds checking is not implemented :)
@@ -142,18 +150,19 @@ func TestOutOfBoundsWrite(t *testing.T) {
 }
 
 func TestGrayAt(t *testing.T) {
+	t.Parallel()
 	tb := NewBitPlane(image.Rect(0, 0, 16, 2))
-	var grays []Gray
-	for y := 0; y < tb.Rect.Dy(); y++ {
-		for x := 0; x < tb.Rect.Dx(); x++ {
+	grays := make([]Gray, 0, tb.Rect.Dx()*tb.Rect.Dy())
+	for y := range tb.Rect.Dy() {
+		for x := range tb.Rect.Dx() {
 			g := Gray((x ^ y) & 3)
 			tb.Set(x, y, g)
 			grays = append(grays, g)
 		}
 	}
 
-	for y := 0; y < tb.Rect.Dy(); y++ {
-		for x := 0; x < tb.Rect.Dx(); x++ {
+	for y := range tb.Rect.Dy() {
+		for x := range tb.Rect.Dx() {
 			expected := grays[16*y+x]
 			got := tb.GrayAt(x, y)
 			if expected != got {
@@ -164,6 +173,7 @@ func TestGrayAt(t *testing.T) {
 }
 
 func TestConvertGrayToSelf(t *testing.T) {
+	t.Parallel()
 	for _, c := range []Gray{White, LightGray, DarkGray, Black} {
 		r, g, b, a := c.RGBA()
 		gray := convert(color.RGBA64{uint16(r), uint16(g), uint16(b), uint16(a)})

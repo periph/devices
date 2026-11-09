@@ -7,7 +7,6 @@
 package hd44780
 
 import (
-	"periph.io/x/conn/v3/gpio"
 	"periph.io/x/conn/v3/i2c"
 	"periph.io/x/conn/v3/spi"
 	"periph.io/x/devices/v3/mcp23xxx"
@@ -26,7 +25,7 @@ const (
 	backlightPin = 7
 )
 
-// This function returns a display configured to use the Adafruit I2C/SPI LCD Backpack.
+// NewAdafruitI2CBackpack configures a display for the Adafruit I2C LCD backpack.
 //
 // # Product Information
 //
@@ -42,13 +41,13 @@ func NewAdafruitI2CBackpack(bus i2c.Bus, address uint16, rows, cols int) (*HD447
 		return nil, err
 	}
 	gr := *mcp.Group(0, []int{d4, d5, d6, d7, rsPin, enablePin, backlightPin})
-	reset, _ := gr.ByOffset(4).(gpio.PinOut)
-	enable, _ := gr.ByOffset(5).(gpio.PinOut)
-	bl := gr.ByOffset(6).(gpio.PinOut)
+	reset := mcp.Pins[0][rsPin]
+	enable := mcp.Pins[0][enablePin]
+	bl := mcp.Pins[0][backlightPin]
 	return NewHD44780(gr, reset, enable, NewBacklight(bl), rows, cols)
 }
 
-// This function returns a display configured to use the SPI side of the Adafruit
+// NewAdafruitSPIBackpack configures a display for the SPI side of the Adafruit
 // I2c/SPI backpack. The SPI side uses a 74HC595 Serial->Parallel shift register.
 func NewAdafruitSPIBackpack(conn spi.Conn, rows, cols int) (*HD44780, error) {
 	chip, err := nxp74hc595.New(conn)

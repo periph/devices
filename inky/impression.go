@@ -8,6 +8,7 @@ package inky
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -200,7 +201,7 @@ func NewImpression(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinI
 	}
 	c, err := p.Connect(cSpeed, spi.Mode0, 8)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to inky over spi: %v", err)
+		return nil, fmt.Errorf("failed to connect to inky over spi: %w", err)
 	}
 
 	// Get the maxTxSize from the conn if it implements the conn.Limits interface,
@@ -223,19 +224,17 @@ func NewImpression(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinI
 	}
 
 	d := &DevImpression{
-		Dev: Dev{
-			c:          c,
-			maxTxSize:  maxTxSize,
-			dc:         dc,
-			r:          reset,
-			busy:       busy,
-			color:      o.ModelColor,
-			border:     o.BorderColor,
-			model:      o.Model,
-			variant:    o.DisplayVariant,
-			pcbVariant: o.PCBVariant,
-			cs:         cs,
-		},
+		c:          c,
+		maxTxSize:  maxTxSize,
+		dc:         dc,
+		r:          reset,
+		busy:       busy,
+		color:      o.ModelColor,
+		border:     o.BorderColor,
+		model:      o.Model,
+		variant:    o.DisplayVariant,
+		pcbVariant: o.PCBVariant,
+		cs:         cs,
 		saturation: 50, // Looks good enough for most of the images.
 	}
 
@@ -263,6 +262,107 @@ func NewImpression(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinI
 	d.Pix = make([]uint8, d.height*d.width)
 
 	return d, nil
+}
+
+// Saturation returns the current saturation level.
+func (d *DevImpression) Saturation() uint {
+	return d.saturation
+}
+
+// SetSaturation changes the saturation level. This will take effect on the next call to [*DevImpression.Draw]().
+func (d *DevImpression) SetSaturation(level uint) error {
+	if level > 100 {
+		return errors.New("saturation level needs to be between 0 and 100")
+	}
+	d.saturation = level
+	// so that caller can recalculate next time they need it.
+	d.Palette = nil
+
+	return nil
+}
+
+// SetBorder changes the border color. This will take effect on the next call to [*DevImpression.Draw]().
+func (d *DevImpression) SetBorder(c ImpressionColor) {
+	d.border = Color(c)
+}
+
+// Render renders the content of the [*DevImpression.Pix] to the screen.
+func (d *DevImpression) Render() error {
+	if d.flipVertically {
+		for w := 0; w < len(d.Pix)/2-1; w += d.width {
+			for offset := range d.width {
+				d.Pix[w+offset], d.Pix[len(d.Pix)-d.width-w+offset] = d.Pix[len(d.Pix)-d.width-w+offset], d.Pix[w+offset]
+			}
+		}
+	}
+
+	if d.flipHorizontally {
+		for offset := 0; offset < len(d.Pix)-1; offset += d.width {
+			for i, j := 0, d.width-1; i < j; i, j = i+1, j-1 {
+				d.Pix[i+offset], d.Pix[j+offset] = d.Pix[j+offset], d.Pix[i+offset]
+			}
+		}
+	}
+
+	// remap spectra6 pixels to correct color palette
+	if d.model == IMPRESSION73SPECTRA6 {
+		remap := []uint8{0, 1, 2, 3, 5, 6}
+		for i, pix := range d.Pix {
+			d.Pix[i] = remap[pix]
+		}
+	}
+
+	merged := make([]uint8, len(d.Pix)/2)
+	for i, offset := 0, 0; i < len(d.Pix)-1; i, offset = i+2, offset+1 {
+		merged[offset] = ((d.Pix[i] << 4) & 0xF0) | (d.Pix[i+1] & 0x0F)
+	}
+
+	return d.update(merged)
+}
+
+// ColorModel returns the device native color model.
+func (d *DevImpression) ColorModel() color.Model {
+	if d.Palette == nil {
+		d.Palette = d.blend()
+	}
+	return d.Palette
+}
+
+// At returns the color of the pixel at (x, y).
+func (d *DevImpression) At(x, y int) color.Color {
+	if d.Palette == nil {
+		d.Palette = d.blend()
+	}
+	return d.Palette[d.Pix[y*d.width+x]]
+}
+
+// Set sets the pixel at (x, y) to the given color. This will take effect on the next [*DevImpression.Draw]().
+func (d *DevImpression) Set(x, y int, c color.Color) {
+	if d.Palette == nil {
+		d.Palette = d.blend()
+	}
+	d.Pix[y*d.width+x] = uint8(d.Palette.Index(c))
+}
+
+// Draw updates the display with the image.
+func (d *DevImpression) Draw(r image.Rectangle, src image.Image, _ image.Point) error {
+	if r != d.Bounds() {
+		return fmt.Errorf("partial updates are not supported r=%#v bounds=%#v", r, d.Bounds())
+	}
+
+	if src.Bounds() != d.Bounds() {
+		return fmt.Errorf("image must be the same size as bounds: %v", d.Bounds())
+	}
+
+	// Dither the image using Floyd–Steinberg dithering algorithm otherwise it won't look as good on the screen.
+	draw.FloydSteinberg.Draw(d, r, src, image.Point{})
+
+	return d.Render()
+}
+
+// DrawAll redraws the whole display.
+func (d *DevImpression) DrawAll(src image.Image) error {
+	return d.Draw(d.Bounds(), src, image.Point{})
 }
 
 // blend recalculates the palette based on the saturation level.
@@ -303,62 +403,6 @@ func (d *DevImpression) blend() color.Palette {
 
 	// Add Transparent color and return the result.
 	return append(pr, color.RGBA{255, 255, 255, 0})
-}
-
-// Saturation returns the current saturation level.
-func (d *DevImpression) Saturation() uint {
-	return d.saturation
-}
-
-// SetSaturaton changes the saturation level. This will take effect on the next call to [*DevImpression.Draw]().
-func (d *DevImpression) SetSaturation(level uint) error {
-	if level > 100 {
-		return fmt.Errorf("saturation level needs to be between 0 and 100")
-	}
-	d.saturation = level
-	// so that caller can recalculate next time they need it.
-	d.Palette = nil
-
-	return nil
-}
-
-// SetBorder changes the border color. This will take effect on the next call to [*DevImpression.Draw]().
-func (d *DevImpression) SetBorder(c ImpressionColor) {
-	d.border = Color(c)
-}
-
-// Render renders the content of the [*DevImpression.Pix] to the screen.
-func (d *DevImpression) Render() error {
-	if d.flipVertically {
-		for w := 0; w < len(d.Pix)/2-1; w = w + d.width {
-			for offset := 0; offset < d.width; offset++ {
-				d.Pix[w+offset], d.Pix[len(d.Pix)-d.width-w+offset] = d.Pix[len(d.Pix)-d.width-w+offset], d.Pix[w+offset]
-			}
-		}
-	}
-
-	if d.flipHorizontally {
-		for offset := 0; offset < len(d.Pix)-1; offset = offset + d.width {
-			for i, j := 0, d.width-1; i < j; i, j = i+1, j-1 {
-				d.Pix[i+offset], d.Pix[j+offset] = d.Pix[j+offset], d.Pix[i+offset]
-			}
-		}
-	}
-
-	// remap spectra6 pixels to correct color palette
-	if d.model == IMPRESSION73SPECTRA6 {
-		remap := []uint8{0, 1, 2, 3, 5, 6}
-		for i, pix := range d.Pix {
-			d.Pix[i] = remap[pix]
-		}
-	}
-
-	merged := make([]uint8, len(d.Pix)/2)
-	for i, offset := 0, 0; i < len(d.Pix)-1; i, offset = i+2, offset+1 {
-		merged[offset] = ((d.Pix[i] << 4) & 0xF0) | (d.Pix[i+1] & 0x0F)
-	}
-
-	return d.update(merged)
 }
 
 func (d *DevImpression) cycleResetGPIO() error {
@@ -734,49 +778,4 @@ func (d *DevImpression) wait(dur time.Duration) {
 			edgeDur = time.Until(tEnd)
 		}
 	}
-}
-
-// ColorModel returns the device native color model.
-func (d *DevImpression) ColorModel() color.Model {
-	if d.Palette == nil {
-		d.Palette = d.blend()
-	}
-	return d.Palette
-}
-
-// At returns the color of the pixel at (x, y).
-func (d *DevImpression) At(x, y int) color.Color {
-	if d.Palette == nil {
-		d.Palette = d.blend()
-	}
-	return d.Palette[d.Pix[y*d.width+x]]
-}
-
-// Set sets the pixel at (x, y) to the given color. This will take effect on the next [*DevImpression.Draw]().
-func (d *DevImpression) Set(x, y int, c color.Color) {
-	if d.Palette == nil {
-		d.Palette = d.blend()
-	}
-	d.Pix[y*d.width+x] = uint8(d.Palette.Index(c))
-}
-
-// Draw updates the display with the image.
-func (d *DevImpression) Draw(r image.Rectangle, src image.Image, sp image.Point) error {
-	if r != d.Bounds() {
-		return fmt.Errorf("partial updates are not supported r=%#v bounds=%#v", r, d.Bounds())
-	}
-
-	if src.Bounds() != d.Bounds() {
-		return fmt.Errorf("image must be the same size as bounds: %v", d.Bounds())
-	}
-
-	// Dither the image using Floyd–Steinberg dithering algorithm otherwise it won't look as good on the screen.
-	draw.FloydSteinberg.Draw(d, r, src, image.Point{})
-
-	return d.Render()
-}
-
-// DrawAll redraws the whole display.
-func (d *DevImpression) DrawAll(src image.Image) error {
-	return d.Draw(d.Bounds(), src, image.Point{})
 }

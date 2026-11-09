@@ -12,6 +12,7 @@ import (
 )
 
 func TestIntensity14(t *testing.T) {
+	t.Parallel()
 	if r, g, b, a := Intensity14(16383).RGBA(); r != 65535 || g != r || b != r || a != r {
 		t.Fatal(r, g, b, a)
 	}

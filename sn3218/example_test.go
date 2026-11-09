@@ -24,19 +24,31 @@ func Example() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer b.Close()
+	defer func() {
+		if closeErr := b.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	d, err := sn3218.New(b)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer d.Halt()
+	defer func() {
+		if closeErr := d.Halt(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	// By default, the device is disabled and brightness is 0 for all LEDs
 	// So let's set the brightness to a low value and enable the device to
 	// get started
-	d.BrightnessAll(1)
-	d.Sleep()
+	if err := d.BrightnessAll(1); err != nil {
+		log.Fatal(err)
+	}
+	if err := d.Sleep(); err != nil {
+		log.Fatal(err)
+	}
 
 	// Switch LED 7 on
 	if err := d.Switch(7, true); err != nil {

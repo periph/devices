@@ -27,9 +27,9 @@ import (
 )
 
 var bus i2c.Bus
-var liveDevice bool = false
+var liveDevice = false
 
-// playback values for TestSense
+// playback values for TestSense.
 var sensePlayback = []i2ctest.IO{
 	{Addr: SensorAddress, W: []uint8{0x36, 0xf6}},
 	{Addr: SensorAddress, W: []uint8{0x21, 0xb1}},
@@ -120,7 +120,6 @@ func init() {
 	} else {
 		bus = &i2ctest.Playback{DontPanic: true}
 	}
-
 }
 
 // getDev returns an scd4x device for testing connected to either a live
@@ -135,7 +134,10 @@ func getDev(t *testing.T, playbackOps ...[]i2ctest.IO) (*Dev, error) {
 		}
 	} else {
 		if len(playbackOps) == 1 {
-			pb := bus.(*i2ctest.Playback)
+			pb, ok := bus.(*i2ctest.Playback)
+			if !ok {
+				t.Fatalf("bus type %T, want *i2ctest.Playback", bus)
+			}
 			pb.Ops = playbackOps[0]
 			pb.Count = 0
 		}
@@ -177,7 +179,7 @@ func TestCountToHumidity(t *testing.T) {
 	result := countToHumidity(0x5eb9) // from the datasheet
 	// Truncate to 2 decimals for comparison.
 	result -= result % physic.MilliRH
-	expected := physic.RelativeHumidity(37 * physic.PercentRH)
+	expected := 37 * physic.PercentRH
 	if result != expected {
 		t.Errorf("unexpected value: %d expected %d", result, expected)
 	}
@@ -256,13 +258,11 @@ func TestSenseContinuous(t *testing.T) {
 	for env := range ch {
 		received.Add(1)
 		t.Log(env.String())
-
 	}
 	if received.Load() != readings {
 		t.Errorf("SenseContinuous() expected at least %d readings, got %d", readings-1, received.Load())
 	}
 	wg.Wait()
-
 }
 
 func TestGetSetConfiguration(t *testing.T) {

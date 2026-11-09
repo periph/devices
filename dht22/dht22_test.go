@@ -16,6 +16,7 @@ import (
 
 type outErrorPin struct {
 	*gpiotest.Pin
+
 	err error
 }
 

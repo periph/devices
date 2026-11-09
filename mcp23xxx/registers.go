@@ -55,6 +55,7 @@ func (ra *spiRegisterAccess) define(address uint8) registerCache {
 
 type registerCache struct {
 	registerAccess
+
 	address uint8
 	got     bool
 	cache   uint8

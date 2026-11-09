@@ -9,6 +9,7 @@ package common
 import "testing"
 
 func TestCRC8(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		bytes  []byte
 		result byte

@@ -61,51 +61,15 @@ func checkCRC(bytes []byte) bool {
 		crc ^= b
 		for range 8 {
 			if (crc & 0x01) == 0x01 {
-				crc = crc >> 1
+				crc >>= 1
 				crc ^= 0xa001
 			} else {
-				crc = crc >> 1
+				crc >>= 1
 			}
 		}
 	}
 	chk := uint16(bytes[len(bytes)-2]) | uint16(bytes[len(bytes)-1])<<8
 	return chk == crc
-}
-
-// readCommand provides the logic of communicating with the sensor. According
-// to the datasheet, it tries to stay in low-power as much as possible to
-// avoid self-heating the sensors. This makes it finicky to talk to. On success,
-// returns a slice of registerCount bytes starting from registerAddress.
-func (dev *Dev) readCommand(registerAddress, registerCount byte) ([]byte, error) {
-	// Send a wake-up call to the device.
-	var err error
-	for range 5 {
-		err = dev.d.Tx([]byte{0}, nil)
-		if err == nil {
-			break
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
-	w := []byte{0x3, registerAddress, registerCount}
-	// The read return format is:
-	//
-	// {operation,registerCount,requested registers...,crc low, crc high}
-	r := make([]byte, registerCount+4)
-
-	for range 10 {
-		err = dev.d.Tx(w, r)
-		if err == nil &&
-			w[0] == r[0] && w[2] == r[1] &&
-			checkCRC(r) {
-
-			return r[2 : 2+registerCount], nil
-		}
-		time.Sleep(2 * time.Second)
-	}
-	if err == nil {
-		err = errors.New("invalid return values or crc from sensor")
-	}
-	return nil, fmt.Errorf("am2320 error sending read command: %w", err)
 }
 
 // Sense queries the sensor for the current temperature and humidity. Note that
@@ -134,7 +98,7 @@ func (dev *Dev) Sense(env *physic.Env) error {
 
 // SenseContinuous returns a channel that can be read to return values from
 // the sensor. The minimum value for interval is 3 seconds. To end the read,
-// call Halt()
+// call Halt().
 func (dev *Dev) SenseContinuous(interval time.Duration) (<-chan physic.Env, error) {
 	if interval < (3 * time.Second) {
 		return nil, errors.New("am2320: invalid duration. minimum 3 seconds")
@@ -179,3 +143,38 @@ func (dev *Dev) Precision(env *physic.Env) {
 
 var _ conn.Resource = &Dev{}
 var _ physic.SenseEnv = &Dev{}
+
+// readCommand provides the logic of communicating with the sensor. According
+// to the datasheet, it tries to stay in low-power as much as possible to
+// avoid self-heating the sensors. This makes it finicky to talk to. On success,
+// returns a slice of registerCount bytes starting from registerAddress.
+func (dev *Dev) readCommand(registerAddress, registerCount byte) ([]byte, error) {
+	// Send a wake-up call to the device.
+	var err error
+	for range 5 {
+		err = dev.d.Tx([]byte{0}, nil)
+		if err == nil {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	w := []byte{0x3, registerAddress, registerCount}
+	// The read return format is:
+	//
+	// {operation,registerCount,requested registers...,crc low, crc high}
+	r := make([]byte, registerCount+4)
+
+	for range 10 {
+		err = dev.d.Tx(w, r)
+		if err == nil &&
+			w[0] == r[0] && w[2] == r[1] &&
+			checkCRC(r) {
+			return r[2 : 2+registerCount], nil
+		}
+		time.Sleep(2 * time.Second)
+	}
+	if err == nil {
+		err = errors.New("invalid return values or crc from sensor")
+	}
+	return nil, fmt.Errorf("am2320 error sending read command: %w", err)
+}

@@ -80,7 +80,9 @@ func TestRegisterPorts(t *testing.T) {
 			},
 			DontPanic: true,
 		}
-		host.Init()
+		if _, err := host.Init(); err != nil {
+			t.Fatal(err)
+		}
 
 		mux, err := New(bus, &DefaultOpts)
 		if err != nil {
@@ -107,7 +109,9 @@ func TestRegisterPorts(t *testing.T) {
 			},
 			DontPanic: true,
 		}
-		host.Init()
+		if _, err := host.Init(); err != nil {
+			t.Fatal(err)
+		}
 
 		mux, err := New(bus, &DefaultOpts)
 		if err != nil {
@@ -154,7 +158,9 @@ func TestDev_String(t *testing.T) {
 			},
 			DontPanic: false,
 		}
-		host.Init()
+		if _, err := host.Init(); err != nil {
+			t.Fatal(err)
+		}
 
 		mux, err := New(bus, &Opts{Addr: int(tt.address)})
 		if err != nil {
@@ -211,12 +217,13 @@ func TestDev_Tx(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-
 		bus := &i2ctest.Playback{
 			Ops:       tt.tx,
 			DontPanic: true,
 		}
-		host.Init()
+		if _, err := host.Init(); err != nil {
+			t.Fatal(err)
+		}
 
 		mux, err := New(bus, &DefaultOpts)
 		if err != nil {
@@ -232,7 +239,11 @@ func TestDev_Tx(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to open I²C: %v", err)
 		}
-		defer muxbus.Close()
+		t.Cleanup(func() {
+			if closeErr := muxbus.Close(); closeErr != nil {
+				t.Error(closeErr)
+			}
+		})
 		err = muxbus.Tx(tt.address, []byte{0xAA}, []byte{0xBB})
 
 		if err != nil && !tt.wantErr {
@@ -243,7 +254,7 @@ func TestDev_Tx(t *testing.T) {
 		}
 
 		// Cleanup
-		for i := 0; i < 8; i++ {
+		for i := range 8 {
 			if err := i2creg.Unregister("playback-" + mux.String() + "-" + strconv.Itoa(i)); err != nil {
 				t.Errorf("failed to Unregister port %d: %v", i, err)
 			}
@@ -282,18 +293,17 @@ func Test_port_Tx(t *testing.T) {
 			t.Errorf("expected error but got none")
 		}
 	}
-
 }
 
 func Test_port_Close(t *testing.T) {
-
 	p := &port{number: 6}
 
-	p.Close()
+	if err := p.Close(); err != nil {
+		t.Fatal(err)
+	}
 	if err := p.Tx(0x01, nil, nil); err == nil {
 		t.Errorf("expected error but got none")
 	}
-
 }
 
 func Test_port_String(t *testing.T) {
@@ -301,7 +311,9 @@ func Test_port_String(t *testing.T) {
 		Ops:       []i2ctest.IO{{Addr: 0x70, W: nil, R: []byte{0xFF}}},
 		DontPanic: true,
 	}
-	host.Init()
+	if _, err := host.Init(); err != nil {
+		t.Fatal(err)
+	}
 
 	mux, err := New(bus, &DefaultOpts)
 	if err != nil {
@@ -325,7 +337,7 @@ func Test_port_String(t *testing.T) {
 	}
 
 	// Cleanup
-	for i := 0; i < 8; i++ {
+	for i := range 8 {
 		if err := i2creg.Unregister("playback-" + mux.String() + "-" + strconv.Itoa(i)); err != nil {
 			t.Errorf("failed to Unregister port %d: %v", i, err)
 		}

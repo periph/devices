@@ -33,23 +33,23 @@ func (d *Dev) ReadNumberConcentrationValues() (*PMNumberConcentrations, error) {
 	nc := &PMNumberConcentrations{}
 
 	if rawPM05 := binary.BigEndian.Uint16(data[0:2]); rawPM05 != 0xffff {
-		nc.PM05 = ptr(rawPM05)
+		nc.PM05 = new(rawPM05)
 	}
 
 	if rawPM1 := binary.BigEndian.Uint16(data[2:4]); rawPM1 != 0xffff {
-		nc.PM1 = ptr(rawPM1)
+		nc.PM1 = new(rawPM1)
 	}
 
 	if rawPM25 := binary.BigEndian.Uint16(data[4:6]); rawPM25 != 0xffff {
-		nc.PM25 = ptr(rawPM25)
+		nc.PM25 = new(rawPM25)
 	}
 
 	if rawPM4 := binary.BigEndian.Uint16(data[6:8]); rawPM4 != 0xffff {
-		nc.PM4 = ptr(rawPM4)
+		nc.PM4 = new(rawPM4)
 	}
 
 	if rawPM10 := binary.BigEndian.Uint16(data[8:10]); rawPM10 != 0xffff {
-		nc.PM10 = ptr(rawPM10)
+		nc.PM10 = new(rawPM10)
 	}
 
 	return nc, nil

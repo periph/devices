@@ -186,6 +186,6 @@ func run(i2cBus i2c.Bus, i2cAddr uint16, spiPort spi.PortCloser) (err error) {
 	return nil
 }
 
-func printEnv(dev interface{}, e *physic.Env) {
+func printEnv(dev any, e *physic.Env) {
 	fmt.Printf("%-18s: %8s %10s %9s\n", dev, e.Temperature, e.Pressure, e.Humidity)
 }

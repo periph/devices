@@ -27,7 +27,11 @@ func ExampleDev_SenseTemp() {
 	if err != nil {
 		log.Fatalf("failed to open I²C: %v", err)
 	}
-	defer bus.Close()
+	defer func() {
+		if closeErr := bus.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	// Create a new temperature sensor.
 	sensor, err := mcp9808.New(bus, &mcp9808.DefaultOpts)
@@ -56,7 +60,11 @@ func ExampleDev_SenseWithAlerts() {
 	if err != nil {
 		log.Fatalf("failed to open I²C: %v", err)
 	}
-	defer bus.Close()
+	defer func() {
+		if closeErr := bus.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	// Create a new temperature sensor.
 	sensor, err := mcp9808.New(bus, &mcp9808.DefaultOpts)

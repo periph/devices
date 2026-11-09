@@ -48,11 +48,11 @@ func (d *Display) configFromQuery(values url.Values) (imageConfig, error) {
 	}
 
 	if value := values.Get("format"); value != "" {
-		if format, err := ImageFormatFromString(value); err != nil {
+		format, err := ImageFormatFromString(value)
+		if err != nil {
 			return imageConfig{}, err
-		} else {
-			cfg.format = format
 		}
+		cfg.format = format
 	}
 
 	return cfg, nil

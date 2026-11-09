@@ -47,7 +47,6 @@ func init() {
 	} else {
 		bus = &i2ctest.Playback{DontPanic: true}
 	}
-
 }
 
 // getDev returns a configured device using either an i2c bus, or a playback bus.
@@ -59,7 +58,10 @@ func getDev(t *testing.T, playbackOps ...[]i2ctest.IO) (*Dev, error) {
 		}
 	} else {
 		if len(playbackOps) == 1 {
-			pb := bus.(*i2ctest.Playback)
+			pb, ok := bus.(*i2ctest.Playback)
+			if !ok {
+				t.Fatalf("bus type %T, want *i2ctest.Playback", bus)
+			}
 			pb.Ops = playbackOps[0]
 			pb.Count = 0
 		}
@@ -105,7 +107,7 @@ func TestBasic(t *testing.T) {
 		t.Error("crc error")
 	}
 	// ensure a corruption is detected.
-	crcTest[0] = crcTest[0] ^ 0xff
+	crcTest[0] ^= 0xff
 	if checkCRC(crcTest) {
 		t.Error("crc error")
 	}
@@ -183,7 +185,7 @@ func TestSenseContinuous(t *testing.T) {
 
 	count := 0
 	for e := range ch {
-		count += 1
+		count++
 		t.Log(time.Now(), e)
 	}
 	if count < (readCount-1) || count > (readCount+1) {

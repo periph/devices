@@ -5,7 +5,7 @@
 // Package commands contains the command that a MFRC522 supports.
 package commands
 
-// Register constants
+// Register constants.
 const (
 	CommandReg    = 0x01
 	CommIEnReg    = 0x02

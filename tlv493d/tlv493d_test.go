@@ -8,6 +8,7 @@ package tlv493d
 
 import (
 	"testing"
+	"testing/synctest"
 
 	"periph.io/x/conn/v3/i2c/i2ctest"
 	"periph.io/x/conn/v3/physic"
@@ -48,7 +49,11 @@ func TestDev_String(t *testing.T) {
 			},
 		},
 	}
-	defer b.Close()
+	t.Cleanup(func() {
+		if err := b.Close(); err != nil {
+			t.Error(err)
+		}
+	})
 
 	d, err := New(&b, &DefaultOpts)
 	if err != nil {
@@ -103,7 +108,11 @@ func TestTLV493D_Read(t *testing.T) {
 			},
 		},
 	}
-	defer b.Close()
+	t.Cleanup(func() {
+		if err := b.Close(); err != nil {
+			t.Error(err)
+		}
+	})
 
 	opts := DefaultOpts
 	opts.Mode = LowPowerMode
@@ -191,7 +200,11 @@ func TestTLV493D_ReadContinous(t *testing.T) {
 			},
 		},
 	}
-	defer b.Close()
+	t.Cleanup(func() {
+		if err := b.Close(); err != nil {
+			t.Error(err)
+		}
+	})
 
 	samples := []Sample{
 		{
@@ -293,7 +306,11 @@ func TestTLV493D_Configuration(t *testing.T) {
 			},
 		},
 	}
-	defer b.Close()
+	t.Cleanup(func() {
+		if err := b.Close(); err != nil {
+			t.Error(err)
+		}
+	})
 
 	opts := DefaultOpts
 
@@ -355,5 +372,54 @@ func assertSample(t *testing.T, expected Sample, actual Sample) {
 	if actual.Temperature != expected.Temperature {
 		t.Fatalf("Temperature: Found %d, expected %d", actual.Temperature, expected.Temperature)
 	}
+}
 
+// restoreBlockingBus holds the restoration write until the test releases it.
+type restoreBlockingBus struct {
+	blockRestore bool
+	restoring    chan struct{}
+	release      chan struct{}
+}
+
+func (*restoreBlockingBus) String() string                    { return "restore blocking bus" }
+func (*restoreBlockingBus) SetSpeed(_ physic.Frequency) error { return nil }
+func (b *restoreBlockingBus) Tx(_ uint16, _, _ []byte) error {
+	if b.blockRestore {
+		close(b.restoring)
+		<-b.release
+	}
+	return nil
+}
+
+func TestDev(t *testing.T) {
+	t.Run("StopContinousRead", func(t *testing.T) {
+		synctest.Test(t, func(t *testing.T) {
+			bus := &restoreBlockingBus{restoring: make(chan struct{}), release: make(chan struct{})}
+			d, err := New(bus, &DefaultOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := d.ReadContinuous(physic.Hertz, LowPrecision); err != nil {
+				t.Fatal(err)
+			}
+			bus.blockRestore = true
+			stopped := make(chan struct{})
+			go func() { d.StopContinousRead(); close(stopped) }()
+			<-bus.restoring
+			synctest.Wait()
+			select {
+			case <-stopped:
+				close(bus.release)
+				t.Fatal("stop returned before mode restoration completed")
+			default:
+			}
+			close(bus.release)
+			synctest.Wait()
+			select {
+			case <-stopped:
+			default:
+				t.Fatal("stop did not complete after restoration")
+			}
+		})
+	})
 }

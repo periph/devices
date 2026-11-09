@@ -9,6 +9,7 @@ package sen6x
 import "testing"
 
 func TestClen(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name string
 		b    []byte
@@ -53,6 +54,7 @@ func TestClen(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			got := clen(tc.b)
 			if got != tc.want {
 				t.Errorf("got %v, want %v", got, tc.want)

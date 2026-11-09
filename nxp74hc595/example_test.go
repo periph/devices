@@ -25,7 +25,11 @@ func Example() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer pc.Close()
+	defer func() {
+		if closeErr := pc.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 	conn, err := pc.Connect(physic.MegaHertz, spi.Mode1, 8)
 	if err != nil {
 		log.Fatal(err)
@@ -38,6 +42,8 @@ func Example() {
 	// Get a GPIO group, and write values to it.
 	gr, _ := dev.Group(0, 1, 2, 3, 4, 5, 6, 7, 8)
 	for i := range 256 {
-		gr.Out(gpio.GPIOValue(i), 0)
+		if err := gr.Out(gpio.GPIOValue(i), 0); err != nil {
+			log.Fatal(err)
+		}
 	}
 }

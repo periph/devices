@@ -76,10 +76,11 @@ func TestWrite_fail(t *testing.T) {
 
 type failPin struct {
 	gpiotest.Pin
+
 	fail bool
 }
 
-func (f *failPin) Out(l gpio.Level) error {
+func (f *failPin) Out(_ gpio.Level) error {
 	if f.fail {
 		return errors.New("injected error")
 	}

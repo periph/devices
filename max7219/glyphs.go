@@ -6,7 +6,7 @@
 
 package max7219
 
-// A really basic 8x8 raster font in CP437. Used to display characters on matrix
+// CP437Glyphs is a basic 8x8 raster font in CP437. Used to display characters on matrix
 // type displays.
 //
 // Refer to: https://www.ascii-codes.com/
@@ -273,7 +273,7 @@ var CP437Glyphs = [][]byte{
 func reverseGlyphs(digits [][]byte) [][]byte {
 	nibbles := [16]byte{0x0, 0x8, 0x4, 0xc, 0x2, 0xa, 0x6, 0xe, 0x1, 0x9, 0x5, 0xc, 0x3, 0xb, 0x7, 0xf}
 	result := make([][]byte, len(digits))
-	for i := 0; i < len(digits); i++ {
+	for i := range digits {
 		newChar := make([]byte, 8)
 		for rasterLine := range len(digits[i]) {
 			x := digits[i][rasterLine]

@@ -31,7 +31,11 @@ func Example() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer s.Close()
+	defer func() {
+		if closeErr := s.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	dev, err := max7219.NewSPI(s, matrixUnits, 8)
 	if err != nil {
@@ -47,13 +51,19 @@ func Example() {
 
 	if matrix {
 		dev.SetGlyphs(max7219.CP437Glyphs, true)
-		dev.SetDecode(max7219.DecodeNone)
+		if err := dev.SetDecode(max7219.DecodeNone); err != nil {
+			log.Fatal(err)
+		}
 		dev.ScrollChars([]byte("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"), 1, 100*time.Millisecond)
 	} else {
-		dev.SetDecode(max7219.DecodeB)
+		if err := dev.SetDecode(max7219.DecodeB); err != nil {
+			log.Fatal(err)
+		}
 	}
 	for i := -128; i < 128; i++ {
-		dev.WriteInt(i)
+		if err := dev.WriteInt(i); err != nil {
+			log.Fatal(err)
+		}
 		time.Sleep(100 * time.Millisecond)
 	}
 	var tData []byte

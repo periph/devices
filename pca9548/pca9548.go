@@ -67,7 +67,7 @@ func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
 // Returns slice of ports names registered and error.
 func (d *Dev) RegisterPorts(alias string) ([]string, error) {
 	var portNames []string
-	for i := uint8(0); i < d.numPorts; i++ {
+	for i := range d.numPorts {
 		portStr := strconv.Itoa(int(i))
 		addrStr := strconv.FormatUint(uint64(d.address), 16)
 		portName := d.c.String() + "-pca9548-" + addrStr + "-" + portStr
@@ -134,7 +134,7 @@ type port struct {
 func (p *port) String() string { return "Port:" + p.name }
 
 // SetSpeed is no implemented as the port slaves the master port clock.
-func (p *port) SetSpeed(f physic.Frequency) error {
+func (p *port) SetSpeed(_ physic.Frequency) error {
 	return errors.New("SetSpeed is not impelmented on a port by port basis")
 }
 

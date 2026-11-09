@@ -27,7 +27,11 @@ func Example() {
 	if err != nil {
 		log.Fatalf("failed to open I²C: %v", err)
 	}
-	defer bus.Close()
+	defer func() {
+		if closeErr := bus.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	// Create a new ADS1115 ADC.
 	adc, err := ads1x15.NewADS1115(bus, &ads1x15.DefaultOpts)
@@ -40,7 +44,11 @@ func Example() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	defer pin.Halt()
+	defer func() {
+		if closeErr := pin.Halt(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	// Read values from ADC.
 	fmt.Println("Single reading")

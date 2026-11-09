@@ -136,10 +136,10 @@ type failPin struct {
 	gpiotest.Pin
 }
 
-func (f *failPin) In(pull gpio.Pull, edge gpio.Edge) error {
+func (f *failPin) In(_ gpio.Pull, _ gpio.Edge) error {
 	return errors.New("fail")
 }
 
-func (f *failPin) Out(l gpio.Level) error {
+func (f *failPin) Out(_ gpio.Level) error {
 	return errors.New("fail")
 }

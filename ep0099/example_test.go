@@ -26,7 +26,11 @@ func Example() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer bus.Close()
+	defer func() {
+		if closeErr := bus.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	// Initializes device using current I2C bus and device address.
 	// Address should be provided as configured on the board's DIP switches.
@@ -34,18 +38,26 @@ func Example() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer dev.Halt()
+	defer func() {
+		if closeErr := dev.Halt(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	// Run device demo
 	for _, channel := range dev.AvailableChannels() {
 		state, _ := dev.State(channel)
 		log.Printf("[channel %#x] Initial state: %s", channel, state)
 
-		dev.On(channel)
+		if err := dev.On(channel); err != nil {
+			log.Fatal(err)
+		}
 		state, _ = dev.State(channel)
 		log.Printf("[channel %#x] State after .On: %s", channel, state)
 
-		dev.Off(channel)
+		if err := dev.Off(channel); err != nil {
+			log.Fatal(err)
+		}
 		state, _ = dev.State(channel)
 		log.Printf("[channel %#x] State after .Off: %s", channel, state)
 

@@ -149,10 +149,10 @@ func (o *drawOpts) sendImage(ctrl controller, cmd byte, spec *drawSpec) {
 	rowData := make([]byte, spec.memRect.Dx())
 
 	for destY := spec.memRect.Min.Y; destY < spec.memRect.Max.Y; destY++ {
-		for destX := 0; destX < len(rowData); destX++ {
+		for destX := range rowData {
 			rowData[destX] = 0
 
-			for bit := 0; bit < 8; bit++ {
+			for bit := range 8 {
 				bufPos := posFor(destY, (spec.memRect.Min.X+destX)*8, bit)
 				bufPos = bufPos.Add(spec.bufferDstOffset)
 
@@ -164,10 +164,9 @@ func (o *drawOpts) sendImage(ctrl controller, cmd byte, spec *drawSpec) {
 
 		ctrl.sendData(rowData)
 	}
-
 }
 
-func drawImage(ctrl controller, opts *drawOpts, mode PartialUpdate) {
+func drawImage(ctrl controller, opts *drawOpts, _ PartialUpdate) {
 	s := opts.spec()
 
 	if s.memRect.Empty() {

@@ -57,10 +57,16 @@ func TestPCA9685_pin(t *testing.T) {
 	if err = dev.RegisterPins(); err != nil {
 		t.Fatal(err)
 	}
-	defer dev.UnregisterPins()
+	t.Cleanup(func() {
+		if err := dev.UnregisterPins(); err != nil {
+			t.Error(err)
+		}
+	})
 
 	pin := gpioreg.ByName("PCA9685_40_0")
-	pin.PWM(gpio.DutyHalf, 50*physic.Hertz)
+	if err := pin.PWM(gpio.DutyHalf, 50*physic.Hertz); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestPCA9685_pin_fullOff(t *testing.T) {
@@ -79,10 +85,16 @@ func TestPCA9685_pin_fullOff(t *testing.T) {
 	if err = dev.RegisterPins(); err != nil {
 		t.Fatal(err)
 	}
-	defer dev.UnregisterPins()
+	t.Cleanup(func() {
+		if err := dev.UnregisterPins(); err != nil {
+			t.Error(err)
+		}
+	})
 
 	pin := gpioreg.ByName("PCA9685_40_0")
-	pin.PWM(0, 50*physic.Hertz)
+	if err := pin.PWM(0, 50*physic.Hertz); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestPCA9685_pin_fullOn(t *testing.T) {
@@ -101,10 +113,16 @@ func TestPCA9685_pin_fullOn(t *testing.T) {
 	if err = dev.RegisterPins(); err != nil {
 		t.Fatal(err)
 	}
-	defer dev.UnregisterPins()
+	t.Cleanup(func() {
+		if err := dev.UnregisterPins(); err != nil {
+			t.Error(err)
+		}
+	})
 
 	pin := gpioreg.ByName("PCA9685_40_0")
-	pin.PWM(gpio.DutyMax, 50*physic.Hertz)
+	if err := pin.PWM(gpio.DutyMax, 50*physic.Hertz); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestPCA9685(t *testing.T) {

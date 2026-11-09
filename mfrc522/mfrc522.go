@@ -75,7 +75,7 @@ func WithSync() configF {
 	}
 }
 
-// noop does nothing
+// noop does nothing.
 func noop() {}
 
 // NewSPI creates and initializes the RFID card reader attached to SPI.
@@ -119,7 +119,7 @@ func (r *Dev) String() string {
 
 // Halt implements conn.Resource.
 //
-// It soft-stops the chip - PowerDown bit set, command IDLE
+// It soft-stops the chip - PowerDown bit set, command IDLE.
 func (r *Dev) Halt() error {
 	r.beforeCall()
 	defer r.afterCall()
@@ -249,7 +249,7 @@ func (r *Dev) WriteCard(timeout time.Duration, auth byte, sector int, block int,
 //
 //	timeout   operation timeout
 //	auth      authentication mode.
-//	sector    sector to set authentication.
+//	sector    to set authentication.
 //	keyA      the key used for AuthA authentication scheme.
 //	keyB      the key used for AuthB authentication scheme.
 //	access    the block access structure.
@@ -310,7 +310,7 @@ func (r *Dev) antiColl() ([]byte, error) {
 		return nil, err
 	}
 
-	backData, _, err := r.LowLevel.CardWrite(commands.PCD_TRANSCEIVE, []byte{commands.PICC_ANTICOLL, 0x20}[:])
+	backData, _, err := r.LowLevel.CardWrite(commands.PCD_TRANSCEIVE, []byte{commands.PICC_ANTICOLL, 0x20})
 
 	if err != nil {
 		return nil, err
@@ -323,7 +323,7 @@ func (r *Dev) antiColl() ([]byte, error) {
 	crc := byte(0)
 
 	for _, v := range backData[:4] {
-		crc = crc ^ v
+		crc ^= v
 	}
 
 	if crc != backData[4] {
@@ -351,7 +351,7 @@ func (r *Dev) antiColl2() ([]byte, error) {
 		return nil, wrapf("Anticoll2 error, response is %d bytes-long, expected 5", len(backData))
 	}
 
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		check ^= backData[i]
 	}
 
@@ -372,7 +372,7 @@ func (r *Dev) selectTag(serial []byte) (byte, error) {
 	if err != nil {
 		return 0, err
 	}
-	dataBuf = append(dataBuf, crc[0], crc[1])
+	dataBuf = append(dataBuf, crc[0], crc[1]) //nolint:makezero // The existing prefix contains the command.
 	backData, backLen, err := r.LowLevel.CardWrite(commands.PCD_TRANSCEIVE, dataBuf)
 	if err != nil {
 		return 0, err
@@ -440,7 +440,7 @@ func (r *Dev) selectCard(timeout time.Duration) ([]byte, error) {
 // write  writes the data block into the card at given block address.
 //
 // blockAddr - the calculated block address
-// data - the sector data bytes
+// data - the sector data bytes.
 func (r *Dev) write(blockAddr byte, data []byte) error {
 	read, backLen, err := r.preAccess(blockAddr, commands.PICC_WRITE)
 	if err != nil || backLen != 4 {
@@ -499,7 +499,7 @@ func (r *Dev) read(blockAddr byte) ([]byte, error) {
 	return data, nil
 }
 
-func wrapf(format string, a ...interface{}) error {
+func wrapf(format string, a ...any) error {
 	return fmt.Errorf("mfrc522: "+format, a...)
 }
 

@@ -261,12 +261,12 @@ func TestDevReadMeasuredValues(t *testing.T) {
 				0x11, 0x6b, 0x4a, // Temp
 			},
 			want: &SensorValues{
-				PM1:  ptr(float32(0.4)),
-				PM25: ptr(float32(0.5)),
-				PM4:  ptr(float32(0.6)),
-				PM10: ptr(float32(0.6)),
-				RH:   ptr(float32(53.6)),
-				Temp: ptr(float32(22.295)),
+				PM1:  new(float32(0.4)),
+				PM25: new(float32(0.5)),
+				PM4:  new(float32(0.6)),
+				PM10: new(float32(0.6)),
+				RH:   new(float32(53.6)),
+				Temp: new(float32(22.295)),
 			},
 		},
 		{
@@ -283,13 +283,13 @@ func TestDevReadMeasuredValues(t *testing.T) {
 				0x01, 0xf4, 0x33, // CO2
 			},
 			want: &SensorValues{
-				PM1:  ptr(float32(0.4)),
-				PM25: ptr(float32(0.5)),
-				PM4:  ptr(float32(0.6)),
-				PM10: ptr(float32(0.6)),
-				RH:   ptr(float32(53.6)),
-				Temp: ptr(float32(22.295)),
-				CO2:  ptr(int16(500)),
+				PM1:  new(float32(0.4)),
+				PM25: new(float32(0.5)),
+				PM4:  new(float32(0.6)),
+				PM10: new(float32(0.6)),
+				RH:   new(float32(53.6)),
+				Temp: new(float32(22.295)),
+				CO2:  new(int16(500)),
 			},
 		},
 		{
@@ -307,14 +307,14 @@ func TestDevReadMeasuredValues(t *testing.T) {
 				0x00, 0x46, 0x1a, // NOx
 			},
 			want: &SensorValues{
-				PM1:  ptr(float32(0.4)),
-				PM25: ptr(float32(0.5)),
-				PM4:  ptr(float32(0.6)),
-				PM10: ptr(float32(0.6)),
-				RH:   ptr(float32(53.6)),
-				Temp: ptr(float32(22.295)),
-				VOC:  ptr(float32(10)),
-				NOx:  ptr(float32(7)),
+				PM1:  new(float32(0.4)),
+				PM25: new(float32(0.5)),
+				PM4:  new(float32(0.6)),
+				PM10: new(float32(0.6)),
+				RH:   new(float32(53.6)),
+				Temp: new(float32(22.295)),
+				VOC:  new(float32(10)),
+				NOx:  new(float32(7)),
 			},
 		},
 		{
@@ -333,15 +333,15 @@ func TestDevReadMeasuredValues(t *testing.T) {
 				0x01, 0xf4, 0x33, // CO2
 			},
 			want: &SensorValues{
-				PM1:  ptr(float32(0.4)),
-				PM25: ptr(float32(0.5)),
-				PM4:  ptr(float32(0.6)),
-				PM10: ptr(float32(0.6)),
-				RH:   ptr(float32(53.6)),
-				Temp: ptr(float32(22.295)),
-				VOC:  ptr(float32(10)),
-				NOx:  ptr(float32(7)),
-				CO2:  ptr(int16(500)),
+				PM1:  new(float32(0.4)),
+				PM25: new(float32(0.5)),
+				PM4:  new(float32(0.6)),
+				PM10: new(float32(0.6)),
+				RH:   new(float32(53.6)),
+				Temp: new(float32(22.295)),
+				VOC:  new(float32(10)),
+				NOx:  new(float32(7)),
+				CO2:  new(int16(500)),
 			},
 		},
 		{
@@ -360,15 +360,15 @@ func TestDevReadMeasuredValues(t *testing.T) {
 				0x01, 0xf4, 0x33, // HCHO
 			},
 			want: &SensorValues{
-				PM1:  ptr(float32(0.4)),
-				PM25: ptr(float32(0.5)),
-				PM4:  ptr(float32(0.6)),
-				PM10: ptr(float32(0.6)),
-				RH:   ptr(float32(53.6)),
-				Temp: ptr(float32(22.295)),
-				VOC:  ptr(float32(10)),
-				NOx:  ptr(float32(7)),
-				HCHO: ptr(float32(50)),
+				PM1:  new(float32(0.4)),
+				PM25: new(float32(0.5)),
+				PM4:  new(float32(0.6)),
+				PM10: new(float32(0.6)),
+				RH:   new(float32(53.6)),
+				Temp: new(float32(22.295)),
+				VOC:  new(float32(10)),
+				NOx:  new(float32(7)),
+				HCHO: new(float32(50)),
 			},
 		},
 		{
@@ -388,16 +388,16 @@ func TestDevReadMeasuredValues(t *testing.T) {
 				0x01, 0xf4, 0x33, // CO2
 			},
 			want: &SensorValues{
-				PM1:  ptr(float32(0.4)),
-				PM25: ptr(float32(0.5)),
-				PM4:  ptr(float32(0.6)),
-				PM10: ptr(float32(0.6)),
-				RH:   ptr(float32(53.6)),
-				Temp: ptr(float32(22.295)),
-				VOC:  ptr(float32(10)),
-				NOx:  ptr(float32(7)),
-				HCHO: ptr(float32(50)),
-				CO2:  ptr(int16(500)),
+				PM1:  new(float32(0.4)),
+				PM25: new(float32(0.5)),
+				PM4:  new(float32(0.6)),
+				PM10: new(float32(0.6)),
+				RH:   new(float32(53.6)),
+				Temp: new(float32(22.295)),
+				VOC:  new(float32(10)),
+				NOx:  new(float32(7)),
+				HCHO: new(float32(50)),
+				CO2:  new(int16(500)),
 			},
 		},
 		{
@@ -474,8 +474,8 @@ func TestDevReadMeasuredRawValues(t *testing.T) {
 				0x11, 0xea, 0x01, // Temp
 			},
 			want: &RawSensorValues{
-				RH:   ptr(float32(51.34)),
-				Temp: ptr(float32(22.93)),
+				RH:   new(float32(51.34)),
+				Temp: new(float32(22.93)),
 			},
 		},
 		{
@@ -487,8 +487,8 @@ func TestDevReadMeasuredRawValues(t *testing.T) {
 				0x11, 0xea, 0x01, // Temp
 			},
 			want: &RawSensorValues{
-				RH:   ptr(float32(51.34)),
-				Temp: ptr(float32(22.93)),
+				RH:   new(float32(51.34)),
+				Temp: new(float32(22.93)),
 			},
 		},
 		{
@@ -502,10 +502,10 @@ func TestDevReadMeasuredRawValues(t *testing.T) {
 				0x49, 0x45, 0x03, // NOx
 			},
 			want: &RawSensorValues{
-				RH:   ptr(float32(51.34)),
-				Temp: ptr(float32(22.93)),
-				VOC:  ptr(uint16(29385)),
-				NOx:  ptr(uint16(18757)),
+				RH:   new(float32(51.34)),
+				Temp: new(float32(22.93)),
+				VOC:  new(uint16(29385)),
+				NOx:  new(uint16(18757)),
 			},
 		},
 		{
@@ -520,11 +520,11 @@ func TestDevReadMeasuredRawValues(t *testing.T) {
 				0x01, 0xc8, 0x8b, // CO2
 			},
 			want: &RawSensorValues{
-				RH:   ptr(float32(51.34)),
-				Temp: ptr(float32(22.93)),
-				VOC:  ptr(uint16(29385)),
-				NOx:  ptr(uint16(18757)),
-				CO2:  ptr(uint16(456)),
+				RH:   new(float32(51.34)),
+				Temp: new(float32(22.93)),
+				VOC:  new(uint16(29385)),
+				NOx:  new(uint16(18757)),
+				CO2:  new(uint16(456)),
 			},
 		},
 		{
@@ -538,10 +538,10 @@ func TestDevReadMeasuredRawValues(t *testing.T) {
 				0x49, 0x45, 0x03, // NOx
 			},
 			want: &RawSensorValues{
-				RH:   ptr(float32(51.34)),
-				Temp: ptr(float32(22.93)),
-				VOC:  ptr(uint16(29385)),
-				NOx:  ptr(uint16(18757)),
+				RH:   new(float32(51.34)),
+				Temp: new(float32(22.93)),
+				VOC:  new(uint16(29385)),
+				NOx:  new(uint16(18757)),
 			},
 		},
 		{
@@ -555,10 +555,10 @@ func TestDevReadMeasuredRawValues(t *testing.T) {
 				0x49, 0x45, 0x03, // NOx
 			},
 			want: &RawSensorValues{
-				RH:   ptr(float32(51.34)),
-				Temp: ptr(float32(22.93)),
-				VOC:  ptr(uint16(29385)),
-				NOx:  ptr(uint16(18757)),
+				RH:   new(float32(51.34)),
+				Temp: new(float32(22.93)),
+				VOC:  new(uint16(29385)),
+				NOx:  new(uint16(18757)),
 			},
 		},
 		{

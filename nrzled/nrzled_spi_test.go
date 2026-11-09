@@ -36,10 +36,8 @@ func TestSPI_Empty(t *testing.T) {
 	buf := bytes.Buffer{}
 	o := Opts{NumPixels: 0, Channels: 3, Freq: 2500 * physic.KiloHertz}
 	s := spitest.Playback{
-		Playback: conntest.Playback{
-			Count: 1,
-			Ops:   []conntest.IO{{W: []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}}},
-		},
+		Count: 1,
+		Ops:   []conntest.IO{{W: []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}}},
 	}
 	d, err := NewSPI(spitest.NewRecordRaw(&buf), &o)
 	if err != nil {
@@ -316,8 +314,8 @@ func TestSPI_Long(t *testing.T) {
 	expected := make([]byte, 3+12*o.NumPixels+3)
 	// leave three bytes of padding
 	for i := 3; i < 12*o.NumPixels; i += 12 {
-		//Each channel should be 0x00
-		for j := 0; j < 12; j++ {
+		// Each channel should be 0x00
+		for j := range 12 {
 			expected[i+j] = 0x88
 		}
 	}
@@ -352,7 +350,7 @@ var drawTests = []struct {
 		name: "Draw NRGBA",
 		img: func() image.Image {
 			im := image.NewNRGBA(image.Rect(0, 0, 4, 1))
-			for i := 0; i < 4; i++ {
+			for i := range 4 {
 				im.Pix[4*i+0] = 0x00
 				im.Pix[4*i+1] = 0x80
 				im.Pix[4*i+2] = 0xFF
@@ -362,17 +360,17 @@ var drawTests = []struct {
 		}(),
 		want: func() []byte {
 			var b []byte
-			//padding
-			for i := 0; i < 3; i++ {
+			// padding
+			for range 3 {
 				b = append(b, 0x00)
 			}
-			for i := 0; i < 4; i++ {
-				b = append(b, 0xE8, 0x88, 0x88, 0x88) //0x80
-				b = append(b, 0x88, 0x88, 0x88, 0x88) //0x00
-				b = append(b, 0xEE, 0xEE, 0xEE, 0xEE) //0xFF
+			for range 4 {
+				b = append(b, 0xE8, 0x88, 0x88, 0x88) // 0x80
+				b = append(b, 0x88, 0x88, 0x88, 0x88) // 0x00
+				b = append(b, 0xEE, 0xEE, 0xEE, 0xEE) // 0xFF
 			}
-			//padding
-			for i := 0; i < 3; i++ {
+			// padding
+			for range 3 {
 				b = append(b, 0x00)
 			}
 			return b
@@ -439,22 +437,20 @@ func TestSPI_Draw_DstEmpty(t *testing.T) {
 
 func TestSPI_Halt(t *testing.T) {
 	s := spitest.Playback{
-		Playback: conntest.Playback{
-			Count: 1,
-			Ops: []conntest.IO{
-				{},
-				{W: []byte{
-					//Begin of frame
-					0x00, 0x00, 0x00,
+		Count: 1,
+		Ops: []conntest.IO{
+			{},
+			{W: []byte{
+				// Begin of frame
+				0x00, 0x00, 0x00,
 
-					0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88,
-					0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88,
-					0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88,
-					0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88,
-					//End of frame
-					0x00, 0x00, 0x00,
-				}},
-			},
+				0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88,
+				0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88,
+				0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88,
+				0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88,
+				// End of frame
+				0x00, 0x00, 0x00,
+			}},
 		},
 	}
 	o := Opts{NumPixels: 4, Channels: 3, Freq: 2500 * physic.KiloHertz}
@@ -471,7 +467,7 @@ func TestSPI_Halt(t *testing.T) {
 }
 
 func TestSPI_Halt_fail(t *testing.T) {
-	s := spitest.Playback{Playback: conntest.Playback{DontPanic: true}}
+	s := spitest.Playback{DontPanic: true}
 	o := Opts{NumPixels: 4, Channels: 3, Freq: 2500 * physic.KiloHertz}
 	d, err := NewSPI(&s, &o)
 	if err != nil {
@@ -489,7 +485,7 @@ type genColor func(int) [3]byte
 
 func benchmarkSPIWrite(b *testing.B, o Opts, length int, f genColor) {
 	var pixels []byte
-	for i := 0; i < length; i++ {
+	for i := range length {
 		c := f(i)
 		pixels = append(pixels, c[:]...)
 	}
@@ -499,12 +495,12 @@ func benchmarkSPIWrite(b *testing.B, o Opts, length int, f genColor) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	if _, err = d.Write(pixels[:]); err != nil {
+	if _, err = d.Write(pixels); err != nil {
 		b.Fatal(err)
 	}
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		if _, err = d.Write(pixels[:]); err != nil {
+	for range b.N {
+		if _, err = d.Write(pixels); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -512,17 +508,17 @@ func benchmarkSPIWrite(b *testing.B, o Opts, length int, f genColor) {
 
 func BenchmarkSPI_WriteWhite(b *testing.B) {
 	o := Opts{NumPixels: 150, Channels: 3, Freq: 2500 * physic.KiloHertz}
-	benchmarkSPIWrite(b, o, 150, func(i int) [3]byte { return [3]byte{0xFF, 0xFF, 0xFF} })
+	benchmarkSPIWrite(b, o, 150, func(_ int) [3]byte { return [3]byte{0xFF, 0xFF, 0xFF} })
 }
 
 func BenchmarkSPI_WriteDim(b *testing.B) {
 	o := Opts{NumPixels: 150, Channels: 3, Freq: 2500 * physic.KiloHertz}
-	benchmarkSPIWrite(b, o, 150, func(i int) [3]byte { return [3]byte{0x01, 0x01, 0x01} })
+	benchmarkSPIWrite(b, o, 150, func(_ int) [3]byte { return [3]byte{0x01, 0x01, 0x01} })
 }
 
 func BenchmarkSPI_WriteBlack(b *testing.B) {
 	o := Opts{NumPixels: 150, Channels: 3, Freq: 2500 * physic.KiloHertz}
-	benchmarkSPIWrite(b, o, 150, func(i int) [3]byte { return [3]byte{0x0, 0x0, 0x0} })
+	benchmarkSPIWrite(b, o, 150, func(_ int) [3]byte { return [3]byte{0x0, 0x0, 0x0} })
 }
 
 func genColorfulPixel(x int) [3]byte {
@@ -559,7 +555,7 @@ func BenchmarkSPI_WriteColorfulVariation(b *testing.B) {
 		b.Fatal(err)
 	}
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		if _, err = d.Write(pixels[:]); err != nil {
 			b.Fatal(err)
 		}
@@ -567,8 +563,8 @@ func BenchmarkSPI_WriteColorfulVariation(b *testing.B) {
 }
 
 func benchmarkSPIDraw(b *testing.B, o Opts, img draw.Image, f genColor) {
-	for x := 0; x < img.Bounds().Dx(); x++ {
-		for y := 0; y < img.Bounds().Dy(); y++ {
+	for x := range img.Bounds().Dx() {
+		for y := range img.Bounds().Dy() {
 			pix := f(x)
 			c := color.NRGBA{R: pix[0], G: pix[1], B: pix[2], A: 255}
 			img.Set(x, y, c)
@@ -583,7 +579,7 @@ func benchmarkSPIDraw(b *testing.B, o Opts, img draw.Image, f genColor) {
 		b.Fatal(err)
 	}
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		if err := d.Draw(r, img, p); err != nil {
 			b.Fatal(err)
 		}
@@ -597,7 +593,7 @@ func BenchmarkSPI_DrawNRGBAColorful(b *testing.B) {
 
 func BenchmarkSPI_DrawNRGBAWhite(b *testing.B) {
 	o := Opts{NumPixels: 150, Channels: 3, Freq: 2500 * physic.KiloHertz}
-	benchmarkSPIDraw(b, o, image.NewNRGBA(image.Rect(0, 0, 150, 1)), func(i int) [3]byte { return [3]byte{0xFF, 0xFF, 0xFF} })
+	benchmarkSPIDraw(b, o, image.NewNRGBA(image.Rect(0, 0, 150, 1)), func(_ int) [3]byte { return [3]byte{0xFF, 0xFF, 0xFF} })
 }
 
 func BenchmarkDrawRGBAColorful(b *testing.B) {
@@ -608,8 +604,8 @@ func BenchmarkDrawRGBAColorful(b *testing.B) {
 func BenchmarkSPI_DrawSlowpath(b *testing.B) {
 	// Should be an image type that doesn't have a fast path
 	img := image.NewGray(image.Rect(0, 0, 150, 1))
-	for x := 0; x < img.Bounds().Dx(); x++ {
-		for y := 0; y < img.Bounds().Dy(); y++ {
+	for x := range img.Bounds().Dx() {
+		for y := range img.Bounds().Dy() {
 			pix := genColorfulPixel(x)
 			img.Set(x, y, color.Gray{pix[0]})
 		}
@@ -626,7 +622,7 @@ func BenchmarkSPI_DrawSlowpath(b *testing.B) {
 		b.Fatal(err)
 	}
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		if err := d.Draw(r, img, p); err != nil {
 			b.Fatal(err)
 		}
@@ -641,7 +637,7 @@ func BenchmarkSPI_Halt(b *testing.B) {
 		b.Fatal(err)
 	}
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		if err := d.Halt(); err != nil {
 			b.Fatal(err)
 		}
@@ -654,7 +650,7 @@ type configFail struct {
 	spitest.Record
 }
 
-func (c *configFail) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, error) {
+func (c *configFail) Connect(_ physic.Frequency, _ spi.Mode, _ int) (spi.Conn, error) {
 	return nil, errors.New("injected error")
 }
 

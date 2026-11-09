@@ -25,7 +25,11 @@ func Example() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer bus.Close()
+	defer func() {
+		if closeErr := bus.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	dev, err := sht4x.New(bus, sht4x.DefaultAddress)
 	if err != nil {

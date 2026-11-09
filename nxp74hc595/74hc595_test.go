@@ -19,7 +19,11 @@ import (
 
 func TestBasic(t *testing.T) {
 	pb := &spitest.Record{Ops: make([]conntest.IO, 0)}
-	defer pb.Close()
+	t.Cleanup(func() {
+		if err := pb.Close(); err != nil {
+			t.Error(err)
+		}
+	})
 	conn, err := pb.Connect(physic.MegaHertz, spi.Mode1, 8)
 	if err != nil {
 		log.Fatal(err)
@@ -32,7 +36,9 @@ func TestBasic(t *testing.T) {
 
 	gr, _ := dev.Group(6, 5, 4, 3)
 	for i := range 16 {
-		gr.Out(gpio.GPIOValue(i), 0)
+		if callErr := gr.Out(gpio.GPIOValue(i), 0); callErr != nil {
+			t.Fatal(callErr)
+		}
 	}
 	singlePin := dev.Pins[7]
 	for i := range 20 {

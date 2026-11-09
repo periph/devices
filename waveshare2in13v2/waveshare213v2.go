@@ -22,7 +22,7 @@ import (
 	"periph.io/x/host/v3/rpi"
 )
 
-// Commands
+// Commands.
 const (
 	driverOutputControl            byte = 0x01
 	gateDrivingVoltageControl      byte = 0x03
@@ -49,7 +49,7 @@ const (
 	setDigitalBlockControl         byte = 0x7E
 )
 
-// Register values
+// Register values.
 const (
 	gateDrivingVoltage19V = 0x15
 
@@ -58,7 +58,7 @@ const (
 	sourceDrivingVoltageVSL_neg15V = 0x32
 )
 
-// Flags for the displayUpdateControl2 command
+// Flags for the displayUpdateControl2 command.
 const (
 	displayUpdateDisableClock byte = 1 << iota
 	displayUpdateDisableAnalog
@@ -215,18 +215,6 @@ func NewHat(p spi.Port, opts *Opts) (*Dev, error) {
 	return New(p, dc, cs, rst, busy, opts)
 }
 
-func (d *Dev) configMode(ctrl controller) {
-	var lut LUT
-
-	if d.mode == Full {
-		lut = d.opts.FullUpdate
-	} else {
-		lut = d.opts.PartialUpdate
-	}
-
-	configDisplayMode(ctrl, d.mode, lut)
-}
-
 // Init configures the display for usage through the other functions.
 func (d *Dev) Init() error {
 	// Hardware Reset
@@ -334,7 +322,7 @@ func (d *Dev) Sleep() error {
 	return eh.err
 }
 
-// Reset the hardware
+// Reset the hardware.
 func (d *Dev) reset() error {
 	eh := errorHandler{d: *d}
 
@@ -349,3 +337,15 @@ func (d *Dev) reset() error {
 }
 
 var _ display.Drawer = &Dev{}
+
+func (d *Dev) configMode(ctrl controller) {
+	var lut LUT
+
+	if d.mode == Full {
+		lut = d.opts.FullUpdate
+	} else {
+		lut = d.opts.PartialUpdate
+	}
+
+	configDisplayMode(ctrl, d.mode, lut)
+}

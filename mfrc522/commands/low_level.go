@@ -32,7 +32,7 @@ type LowLevel struct {
 }
 
 // AuthStatus indicates the authentication response, could be one of AuthOk,
-// AuthReadFailure or AuthFailure
+// AuthReadFailure or AuthFailure.
 type AuthStatus byte
 
 // NewLowLevelSPI creates and initializes the RFID card reader attached to SPI.
@@ -228,7 +228,7 @@ func (r *LowLevel) WaitForEdge(timeout time.Duration) error {
 	}
 }
 
-// ClearInterrupt removes any pending host interrupts
+// ClearInterrupt removes any pending host interrupts.
 func (r *LowLevel) ClearInterrupt() {
 	r.irqPin.WaitForEdge(0)
 }
@@ -244,8 +244,8 @@ func (r *LowLevel) Auth(mode byte, blockAddress byte, sectorKey [6]byte, serial 
 	buffer := make([]byte, 2)
 	buffer[0] = mode
 	buffer[1] = blockAddress
-	buffer = append(buffer, sectorKey[:]...)
-	buffer = append(buffer, serial[:4]...)
+	buffer = append(buffer, sectorKey[:]...) //nolint:makezero // The existing prefix contains the command.
+	buffer = append(buffer, serial[:4]...)   //nolint:makezero // The existing prefix contains the command.
 	_, _, err := r.CardWrite(PCD_AUTHENT, buffer)
 	if err != nil {
 		return AuthReadFailure, err
@@ -342,7 +342,7 @@ func (r *LowLevel) CardWrite(command byte, data []byte) ([]byte, int, error) {
 		if err != nil {
 			return nil, -1, err
 		}
-		lastBits = lastBits & 0x07
+		lastBits &= 0x07
 		if lastBits != 0 {
 			backLength = (int(n)-1)*8 + int(lastBits)
 		} else {
@@ -365,7 +365,6 @@ func (r *LowLevel) CardWrite(command byte, data []byte) ([]byte, int, error) {
 			}
 			backData[i] = byteVal
 		}
-
 	}
 
 	return backData, backLength, nil
@@ -386,7 +385,7 @@ func (r *LowLevel) writeCommandSequence(commands [][]byte) error {
 	return nil
 }
 
-func wrapf(format string, a ...interface{}) error {
+func wrapf(format string, a ...any) error {
 	return fmt.Errorf("mfrc522 lowlevel: "+format, a...)
 }
 

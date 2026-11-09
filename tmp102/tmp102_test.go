@@ -63,7 +63,11 @@ func TestSenseContinuous(t *testing.T) {
 		ops = append(ops, i2ctest.IO{Addr: addr, W: []byte{_REGISTER_TEMPERATURE}, R: test.bits})
 	}
 	pb := &i2ctest.Playback{Ops: ops, DontPanic: true, Count: 1}
-	defer pb.Close()
+	t.Cleanup(func() {
+		if err := pb.Close(); err != nil {
+			t.Error(err)
+		}
+	})
 	record := &i2ctest.Record{Bus: pb}
 
 	tmp102, err := NewI2C(record, addr, &opts)
@@ -77,13 +81,12 @@ func TestSenseContinuous(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	for count := 0; count < len(tests); count++ {
+	for count := range tests {
 		env := <-ch
 		t.Logf("Temperature = %.4f", env.Temperature.Celsius())
 		if env.Temperature != tests[count].expected {
 			t.Errorf("Error testing. Read: %.4f Expected %.4f", env.Temperature.Celsius(), tests[count].expected.Celsius())
 		}
-
 	}
 	err = tmp102.Halt()
 	if err != nil {
@@ -93,9 +96,13 @@ func TestSenseContinuous(t *testing.T) {
 }
 
 func TestString(t *testing.T) {
-	ops := defaultOps()
+	ops := defaultOps()[:2]
 	pb := &i2ctest.Playback{Ops: ops, DontPanic: true, Count: 1}
-	defer pb.Close()
+	t.Cleanup(func() {
+		if err := pb.Close(); err != nil {
+			t.Error(err)
+		}
+	})
 	record := &i2ctest.Record{Bus: pb}
 	tmp102, err := NewI2C(record, addr, nil)
 	if err != nil {
@@ -127,7 +134,11 @@ func TestSetAlertMode(t *testing.T) {
 		{Addr: addr, W: []byte{_REGISTER_RANGE_HIGH, 0x50, 0x00}},               // set it back to 80C
 	}...)
 	pb := &i2ctest.Playback{Ops: ops, DontPanic: true, Count: 1}
-	defer pb.Close()
+	t.Cleanup(func() {
+		if err := pb.Close(); err != nil {
+			t.Error(err)
+		}
+	})
 	record := &i2ctest.Record{Bus: pb}
 	defer t.Logf("record=%#v", record)
 	tmp102, err := NewI2C(record, addr, nil)

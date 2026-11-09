@@ -28,7 +28,11 @@ func Example() {
 	if err != nil {
 		log.Fatalf("failed to open I²C: %v", err)
 	}
-	defer bus.Close()
+	defer func() {
+		if closeErr := bus.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 	dev, err := waveshare1602.New(bus, waveshare1602.LCD1602RGBBacklight, 2, 16)
 	if err != nil {
 		log.Fatal(err)

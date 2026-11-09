@@ -28,11 +28,11 @@ func (pin *pcfPin) Function() string {
 	return "Out"
 }
 
-func (pcf *pcfPin) Halt() error {
+func (pin *pcfPin) Halt() error {
 	return nil
 }
 
-func (pin *pcfPin) In(pull gpio.Pull, edge gpio.Edge) error {
+func (pin *pcfPin) In(_ gpio.Pull, _ gpio.Edge) error {
 	// To use a pin for input, you must write a High to that pin, and then
 	// perform the read. The chip doesn't natively support pullup/pulldown.
 	//
@@ -63,7 +63,6 @@ func (pin *pcfPin) Pull() gpio.Pull {
 }
 
 func (pin *pcfPin) Read() gpio.Level {
-
 	result := gpio.Low
 	mask := gpio.GPIOValue(1 << pin.number)
 
@@ -77,7 +76,7 @@ func (pin *pcfPin) Read() gpio.Level {
 	return result
 }
 
-func (pin *pcfPin) PWM(duty gpio.Duty, f physic.Frequency) error {
+func (pin *pcfPin) PWM(_ gpio.Duty, _ physic.Frequency) error {
 	return ErrNotImplmented
 }
 
@@ -87,7 +86,7 @@ func (pin *pcfPin) String() string {
 
 // This device has an interrupt pin that can detect a change on the GPIO lines,
 // however it doesn't let you detect a change on a specific pin.
-func (pin *pcfPin) WaitForEdge(timeout time.Duration) bool {
+func (pin *pcfPin) WaitForEdge(_ time.Duration) bool {
 	return false
 }
 

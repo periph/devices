@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"log/slog"
 	"sync"
 	"time"
 
@@ -29,7 +30,7 @@ type Precision int
 
 const (
 	// HighPrecisionWithTemperature reads the full 12-bit value for each axis
-	// and the temperature
+	// and the temperature.
 	HighPrecisionWithTemperature Precision = 0
 	// LowPrecision reads only 8-bits for each axis. Temperature is not read.
 	LowPrecision Precision = 1
@@ -70,7 +71,7 @@ const (
 	referenceTemperature  = 25*physic.Celsius + physic.ZeroCelsius
 )
 
-// Mode reprents the various power modes described in the documentation
+// Mode reprents the various power modes described in the documentation.
 type Mode struct {
 	fastMode             bool
 	lowPowerMode         bool
@@ -88,7 +89,7 @@ var PowerDownMode = Mode{
 	measurementFrequency: 1 * physic.Hertz,
 }
 
-// FastMode is the mode using the most energy
+// FastMode is the mode using the most energy.
 var FastMode = Mode{
 	fastMode:             true,
 	lowPowerMode:         false,
@@ -97,7 +98,7 @@ var FastMode = Mode{
 	measurementFrequency: 3300 * physic.Hertz,
 }
 
-// LowPowerMode uses less energy than FastMode, with lower measurement rate
+// LowPowerMode uses less energy than FastMode, with lower measurement rate.
 var LowPowerMode = Mode{
 	fastMode:             false,
 	lowPowerMode:         true,
@@ -106,7 +107,7 @@ var LowPowerMode = Mode{
 	measurementFrequency: 100 * physic.Hertz,
 }
 
-// UltraLowPowerMode saves the most energy but with very low measurement rate
+// UltraLowPowerMode saves the most energy but with very low measurement rate.
 var UltraLowPowerMode = Mode{
 	fastMode:             false,
 	lowPowerMode:         true,
@@ -115,7 +116,7 @@ var UltraLowPowerMode = Mode{
 	measurementFrequency: 10 * physic.Hertz,
 }
 
-// MasterControlledMode refer to TLV493D documentation on how to use this mode
+// MasterControlledMode refer to TLV493D documentation on how to use this mode.
 var MasterControlledMode = Mode{
 	fastMode:             true,
 	lowPowerMode:         true,
@@ -146,7 +147,7 @@ var DefaultOpts = Opts{
 	TemperatureOffsetCompensation: DefaultTemperatureOffsetCompensation, // As per the documentation, can be calibrated for better precision
 }
 
-// Sample contains the metrics measured by the sensor
+// Sample contains the metrics measured by the sensor.
 type Sample struct {
 	Bx          physic.MagneticFluxDensity
 	By          physic.MagneticFluxDensity
@@ -171,7 +172,7 @@ type Dev struct {
 	temperatureOffsetCompensation int
 }
 
-// New creates a new TLV493D driver for a 3D hall effect sensors
+// New creates a new TLV493D driver for a 3D hall effect sensors.
 func New(i i2c.Bus, opts *Opts) (*Dev, error) {
 	switch opts.I2cAddress {
 	case I2CAddr, I2CAddr1:
@@ -207,6 +208,184 @@ func (d *Dev) Halt() error {
 	return d.SetMode(PowerDownMode)
 }
 
+// SetMode sets the power mode of the sensor.
+func (d *Dev) SetMode(mode Mode) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	d.mode = mode
+	return d.configure()
+}
+
+// EnableTemperatureMeasurement controls the temperature sensor activation.
+func (d *Dev) EnableTemperatureMeasurement(enable bool) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	d.enableTemperatureMeasurement = enable
+	return d.configure()
+}
+
+// EnableInterruptions controls if the sensor should send interruption of new measurement.
+func (d *Dev) EnableInterruptions(enable bool) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	d.interruptPadEnabled = enable
+	return d.configure()
+}
+
+// EnableParityTest controls if the sensor should control the parity of the data transmitted.
+func (d *Dev) EnableParityTest(enable bool) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	d.parityTestEnabled = enable
+	return d.configure()
+}
+
+// Read returns a sample from the last measurement of the sensor.
+func (d *Dev) Read(precision Precision) (Sample, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	if precision == LowPrecision {
+		return d.readLowPrecision()
+	}
+
+	return d.readHighPrecision()
+}
+
+// ReadContinuous returns a channel which will receive readings at regular intervals.
+func (d *Dev) ReadContinuous(frequency physic.Frequency, precision Precision) (<-chan Sample, error) {
+	// First release the current continuous reading if there is one
+	d.StopContinousRead()
+	reading := make(chan Sample, 16)
+	d.stop = make(chan struct{})
+
+	// Choose the best operating mode for the sensor
+	newMode, err := bestModeForFrequency(frequency)
+	if err != nil {
+		return nil, err
+	}
+
+	previousMode := d.mode
+	if err := d.SetMode(newMode); err != nil {
+		return nil, err
+	}
+
+	t := time.NewTicker(frequency.Period())
+
+	d.continuousReadWG.Add(1)
+
+	go func(s <-chan struct{}) {
+		defer d.continuousReadWG.Done()
+		defer func() {
+			if err := d.SetMode(previousMode); err != nil {
+				slog.Error("tlv493d: restore sensor mode", "err", err)
+			}
+		}()
+		defer t.Stop()
+		defer close(reading)
+
+		for {
+			select {
+			case <-s:
+				return
+			case <-t.C:
+				value, err := d.Read(precision)
+				if err != nil {
+					// Try resetting the sensor to recover from errors
+					if err := d.initialize(true); err == nil {
+						if err := d.SetMode(newMode); err != nil {
+							log.Printf("%s: unable to reset tlv493d mode: %v", d, err)
+						} else {
+							log.Printf("%s: sensor reset successfully", d)
+						}
+					}
+					continue
+				}
+				reading <- value
+			}
+		}
+	}(d.stop)
+
+	return reading, nil
+}
+
+// StopContinousRead stops a currently running continuous read.
+func (d *Dev) StopContinousRead() {
+	if d.stop == nil {
+		return
+	}
+
+	d.stop <- struct{}{}
+	d.stop = nil
+	d.continuousReadWG.Wait()
+}
+
+// CalibrateTemperatureOffsetCompensation computes the temperature offset compensation based upon a reading from the sensor compared to the actual temperature.
+//
+// The returned value must be stored and passed in Opts.TemperatureOffsetCompensation in future uses of TLV493D driver.
+// See TLV493D user manual, "3.2 Calculation of the temperature" for more information.
+func CalibrateTemperatureOffsetCompensation(temperatureOffsetCompensation int, measuredTemperature physic.Temperature, actualTemperature physic.Temperature) int {
+	// Compute measurement based upon reference documentation
+	rawTemp := int((measuredTemperature-referenceTemperature)/temperatureScaling) + temperatureOffsetCompensation
+	// Compute the new offset by matching the raw measurement between the measure and the actual value
+	return rawTemp - int((actualTemperature-referenceTemperature)/temperatureScaling)
+}
+
+func bestModeForFrequency(frequency physic.Frequency) (Mode, error) {
+	allowed := []*Mode{&FastMode, &LowPowerMode, &UltraLowPowerMode}
+	var minAbove *Mode
+
+	for _, m := range allowed {
+		if m.measurementFrequency >= frequency {
+			if minAbove == nil || minAbove.measurementFrequency > m.measurementFrequency {
+				minAbove = m
+			}
+		}
+	}
+
+	if minAbove == nil {
+		return PowerDownMode, fmt.Errorf("frequency too high, no mode available for %s", frequency)
+	}
+
+	return *minAbove, nil
+}
+
+// Sets the bit at pos in the integer n.
+func setBit(n byte, pos uint, isSet bool) byte {
+	var bit byte = (1 << pos)
+	if isSet {
+		return n | bit
+	}
+	return n &^ bit
+}
+
+func isNumberOfBitsEven(array []byte) bool {
+	var accumulator byte
+
+	// The keys is to use XOR
+	// 1 ^ 1 -> 0 (even)
+	// 0 ^ 1 -> 1 (odd)
+	// 1 ^ 0 -> 1 (odd)
+	// 0 ^ 0 -> 0 (even)
+
+	// Combine all bytes
+	for _, b := range array {
+		accumulator ^= b
+	}
+
+	// Combine adjacent bits
+	accumulator ^= (accumulator >> 1)
+	accumulator ^= (accumulator >> 2)
+	accumulator ^= (accumulator >> 4)
+
+	// Parity is in the LSB
+	return !((accumulator & 0x01) == 1)
+}
+
 func (d *Dev) initialize(reset bool) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -239,7 +418,6 @@ func (d *Dev) initialize(reset bool) error {
 }
 
 func (d *Dev) configure() error {
-
 	// Configure sensor
 	config1 := d.registersBuffer[registerFactSet1]
 	config2 := d.registersBuffer[registerFactSet3]
@@ -272,58 +450,10 @@ func (d *Dev) configure() error {
 	configBuffer[1] = setBit(config1, 7, isNumberOfBitsEven(configBuffer))
 
 	if err := d.i2c.Tx(configBuffer, nil); err != nil {
-		return fmt.Errorf("unable to read configuration: %#v", err)
+		return fmt.Errorf("unable to read configuration: %#w", err)
 	}
 
 	return nil
-}
-
-// SetMode sets the power mode of the sensor
-func (d *Dev) SetMode(mode Mode) error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	d.mode = mode
-	return d.configure()
-}
-
-// EnableTemperatureMeasurement controls the temperature sensor activation
-func (d *Dev) EnableTemperatureMeasurement(enable bool) error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	d.enableTemperatureMeasurement = enable
-	return d.configure()
-}
-
-// EnableInterruptions controls if the sensor should send interruption of new measurement
-func (d *Dev) EnableInterruptions(enable bool) error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	d.interruptPadEnabled = enable
-	return d.configure()
-}
-
-// EnableParityTest controls if the sensor should control the parity of the data transmitted
-func (d *Dev) EnableParityTest(enable bool) error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	d.parityTestEnabled = enable
-	return d.configure()
-}
-
-// Read returns a sample from the last measurement of the sensor
-func (d *Dev) Read(precision Precision) (Sample, error) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	if precision == LowPrecision {
-		return d.readLowPrecision()
-	}
-
-	return d.readHighPrecision()
 }
 
 func (d *Dev) readLowPrecision() (Sample, error) {
@@ -369,131 +499,4 @@ func (d *Dev) readHighPrecision() (Sample, error) {
 		Bz:          magneticFluxScaling * physic.MagneticFluxDensity(rawBz),
 		Temperature: temp,
 	}, nil
-}
-
-// ReadContinuous returns a channel which will receive readings at regular intervals
-func (d *Dev) ReadContinuous(frequency physic.Frequency, precision Precision) (<-chan Sample, error) {
-	// First release the current continuous reading if there is one
-	d.StopContinousRead()
-	reading := make(chan Sample, 16)
-	d.stop = make(chan struct{})
-
-	// Choose the best operating mode for the sensor
-	newMode, err := bestModeForFrequency(frequency)
-	if err != nil {
-		return nil, err
-	}
-
-	previousMode := d.mode
-	if err := d.SetMode(newMode); err != nil {
-		return nil, err
-	}
-
-	t := time.NewTicker(frequency.Period())
-
-	d.continuousReadWG.Add(1)
-
-	go func(s <-chan struct{}) {
-		defer d.SetMode(previousMode)
-		defer t.Stop()
-		defer close(reading)
-		defer d.continuousReadWG.Done()
-
-		for {
-			select {
-			case <-s:
-				return
-			case <-t.C:
-				value, err := d.Read(precision)
-				if err != nil {
-					// Try resetting the sensor to recover from errors
-					if err := d.initialize(true); err == nil {
-						if err := d.SetMode(newMode); err != nil {
-							log.Printf("%s: unable to reset tlv493d mode: %v", d, err)
-						} else {
-							log.Printf("%s: sensor reset successfully", d)
-						}
-					}
-					continue
-				}
-				reading <- value
-			}
-		}
-	}(d.stop)
-
-	return reading, nil
-}
-
-// StopContinousRead stops a currently running continuous read
-func (d *Dev) StopContinousRead() {
-	if d.stop == nil {
-		return
-	}
-
-	d.stop <- struct{}{}
-	d.stop = nil
-	d.continuousReadWG.Wait()
-}
-
-// CalibrateTemperatureOffsetCompensation computes the temperature offset compensation based upon a reading from the sensor compared to the actual temperature.
-//
-// The returned value must be stored and passed in Opts.TemperatureOffsetCompensation in future uses of TLV493D driver.
-// See TLV493D user manual, "3.2 Calculation of the temperature" for more information.
-func CalibrateTemperatureOffsetCompensation(temperatureOffsetCompensation int, measuredTemperature physic.Temperature, actualTemperature physic.Temperature) int {
-	// Compute measurement based upon reference documentation
-	rawTemp := int((measuredTemperature-referenceTemperature)/temperatureScaling) + temperatureOffsetCompensation
-	// Compute the new offset by matching the raw measurement between the measure and the actual value
-	return rawTemp - int((actualTemperature-referenceTemperature)/temperatureScaling)
-}
-
-func bestModeForFrequency(frequency physic.Frequency) (Mode, error) {
-
-	allowed := []*Mode{&FastMode, &LowPowerMode, &UltraLowPowerMode}
-	var minAbove *Mode = nil
-
-	for _, m := range allowed {
-		if m.measurementFrequency >= frequency {
-			if minAbove == nil || minAbove.measurementFrequency > m.measurementFrequency {
-				minAbove = m
-			}
-		}
-	}
-
-	if minAbove == nil {
-		return PowerDownMode, fmt.Errorf("frequency too high, no mode available for %s", frequency)
-	}
-
-	return *minAbove, nil
-}
-
-// Sets the bit at pos in the integer n.
-func setBit(n byte, pos uint, isSet bool) byte {
-	var bit byte = (1 << pos)
-	if isSet {
-		return n | bit
-	}
-	return n &^ bit
-}
-
-func isNumberOfBitsEven(array []byte) bool {
-	var accumulator byte = 0
-
-	// The keys is to use XOR
-	// 1 ^ 1 -> 0 (even)
-	// 0 ^ 1 -> 1 (odd)
-	// 1 ^ 0 -> 1 (odd)
-	// 0 ^ 0 -> 0 (even)
-
-	// Combine all bytes
-	for _, b := range array {
-		accumulator ^= b
-	}
-
-	// Combine adjacent bits
-	accumulator ^= (accumulator >> 1)
-	accumulator ^= (accumulator >> 2)
-	accumulator ^= (accumulator >> 4)
-
-	// Parity is in the LSB
-	return !((accumulator & 0x01) == 1)
 }

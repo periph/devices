@@ -134,6 +134,37 @@ type Opts struct {
 	Addr uint16
 }
 
+// Dev is an open handle to the display controller.
+type Dev struct {
+	// Communication
+	c   conn.Conn
+	dc  gpio.PinOut
+	spi bool
+
+	// Display size controlled by the SSD1306.
+	rect image.Rectangle
+
+	// Mutable
+	// See page 25 for the GDDRAM pages structure.
+	// Narrow screen will waste the end of each page.
+	// Short screen will ignore the lower pages.
+	// There is 8 pages, each covering an horizontal band of 8 pixels high (1
+	// byte) for 128 bytes.
+	// 8*128 = 1024 bytes total for 128x64 display.
+	buffer []byte
+	// next is lazy initialized on first Draw(). Write() skips this buffer.
+	next               *image1bit.VerticalLSB
+	startPage, endPage int
+	startCol, endCol   int
+	scrolled           bool
+	halted             bool
+	// The display type. _SSD1306, _SH1106, _SH1107.
+	variant variant
+	// The SH1106 is a little funny. It's got 132 bytes wide of RAM, but 4 bytes
+	// are unused, so you have to offset writes by two to account for it.
+	startOffset byte
+}
+
 // NewSPI returns a Dev object that communicates over SPI to a SSD1306 display
 // controller.
 //
@@ -176,37 +207,6 @@ func NewI2C(i i2c.Bus, opts *Opts) (*Dev, error) {
 	}
 	// Maximum clock speed is 1/2.5µs = 400KHz.
 	return newDev(&i2c.Dev{Bus: i, Addr: opts.Addr}, opts, false, nil)
-}
-
-// Dev is an open handle to the display controller.
-type Dev struct {
-	// Communication
-	c   conn.Conn
-	dc  gpio.PinOut
-	spi bool
-
-	// Display size controlled by the SSD1306.
-	rect image.Rectangle
-
-	// Mutable
-	// See page 25 for the GDDRAM pages structure.
-	// Narrow screen will waste the end of each page.
-	// Short screen will ignore the lower pages.
-	// There is 8 pages, each covering an horizontal band of 8 pixels high (1
-	// byte) for 128 bytes.
-	// 8*128 = 1024 bytes total for 128x64 display.
-	buffer []byte
-	// next is lazy initialized on first Draw(). Write() skips this buffer.
-	next               *image1bit.VerticalLSB
-	startPage, endPage int
-	startCol, endCol   int
-	scrolled           bool
-	halted             bool
-	// The display type. _SSD1306, _SH1106, _SH1107.
-	variant variant
-	// The SH1106 is a little funny. It's got 132 bytes wide of RAM, but 4 bytes
-	// are unused, so you have to offset writes by two to account for it.
-	startOffset byte
 }
 
 func (d *Dev) String() string {
@@ -356,7 +356,6 @@ func (d *Dev) Invert(blackOnWhite bool) error {
 // newDev is the common initialization code that is independent of the
 // communication protocol (I²C or SPI) being used.
 func newDev(c conn.Conn, opts *Opts, usingSPI bool, dc gpio.PinOut) (*Dev, error) {
-
 	nbPages := opts.H / 8
 	pageSize := opts.W
 	d := &Dev{
@@ -376,12 +375,13 @@ func newDev(c conn.Conn, opts *Opts, usingSPI bool, dc gpio.PinOut) (*Dev, error
 	// Read the variant directly from the chip.
 	id, _ := d.readID()
 	id &= 0x0f
-	if id == 0x07 || id == 0x0f {
+	switch id {
+	case 0x07, 0x0f:
 		d.variant = _SH1107
-	} else if id == 0x08 {
+	case 0x08:
 		d.startOffset = 2
 		d.variant = _SH1106
-	} else {
+	default:
 		d.variant = _SSD1306
 	}
 	if err := d.sendCommand(getInitCmd(opts, d.variant)); err != nil {
@@ -635,7 +635,7 @@ func (d *Dev) sendCommand(c []byte) error {
 //	    0x08: sh1106
 //
 // 6 Display On/Off 0=on, 1 = off
-// 7 BUSY
+// 7 BUSY.
 func (d *Dev) readID() (byte, error) {
 	r := make([]byte, 1)
 	err := d.c.Tx([]byte{0}, r)

@@ -54,7 +54,9 @@ func TestHalt(t *testing.T) {
 func TestWakeUp(t *testing.T) {
 	bus := setup()
 	dev, _ := New(bus)
-	dev.WakeUp()
+	if err := dev.WakeUp(); err != nil {
+		t.Fatal(err)
+	}
 	if len(bus.Ops) != 2 {
 		t.Fatal("Expected 2 operations, got", len(bus.Ops))
 	}
@@ -69,7 +71,9 @@ func TestWakeUp(t *testing.T) {
 func TestSleep(t *testing.T) {
 	bus := setup()
 	dev, _ := New(bus)
-	dev.Sleep()
+	if err := dev.Sleep(); err != nil {
+		t.Fatal(err)
+	}
 	if !bytes.Equal(bus.Ops[1].W, []byte{0x00, 0x00}) {
 		t.Fatal("Expected: 0x00, 0x00, got: ", bus.Ops[1].W)
 	}
@@ -100,7 +104,9 @@ func TestSwitch(t *testing.T) {
 	if state, _, _ := dev.GetState(7); !state {
 		t.Fatal("Expected: LED on, but was off")
 	}
-	dev.Switch(7, false)
+	if callErr := dev.Switch(7, false); callErr != nil {
+		t.Fatal(callErr)
+	}
 	if state, _, _ := dev.GetState(7); state {
 		t.Fatal("Expected: LED off, but was on")
 	}
@@ -122,14 +128,15 @@ func TestSwitch(t *testing.T) {
 	if err = dev.Switch(19, true); err == nil {
 		t.Fatal("Tried to switch LED out of range and expected error, but error is nil...")
 	}
-
 }
 
 func TestSetGlobalBrightness(t *testing.T) {
 	bus := setup()
 	dev, _ := New(bus)
-	dev.BrightnessAll(100)
-	for i := 0; i < 17; i++ {
+	if err := dev.BrightnessAll(100); err != nil {
+		t.Fatal(err)
+	}
+	for i := range 17 {
 		if dev.brightness[i] != 100 {
 			t.Fatal("Brightness of LED", i, " should be 100, but is", dev.brightness[i])
 		}
@@ -174,8 +181,10 @@ func TestSetBrightness(t *testing.T) {
 func TestSwitchAll(t *testing.T) {
 	bus := setup()
 	dev, _ := New(bus)
-	dev.SwitchAll(true)
-	for i := 0; i < 17; i++ {
+	if err := dev.SwitchAll(true); err != nil {
+		t.Fatal(err)
+	}
+	for i := range 17 {
 		if state, _, _ := dev.GetState(i); !state {
 			t.Fatal("LED should be on, but is off: ", i)
 		}
@@ -187,8 +196,10 @@ func TestSwitchAll(t *testing.T) {
 		t.Fatal("Data written to bus different than expected")
 	}
 
-	dev.SwitchAll(false)
-	for i := 0; i < 17; i++ {
+	if err := dev.SwitchAll(false); err != nil {
+		t.Fatal(err)
+	}
+	for i := range 17 {
 		if state, _, _ := dev.GetState(i); state {
 			t.Fatal("LED should be off, but is on: ", i)
 		}
@@ -222,7 +233,7 @@ func TestBoolArrayToInt(t *testing.T) {
 		t.Error("Expected: 3, got ", result)
 	}
 
-	for i := 0; i < 18; i++ {
+	for i := range 18 {
 		dev.on[i] = true
 	}
 	result = dev.stateArrayToInt()

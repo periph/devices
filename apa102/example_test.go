@@ -27,7 +27,11 @@ func Example() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer p.Close()
+	defer func() {
+		if closeErr := p.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	// Opens a 300 lights strip at 50% intensity with color temperature at
 	// 3500°Kelvin.
@@ -40,7 +44,7 @@ func Example() {
 		log.Fatalf("failed to open: %v", err)
 	}
 	img := image.NewNRGBA(image.Rect(0, 0, dev.Bounds().Dy(), 1))
-	for x := 0; x < img.Rect.Max.X; x++ {
+	for x := range img.Rect.Max.X {
 		img.SetNRGBA(x, 0, color.NRGBA{uint8(x), uint8(255 - x), 0, 255})
 	}
 	if err := dev.Draw(dev.Bounds(), img, image.Point{}); err != nil {
@@ -59,7 +63,11 @@ func ExampleToRGB() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer p.Close()
+	defer func() {
+		if closeErr := p.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	o := apa102.PassThruOpts
 	o.NumPixels = 2

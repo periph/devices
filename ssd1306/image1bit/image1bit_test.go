@@ -13,6 +13,7 @@ import (
 )
 
 func TestBit(t *testing.T) {
+	t.Parallel()
 	if r, g, b, a := On.RGBA(); r != 65535 || g != r || b != r || a != r {
 		t.Fatal(r, g, b, a)
 	}
@@ -31,6 +32,7 @@ func TestBit(t *testing.T) {
 }
 
 func TestVerticalLSB_NewVerticalLSB(t *testing.T) {
+	t.Parallel()
 	data := []struct {
 		r      image.Rectangle
 		l      int
@@ -146,6 +148,7 @@ func TestVerticalLSB_NewVerticalLSB(t *testing.T) {
 }
 
 func TestVerticalLSB_At(t *testing.T) {
+	t.Parallel()
 	img := NewVerticalLSB(image.Rect(0, 0, 1, 1))
 	img.SetBit(0, 0, On)
 	c := img.At(0, 0)
@@ -159,6 +162,7 @@ func TestVerticalLSB_At(t *testing.T) {
 }
 
 func TestVerticalLSB_BitAt(t *testing.T) {
+	t.Parallel()
 	img := NewVerticalLSB(image.Rect(0, 0, 1, 1))
 	img.SetBit(0, 0, On)
 	if b := img.BitAt(0, 0); b != On {
@@ -170,25 +174,30 @@ func TestVerticalLSB_BitAt(t *testing.T) {
 }
 
 func TestVerticalLSB_ColorModel(t *testing.T) {
+	t.Parallel()
 	img := NewVerticalLSB(image.Rect(0, 0, 1, 8))
 	if v := img.ColorModel(); v != BitModel {
 		t.Fatalf("%s", v)
 	}
-	if v := img.ColorModel().Convert(color.NRGBA{0x80, 0x80, 0x80, 0xFF}).(Bit); v != On {
-		t.Fatalf("%s", v)
+	v := img.ColorModel().Convert(color.NRGBA{0x80, 0x80, 0x80, 0xFF})
+	if bit, ok := v.(Bit); !ok || bit != On {
+		t.Fatalf("got %v (%T), want On", v, v)
 	}
-	if v := img.ColorModel().Convert(color.NRGBA{0x7F, 0x7F, 0x7F, 0xFF}).(Bit); v != Off {
-		t.Fatalf("%s", v)
+	v = img.ColorModel().Convert(color.NRGBA{0x7F, 0x7F, 0x7F, 0xFF})
+	if bit, ok := v.(Bit); !ok || bit != Off {
+		t.Fatalf("got %v (%T), want Off", v, v)
 	}
 }
 
 func TestVerticalLSB_Opaque(t *testing.T) {
+	t.Parallel()
 	if !NewVerticalLSB(image.Rect(0, 0, 1, 8)).Opaque() {
 		t.Fatal("image is always opaque")
 	}
 }
 
 func TestVerticalLSB_PixOffset(t *testing.T) {
+	t.Parallel()
 	data := []struct {
 		r      image.Rectangle
 		x, y   int
@@ -226,6 +235,7 @@ func TestVerticalLSB_PixOffset(t *testing.T) {
 }
 
 func TestVerticalLSB_SetBit1x1(t *testing.T) {
+	t.Parallel()
 	img := NewVerticalLSB(image.Rect(0, 0, 1, 1))
 	if img.Pix[0] != 0 {
 		t.Fatal(img.Pix)
@@ -242,6 +252,7 @@ func TestVerticalLSB_SetBit1x1(t *testing.T) {
 }
 
 func TestVerticalLSB_SetBit1x8(t *testing.T) {
+	t.Parallel()
 	img := NewVerticalLSB(image.Rect(0, 0, 1, 8))
 	if img.Pix[0] != 0 {
 		t.Fatal(img.Pix)
@@ -258,6 +269,7 @@ func TestVerticalLSB_SetBit1x8(t *testing.T) {
 }
 
 func TestVerticalLSB_Set(t *testing.T) {
+	t.Parallel()
 	img := NewVerticalLSB(image.Rect(0, 0, 1, 8))
 	img.Set(0, 0, color.NRGBA{0x80, 0x80, 0x80, 0xFF})
 	img.Set(0, 1, color.NRGBA{0x7F, 0x80, 0x80, 0xFF})

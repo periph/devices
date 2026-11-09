@@ -26,11 +26,11 @@ func TestDevReadNumberConcentrationValues(t *testing.T) {
 				0x00, 0x0f, 0xaf, // PM10.0
 			},
 			want: &PMNumberConcentrations{
-				PM05: ptr(uint16(12)),
-				PM1:  ptr(uint16(15)),
-				PM25: ptr(uint16(15)),
-				PM4:  ptr(uint16(15)),
-				PM10: ptr(uint16(15)),
+				PM05: new(uint16(12)),
+				PM1:  new(uint16(15)),
+				PM25: new(uint16(15)),
+				PM4:  new(uint16(15)),
+				PM10: new(uint16(15)),
 			},
 		},
 		{

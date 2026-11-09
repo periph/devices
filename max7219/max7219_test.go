@@ -19,7 +19,7 @@ func TestReverseGlyphs(t *testing.T) {
 	testVals := [][]byte{{0x01, 0xaa}, {0x80, 0x55}}
 	expected := [][]byte{{0x80, 0x55}, {0x01, 0xaa}}
 	testVals = reverseGlyphs(testVals)
-	for outer := range len(expected) {
+	for outer := range expected {
 		for inner := range len(expected[0]) {
 			if testVals[outer][inner] != expected[outer][inner] {
 				t.Errorf("testVals[%d][%d] expected 0x%x found: 0x%x", outer, inner, expected[outer][inner], testVals[outer][inner])
@@ -35,7 +35,7 @@ func TestConvertBytes(t *testing.T) {
 	if len(converted) != len(expected) {
 		t.Error("converted bytes length not as expected")
 	}
-	for ix := range len(expected) {
+	for ix := range expected {
 		if converted[ix] != expected[ix] {
 			t.Errorf("error . expected 0x%x received 0x%x", expected[ix], converted[ix])
 		}
@@ -47,7 +47,7 @@ func TestGlyphs(t *testing.T) {
 	if len(CP437Glyphs) != 256 {
 		t.Errorf("CP437 glphys not expected length. Got: %d", len(CP437Glyphs))
 	}
-	for ix := range len(CP437Glyphs) {
+	for ix := range CP437Glyphs {
 		if len(CP437Glyphs[ix]) != 8 {
 			t.Errorf("Invalid glyph 0x%x found. Length: %d", ix, len(CP437Glyphs[ix]))
 		}
@@ -58,7 +58,7 @@ func verifyOperations(found, expected []conntest.IO) error {
 	if len(found) != len(expected) {
 		return fmt.Errorf("invalid length. found length: %d expected length: %d", len(found), len(expected))
 	}
-	for outer := range len(expected) {
+	for outer := range expected {
 		for inner := range len(found[outer].W) {
 			if expected[outer].W[inner] != found[outer].W[inner] {
 				return fmt.Errorf("data not as expected. found[%d][%d]=0x%x expected 0x%x",
@@ -73,8 +73,6 @@ func verifyOperations(found, expected []conntest.IO) error {
 }
 
 func TestInit(t *testing.T) {
-	pb := &spitest.Playback{Playback: conntest.Playback{DontPanic: true, Count: 1}}
-	defer pb.Close()
 	record := &spitest.Record{}
 
 	_, err := NewSPI(record, 1, 8)
@@ -104,13 +102,13 @@ func TestInit(t *testing.T) {
 }
 
 func TestWrite(t *testing.T) {
-	pb := &spitest.Playback{Playback: conntest.Playback{DontPanic: true, Count: 1}}
-	defer pb.Close()
 	record := &spitest.Record{}
 
 	dev, err := NewSPI(record, 1, 8)
 	record.Ops = make([]conntest.IO, 0)
-	dev.Write([]byte("12345678"))
+	if callErr := dev.Write([]byte("12345678")); callErr != nil {
+		t.Fatal(callErr)
+	}
 	if err != nil {
 		t.Error(err)
 	}
@@ -130,7 +128,9 @@ func TestWrite(t *testing.T) {
 		t.Error(err)
 	}
 	record.Ops = make([]conntest.IO, 0)
-	dev.WriteInt(12345678)
+	if callErr := dev.WriteInt(12345678); callErr != nil {
+		t.Fatal(callErr)
+	}
 	if err != nil {
 		t.Error(err)
 	}
@@ -141,8 +141,6 @@ func TestWrite(t *testing.T) {
 }
 
 func TestScroll(t *testing.T) {
-	pb := &spitest.Playback{Playback: conntest.Playback{DontPanic: true, Count: 1}}
-	defer pb.Close()
 	record := &spitest.Record{}
 
 	dev, err := NewSPI(record, 1, 1)
@@ -165,12 +163,12 @@ func TestScroll(t *testing.T) {
 }
 
 func TestScrollGlyphs(t *testing.T) {
-	pb := &spitest.Playback{Playback: conntest.Playback{DontPanic: true, Count: 1}}
-	defer pb.Close()
 	record := &spitest.Record{}
 
 	dev, err := NewSPI(record, 4, 8) // Simulate a 4 unit matrix
-	dev.SetDecode(DecodeNone)
+	if callErr := dev.SetDecode(DecodeNone); callErr != nil {
+		t.Fatal(callErr)
+	}
 	dev.SetGlyphs(CP437Glyphs, true)
 	record.Ops = make([]conntest.IO, 0)
 	dev.ScrollChars([]byte("123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"), 3, time.Millisecond)
@@ -183,20 +181,22 @@ func TestScrollGlyphs(t *testing.T) {
 	if len(record.Ops) != expectedOps {
 		t.Errorf("expected %d operations, received %d", expectedOps, len(record.Ops))
 	}
-
 }
 
 func TestCascadedWrite(t *testing.T) {
 	// ops := make([]conntest.IO, 0)
-	pb := &spitest.Playback{Playback: conntest.Playback{DontPanic: true, Count: 1}}
-	defer pb.Close()
+
 	record := &spitest.Record{}
 
 	dev, err := NewSPI(record, 2, 4)
-	dev.SetDecode(DecodeB)
+	if callErr := dev.SetDecode(DecodeB); callErr != nil {
+		t.Fatal(callErr)
+	}
 	record.Ops = make([]conntest.IO, 0)
 	// imaginarily write 8 characters to two 4 digit displays.
-	dev.Write([]byte("12345678"))
+	if callErr := dev.Write([]byte("12345678")); callErr != nil {
+		t.Fatal(callErr)
+	}
 	if err != nil {
 		t.Error(err)
 	}
@@ -215,8 +215,7 @@ func TestCascadedWrite(t *testing.T) {
 
 func TestCommand(t *testing.T) {
 	// Verify a command is replicated #units times.
-	pb := &spitest.Playback{Playback: conntest.Playback{DontPanic: true, Count: 1}}
-	defer pb.Close()
+
 	record := &spitest.Record{}
 
 	dev, _ := NewSPI(record, 4, 8)

@@ -286,7 +286,7 @@ func TestRamp(t *testing.T) {
 		{0xFF, 0x1EE1},
 	}
 	if false {
-		for i := 0; i <= 255; i++ {
+		for i := range 256 {
 			fmt.Printf("{0x%02X, 0x%04X},\n", i, ramp(uint8(i), maxOut))
 		}
 	}
@@ -313,7 +313,7 @@ func TestRampMonotonic(t *testing.T) {
 	// Ensures the ramp is 100% monotonically increasing and without bumps.
 	lastValue := uint16(0)
 	lastDelta := uint16(0)
-	for in := uint32(0); in <= 255; in++ {
+	for in := range uint32(256) {
 		out := ramp(uint8(in), maxOut)
 		if out < lastValue {
 			t.Fatalf("f(%d) = %d; f(%d) = %d", in-1, lastValue, in, out)
@@ -323,7 +323,7 @@ func TestRampMonotonic(t *testing.T) {
 		}
 
 		if out-lastValue+1 < lastDelta {
-			t.Errorf("f(%d)=%d  f(%d)=%d  f(%d)=%d  Deltas: '%d+1 < %d' but should be '>='",
+			t.Errorf("inputs %d=%d, %d=%d, %d=%d; deltas: '%d+1 < %d' but should be '>='",
 				in-2, ramp(uint8(in-2), maxOut), in-1, ramp(uint8(in-1), maxOut), in, ramp(uint8(in), maxOut), out-lastValue, lastDelta)
 		}
 		lastDelta = out - lastValue
@@ -540,7 +540,7 @@ var writeTests = []struct {
 		name: "Intensity and temperature",
 		pixels: func() []byte {
 			var p []byte
-			for i := 0; i < 16*3; i++ {
+			for i := range 16 * 3 {
 				p = append(p, uint8(i<<2))
 			}
 			return p
@@ -587,7 +587,7 @@ func TestDevLong(t *testing.T) {
 		t.Fatalf("%d %v", n, err)
 	}
 	expected := make([]byte, 4*(256+1)+17)
-	for i := 0; i < 256; i++ {
+	for i := range 256 {
 		expected[4+4*i] = 0xE1
 	}
 	trailer := expected[4*257:]
@@ -651,7 +651,7 @@ var drawTests = []struct {
 		name: "Draw NRGBA",
 		img: func() image.Image {
 			im := image.NewNRGBA(image.Rect(0, 0, 16, 1))
-			for i := 0; i < 16; i++ {
+			for i := range 16 {
 				// Test all intensity code paths. Confirm that alpha is ignored.
 				im.Pix[4*i] = uint8((3 * i) << 2)
 				im.Pix[4*i+1] = uint8((3*i + 1) << 2)
@@ -671,7 +671,7 @@ var drawTests = []struct {
 		name: "Draw NRGBA Wide",
 		img: func() image.Image {
 			im := image.NewNRGBA(image.Rect(0, 0, 17, 2))
-			for x := 0; x < 16; x++ {
+			for x := range 16 {
 				// Test all intensity code paths. Confirm that alpha is ignored.
 				im.SetNRGBA(x, 0, color.NRGBA{uint8((3 * x) << 2), uint8((3*x + 1) << 2), uint8((3*x + 2) << 2), 0})
 			}
@@ -688,7 +688,7 @@ var drawTests = []struct {
 		name: "Draw NRGBA no global PWM",
 		img: func() image.Image {
 			im := image.NewNRGBA(image.Rect(0, 0, 16, 1))
-			for i := 0; i < 16; i++ {
+			for i := range 16 {
 				// Test all intensity code paths. Confirm that alpha is ignored.
 				im.Pix[4*i] = uint8((3 * i) << 2)
 				im.Pix[4*i+1] = uint8((3*i + 1) << 2)
@@ -709,7 +709,7 @@ var drawTests = []struct {
 		name: "Draw RGBA",
 		img: func() image.Image {
 			im := image.NewRGBA(image.Rect(0, 0, 16, 1))
-			for i := 0; i < 16; i++ {
+			for i := range 16 {
 				im.Pix[4*i] = uint8((3 * i) << 2)
 				im.Pix[4*i+1] = uint8((3*i + 1) << 2)
 				im.Pix[4*i+2] = uint8((3*i + 2) << 2)
@@ -729,7 +729,7 @@ var drawTests = []struct {
 		name: "Draw NRGBA64",
 		img: func() image.Image {
 			im := image.NewNRGBA64(image.Rect(0, 0, 16, 1))
-			for i := 0; i < 16; i++ {
+			for i := range 16 {
 				im.Set(i, 0, color.NRGBA64{
 					R: uint16(((3 * i) << 10)),
 					G: uint16(((3*i + 1) << 10)),
@@ -750,7 +750,7 @@ var drawTests = []struct {
 		name: "Draw RGBA no global PWM",
 		img: func() image.Image {
 			im := image.NewRGBA(image.Rect(0, 0, 16, 1))
-			for i := 0; i < 16; i++ {
+			for i := range 16 {
 				im.Pix[4*i] = uint8((3 * i) << 2)
 				im.Pix[4*i+1] = uint8((3*i + 1) << 2)
 				im.Pix[4*i+2] = uint8((3*i + 2) << 2)
@@ -813,8 +813,8 @@ var offsetDrawTests = []struct {
 		name: "Offset Draw NRGBA",
 		img: func() image.Image {
 			im := image.NewNRGBA(image.Rect(0, 0, 16, 4))
-			for x := 0; x < 16; x++ {
-				for y := 0; y < 4; y++ {
+			for x := range 16 {
+				for y := range 4 {
 					i := (y*16 + x) * 3
 					im.Set(x, y, color.RGBA{R: uint8(i + 1), G: uint8(i + 2), B: uint8(i + 3), A: 0xFF})
 				}
@@ -834,8 +834,8 @@ var offsetDrawTests = []struct {
 		name: "Both Offset Draw NRGBA",
 		img: func() image.Image {
 			im := image.NewNRGBA(image.Rect(0, 0, 16, 4))
-			for x := 0; x < 16; x++ {
-				for y := 0; y < 4; y++ {
+			for x := range 16 {
+				for y := range 4 {
 					i := (y*16 + x) * 3
 					im.Set(x, y, color.RGBA{R: uint8(i + 1), G: uint8(i + 2), B: uint8(i + 3), A: 0xFF})
 				}
@@ -888,10 +888,8 @@ func TestOffsetDraws(t *testing.T) {
 
 func TestHalt(t *testing.T) {
 	s := spitest.Playback{
-		Playback: conntest.Playback{
-			Ops: []conntest.IO{
-				{W: []byte{0x0, 0x0, 0x0, 0x0, 0xe1, 0x0, 0x0, 0x0, 0xe1, 0x0, 0x0, 0x0, 0xe1, 0x0, 0x0, 0x0, 0xe1, 0x0, 0x0, 0x0, 0xff}},
-			},
+		Ops: []conntest.IO{
+			{W: []byte{0x0, 0x0, 0x0, 0x0, 0xe1, 0x0, 0x0, 0x0, 0xe1, 0x0, 0x0, 0x0, 0xe1, 0x0, 0x0, 0x0, 0xe1, 0x0, 0x0, 0x0, 0xff}},
 		},
 	}
 	o := DefaultOpts
@@ -921,36 +919,36 @@ type genColor func(int) [3]byte
 
 func benchmarkWrite(b *testing.B, o Opts, length int, f genColor) {
 	var pixels []byte
-	for i := 0; i < length; i++ {
+	for i := range length {
 		c := f(i)
 		pixels = append(pixels, c[:]...)
 	}
 	o.NumPixels = length
 	b.ReportAllocs()
 	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), &o)
-	_, _ = d.Write(pixels[:])
+	_, _ = d.Write(pixels)
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, _ = d.Write(pixels[:])
+	for range b.N {
+		_, _ = d.Write(pixels)
 	}
 }
 
 func BenchmarkWriteWhite(b *testing.B) {
 	o := DefaultOpts
 	o.Intensity = 250
-	benchmarkWrite(b, o, 150, func(i int) [3]byte { return [3]byte{0xFF, 0xFF, 0xFF} })
+	benchmarkWrite(b, o, 150, func(_ int) [3]byte { return [3]byte{0xFF, 0xFF, 0xFF} })
 }
 
 func BenchmarkWriteDim(b *testing.B) {
 	o := DefaultOpts
 	o.Intensity = 250
-	benchmarkWrite(b, o, 150, func(i int) [3]byte { return [3]byte{0x01, 0x01, 0x01} })
+	benchmarkWrite(b, o, 150, func(_ int) [3]byte { return [3]byte{0x01, 0x01, 0x01} })
 }
 
 func BenchmarkWriteBlack(b *testing.B) {
 	o := DefaultOpts
 	o.Intensity = 250
-	benchmarkWrite(b, o, 150, func(i int) [3]byte { return [3]byte{0x0, 0x0, 0x0} })
+	benchmarkWrite(b, o, 150, func(_ int) [3]byte { return [3]byte{0x0, 0x0, 0x0} })
 }
 
 func genColorfulPixel(x int) [3]byte {
@@ -988,7 +986,7 @@ func BenchmarkWriteColorfulVariation(b *testing.B) {
 	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), &o)
 	_, _ = d.Write(pixels[:])
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		d.Intensity = uint8(i)
 		d.Temperature = uint16((3000 + i) & 0x1FFF)
 		_, _ = d.Write(pixels[:])
@@ -996,8 +994,8 @@ func BenchmarkWriteColorfulVariation(b *testing.B) {
 }
 
 func benchmarkDraw(b *testing.B, o Opts, img draw.Image, f genColor) {
-	for x := 0; x < img.Bounds().Dx(); x++ {
-		for y := 0; y < img.Bounds().Dy(); y++ {
+	for x := range img.Bounds().Dx() {
+		for y := range img.Bounds().Dy() {
 			pix := f(x)
 			c := color.NRGBA{R: pix[0], G: pix[1], B: pix[2], A: 255}
 			img.Set(x, y, c)
@@ -1012,7 +1010,7 @@ func benchmarkDraw(b *testing.B, o Opts, img draw.Image, f genColor) {
 		b.Fatal(err)
 	}
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		if err := d.Draw(r, img, p); err != nil {
 			b.Fatal(err)
 		}
@@ -1036,7 +1034,7 @@ func BenchmarkDrawNRGBAWhite(b *testing.B) {
 	o := DefaultOpts
 	o.Intensity = 250
 	o.Temperature = 5000
-	benchmarkDraw(b, o, image.NewNRGBA(image.Rect(0, 0, 150, 1)), func(i int) [3]byte { return [3]byte{0xFF, 0xFF, 0xFF} })
+	benchmarkDraw(b, o, image.NewNRGBA(image.Rect(0, 0, 150, 1)), func(_ int) [3]byte { return [3]byte{0xFF, 0xFF, 0xFF} })
 }
 
 func BenchmarkDrawRGBAColorful(b *testing.B) {
@@ -1055,8 +1053,8 @@ func BenchmarkDrawRGBAColorfulPassThru(b *testing.B) {
 func BenchmarkDrawSlowpath(b *testing.B) {
 	// Should be an image type that doesn't have a fast path
 	img := image.NewGray(image.Rect(0, 0, 150, 1))
-	for x := 0; x < img.Bounds().Dx(); x++ {
-		for y := 0; y < img.Bounds().Dy(); y++ {
+	for x := range img.Bounds().Dx() {
+		for y := range img.Bounds().Dy() {
 			pix := genColorfulPixel(x)
 			img.Set(x, y, color.Gray{pix[0]})
 		}
@@ -1071,7 +1069,7 @@ func BenchmarkDrawSlowpath(b *testing.B) {
 		b.Fatal(err)
 	}
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		if err := d.Draw(r, img, p); err != nil {
 			b.Fatal(err)
 		}
@@ -1082,7 +1080,7 @@ func BenchmarkHalt(b *testing.B) {
 	b.ReportAllocs()
 	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), &DefaultOpts)
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		if err := d.Halt(); err != nil {
 			b.Fatal(err)
 		}
@@ -1095,7 +1093,7 @@ type configFail struct {
 	spitest.Record
 }
 
-func (c *configFail) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, error) {
+func (c *configFail) Connect(_ physic.Frequency, _ spi.Mode, _ int) (spi.Conn, error) {
 	return nil, errors.New("injected error")
 }
 

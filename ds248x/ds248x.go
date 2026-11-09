@@ -94,13 +94,14 @@ func New(i i2c.Bus, addr uint16, opts *Opts) (*Dev, error) {
 // do not cause persistent errors and implement the onewire.BusError interface
 // to indicate this fact.
 type Dev struct {
-	sync.Mutex               // lock for the bus while a transaction is in progress
-	i2c        conn.Conn     // i2c device handle for the ds248x
-	isDS248x   ds248xType    // 0: ds2482-100 1: ds2482-800 2: ds2483,
-	confReg    byte          // value written to configuration register
-	tReset     time.Duration // time to perform a 1-wire reset
-	tSlot      time.Duration // time to perform a 1-bit 1-wire read/write
-	err        error         // persistent error, device will no longer operate
+	sync.Mutex // lock for the bus while a transaction is in progress
+
+	i2c      conn.Conn     // i2c device handle for the ds248x
+	isDS248x ds248xType    // 0: ds2482-100 1: ds2482-800 2: ds2483,
+	confReg  byte          // value written to configuration register
+	tReset   time.Duration // time to perform a 1-wire reset
+	tSlot    time.Duration // time to perform a 1-bit 1-wire read/write
+	err      error         // persistent error, device will no longer operate
 }
 
 func (d *Dev) String() string {
@@ -185,7 +186,7 @@ func (d *Dev) ChannelSelect(ch int) error {
 		}
 		buf := []byte{cmdChannelSelect, cscw[ch]}
 		if err := d.i2c.Tx(buf, nil); err != nil {
-			return fmt.Errorf("%s: error: %s", d.String(), err)
+			return fmt.Errorf("%s: error: %w", d.String(), err)
 		}
 		return nil
 	case isDS2482x100, isDS2483:
@@ -194,7 +195,7 @@ func (d *Dev) ChannelSelect(ch int) error {
 		}
 		return nil
 	default:
-		return fmt.Errorf("ds248x: wrong chip")
+		return errors.New("ds248x: wrong chip")
 	}
 }
 
@@ -298,7 +299,7 @@ func (d *Dev) waitIdle(delay time.Duration) byte {
 		// If we're timing out return error. This is an error with the ds248x, not with
 		// devices on the 1-wire bus, hence it is persistent.
 		if time.Now().After(tOut) {
-			d.err = fmt.Errorf("ds248x: timeout waiting for bus cycle to finish")
+			d.err = errors.New("ds248x: timeout waiting for bus cycle to finish")
 			return 0
 		}
 		// Try not to hog the kernel thread.
@@ -312,13 +313,13 @@ func (d *Dev) makeDev(opts *Opts) error {
 
 	// Issue a reset command.
 	if err := d.i2c.Tx([]byte{cmdReset}, nil); err != nil {
-		return fmt.Errorf("ds248x: error while resetting: %s", err)
+		return fmt.Errorf("ds248x: error while resetting: %w", err)
 	}
 
 	// Read the status register to confirm that we have a responding ds248x
 	var stat [1]byte
 	if err := d.i2c.Tx([]byte{cmdSetReadPtr, regStatus}, stat[:]); err != nil {
-		return fmt.Errorf("ds248x: error while reading status register: %s", err)
+		return fmt.Errorf("ds248x: error while reading status register: %w", err)
 	}
 	if stat[0] != 0x18 {
 		return fmt.Errorf("ds248x: invalid status register value: %#x, expected 0x18", stat[0])
@@ -332,7 +333,7 @@ func (d *Dev) makeDev(opts *Opts) error {
 	}
 	var dcr [1]byte
 	if err := d.i2c.Tx([]byte{cmdWriteConfig, d.confReg}, dcr[:]); err != nil {
-		return fmt.Errorf("ds248x: error while writing device config register: %s", err)
+		return fmt.Errorf("ds248x: error while writing device config register: %w", err)
 	}
 	// When reading back we only get the bottom nibble
 	if dcr[0] != d.confReg&0x0f {
@@ -353,7 +354,7 @@ func (d *Dev) makeDev(opts *Opts) error {
 			byte(0x80 + (opts.PullupRes & 0x0f)),
 		}
 		if err := d.i2c.Tx(buf, nil); err != nil {
-			return fmt.Errorf("ds248x: error while setting port config values: %s", err)
+			return fmt.Errorf("ds248x: error while setting port config values: %w", err)
 		}
 	} else {
 		// Set the read ptr to the channel selection register to determine whether we have a
@@ -363,7 +364,7 @@ func (d *Dev) makeDev(opts *Opts) error {
 			d.isDS248x = isDS2482x800
 			buf := []byte{cmdChannelSelect, cscIO0w}
 			if err := d.i2c.Tx(buf, nil); err != nil {
-				return fmt.Errorf("ds2482-800: error while selecting channel: %s", err)
+				return fmt.Errorf("ds2482-800: error while selecting channel: %w", err)
 			}
 		} else {
 			d.isDS248x = isDS2482x100
@@ -407,7 +408,7 @@ const (
 	regPCR    = 0xb4 // read ptr for port configuration register
 	regCSR    = 0xd2 // read ptr for channel selection register
 
-	// ds2482-800 channel selection codes to be written and read back
+	// ds2482-800 channel selection codes to be written and read back.
 	cscIO0w = 0xF0 // channel 0 writing
 	cscIO0r = 0xB8 // channel 0 reading
 	cscIO1w = 0xE1 // channel 1 writing

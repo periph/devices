@@ -50,6 +50,7 @@ type Metadata struct {
 // Each 1 increment is approximatively 0.025K.
 type Frame struct {
 	*image14bit.Gray14
+
 	Metadata Metadata // Metadata that is sent along the pixels.
 }
 
@@ -110,6 +111,7 @@ func New(p spi.Port, i i2c.Bus) (*Dev, error) {
 // Lepton.
 type Dev struct {
 	*cci.Dev
+
 	s          spi.Conn
 	w          int
 	h          int
@@ -215,12 +217,10 @@ func (d *Dev) readFrame(f *Frame) error {
 	c := make(chan []byte, 1024)
 	var err error
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		defer close(c)
 		err = d.stream(done, c)
-	}()
+	})
 	defer func() {
 		done <- struct{}{}
 	}()
@@ -246,29 +246,29 @@ func (d *Dev) readFrame(f *Frame) error {
 			}
 			headerID := h & packetHeaderMask
 			if discard != 0 {
-				//log.Printf("discarded %d", discard)
+				// log.Printf("discarded %d", discard)
 				discard = 0
 				sync = 0
 			}
 			if int(headerID) == 0 && sync == 0 && !verifyCRC(l) {
-				//log.Printf("no crc")
+				// log.Printf("no crc")
 				sync = 0
 				continue
 			}
 			if int(headerID) != sync {
-				//log.Printf("%d != %d", headerID, sync)
+				// log.Printf("%d != %d", headerID, sync)
 				sync = 0
 				continue
 			}
 			if sync == 0 {
 				// Parse the first row of telemetry data.
 				if err2 := f.Metadata.parseTelemetry(l[4:]); err2 != nil {
-					//log.Printf("Failed to parse telemetry line: %v", err2)
+					// log.Printf("Failed to parse telemetry line: %v", err2)
 					continue
 				}
 			} else if sync >= 3 {
 				// Image.
-				for x := 0; x < w; x++ {
+				for x := range w {
 					o := 4 + x*2
 					f.SetIntensity14(x, sync-3, image14bit.Intensity14(internal.Big16.Uint16(l[o:o+2])))
 				}
@@ -329,7 +329,7 @@ func (m *Metadata) parseTelemetry(data []byte) error {
 	return nil
 }
 
-// As documented as page.21
+// As documented as page.21.
 const (
 	packetHeaderDiscard = 0x0F00
 	packetHeaderMask    = 0x0FFF // ID field is 12 bits. Leading 4 bits are reserved.
@@ -427,7 +427,7 @@ type telemetryRowA struct {
 	Reserved79         uint16              // 79
 }
 
-// verifyCRC test the equation x^16 + x^12 + x^5 + x^0
+// verifyCRC test the equation x^16 + x^12 + x^5 + x^0.
 func verifyCRC(d []byte) bool {
 	tmp := make([]byte, len(d))
 	copy(tmp, d)

@@ -7,7 +7,7 @@
 package mpu9250
 
 import (
-	"fmt"
+	"errors"
 
 	"periph.io/x/conn/v3/gpio"
 	"periph.io/x/conn/v3/i2c"
@@ -17,7 +17,7 @@ import (
 )
 
 // DebugF the debug function type.
-type DebugF func(string, ...interface{})
+type DebugF func(string, ...any)
 
 // Transport Encapsulates the SPI transport parameters.
 type Transport struct {
@@ -134,7 +134,7 @@ func (t *Transport) readByteI2C(address byte) (byte, error) {
 
 func (t *Transport) readUint16(address ...byte) (uint16, error) {
 	if len(address) != 2 {
-		return 0, fmt.Errorf("only 2 bytes per read")
+		return 0, errors.New("only 2 bytes per read")
 	}
 	h, err := t.readByte(address[0])
 	if err != nil {
@@ -147,4 +147,4 @@ func (t *Transport) readUint16(address ...byte) (uint16, error) {
 	return uint16(h)<<8 | uint16(l), nil
 }
 
-func noop(string, ...interface{}) {}
+func noop(string, ...any) {}

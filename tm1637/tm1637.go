@@ -20,14 +20,14 @@ import (
 // Clock converts time to a slice of bytes as segments.
 func Clock(hour, minute int, showDots bool) []byte {
 	seg := make([]byte, 4)
-	seg[0] = byte(digitToSegment[hour/10])
-	seg[1] = byte(digitToSegment[hour%10])
-	seg[2] = byte(digitToSegment[minute/10])
-	seg[3] = byte(digitToSegment[minute%10])
+	seg[0] = digitToSegment[hour/10]
+	seg[1] = digitToSegment[hour%10]
+	seg[2] = digitToSegment[minute/10]
+	seg[3] = digitToSegment[minute%10]
 	if showDots {
 		seg[1] |= 0x80
 	}
-	return seg[:]
+	return seg
 }
 
 // Digits converts hex numbers to a slice of bytes as segments.
@@ -38,7 +38,7 @@ func Digits(n ...int) []byte {
 	seg := make([]byte, len(n))
 	for i := range n {
 		if n[i] >= 0 && n[i] < 16 {
-			seg[i] = byte(digitToSegment[n[i]])
+			seg[i] = digitToSegment[n[i]]
 		}
 	}
 	return seg
@@ -124,7 +124,7 @@ func (d *Dev) Write(seg []byte) (int, error) {
 	if _, err := d.writeByte(0xC0); err != nil {
 		return 0, err
 	}
-	for i := 0; i < 6; i++ {
+	for i := range 6 {
 		if len(seg) <= i {
 			if _, err := d.writeByte(0); err != nil {
 				return i, err
@@ -176,7 +176,7 @@ func (d *Dev) stop() {
 // writeByte starts with d.data low and d.clk high and ends with d.data low and
 // d.clk high.
 func (d *Dev) writeByte(b byte) (bool, error) {
-	for i := 0; i < 8; i++ {
+	for i := range 8 {
 		// LSB (!)
 		_ = d.data.Out(b&(1<<byte(i)) != 0)
 		d.sleepHalfCycle()
@@ -188,16 +188,16 @@ func (d *Dev) writeByte(b byte) (bool, error) {
 	_ = d.data.Out(gpio.Low)
 	d.sleepHalfCycle()
 	// TODO(maruel): Add.
-	//if err := d.data.In(gpio.PullUp, gpio.NoEdge); err != nil {
+	// if err := d.data.In(gpio.PullUp, gpio.NoEdge); err != nil {
 	//	return false, err
-	//}
+	// }
 	_ = d.clk.Out(gpio.High)
 	d.sleepHalfCycle()
-	//ack := d.data.Read() == gpio.Low
-	//d.sleepHalfCycle()
-	//if err := d.data.Out(); err != nil {
+	// ack := d.data.Read() == gpio.Low
+	// d.sleepHalfCycle()
+	// if err := d.data.Out(); err != nil {
 	//	return false, err
-	//}
+	// }
 	_ = d.clk.Out(gpio.Low)
 	return true, nil
 }

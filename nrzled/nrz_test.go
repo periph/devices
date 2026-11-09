@@ -9,7 +9,7 @@ package nrzled
 import "testing"
 
 func TestNRZMSB3(t *testing.T) {
-	for i := 0; i < 256; i++ {
+	for i := range 256 {
 		x := nrzMSB3Algo(byte(i))
 		a := byte(x >> 16)
 		b := byte((x >> 8))
@@ -21,7 +21,7 @@ func TestNRZMSB3(t *testing.T) {
 }
 
 func TestNRZMSB4(t *testing.T) {
-	for i := 0; i < 256; i++ {
+	for i := range 256 {
 		x := nrzMSB4Algo(byte(i))
 		a := byte(x >> 24)
 		b := byte((x >> 16))

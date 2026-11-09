@@ -80,7 +80,7 @@ func (i *I2C) Tx(addr uint16, w, r []byte) error {
 	defer i.mu.Unlock()
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
-	//syscall.Setpriority(which, who, prio)
+	// syscall.Setpriority(which, who, prio)
 
 	i.start()
 	defer i.stop()
@@ -184,7 +184,7 @@ func (i *I2C) writeByte(b byte) (bool, error) {
 	// "The data on te SDA line must be stable during the high period of the
 	// clock."
 	// Page 10, section 3.1.5 Byte format
-	for x := 0; x < 8; x++ {
+	for x := range 8 {
 		_ = i.sda.Out(b&byte(1<<byte(7-x)) != 0)
 		i.sleepHalfCycle()
 		// Let the device read SDA.
@@ -231,7 +231,7 @@ func (i *I2C) readByte() (byte, error) {
 	if err := i.sda.In(gpio.PullUp, gpio.NoEdge); err != nil {
 		return b, err
 	}
-	for x := 0; x < 8; x++ {
+	for x := range 8 {
 		i.sleepHalfCycle()
 		// TODO(maruel): Support clock stretching, the device may keep the line low.
 		_ = i.scl.Out(gpio.High)

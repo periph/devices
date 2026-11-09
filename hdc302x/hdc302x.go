@@ -31,7 +31,7 @@ const (
 	// recommends not sampling more often than once per second to avoid self-heating
 	// of the sensor.
 	//
-	// Every other second
+	// Every other second.
 	RateHalfHertz SampleRate = iota
 	// Sample 1x Second.
 	RateHertz
@@ -68,12 +68,12 @@ type ThresholdPair struct {
 type StatusWord uint16
 
 const (
-	// Status flags returned by ReadStatus()
+	// Status flags returned by ReadStatus().
 	StatusActiveAlerts  StatusWord = 1 << 15
 	StatusHeaterEnabled StatusWord = 1 << 13
 	// Mirrored on the alert pin.
 	StatusRHTrackingAlert StatusWord = 1 << 11
-	// Also reflected on alert pin
+	// Also reflected on alert pin.
 	StatusTempTrackingAlert     StatusWord = 1 << 10
 	StatusRHHighTrackingAlert   StatusWord = 1 << 9
 	StatusRHLowTrackingAlert    StatusWord = 1 << 8
@@ -128,7 +128,7 @@ const (
 
 type devCommand []byte
 
-// Sample Rate commands
+// Sample Rate commands.
 var measure2Seconds = devCommand{0x20, 0x32}
 var measureSecond = devCommand{0x21, 0x30}
 var measure2xSecond = devCommand{0x22, 0x36}
@@ -138,7 +138,7 @@ var measure10xSecond = devCommand{0x27, 0x37}
 var sampleRateCommands = []devCommand{measure2Seconds, measureSecond, measure2xSecond, measure4xSecond, measure10xSecond}
 var sampleRateDurations = []time.Duration{2 * time.Second, time.Second, 500 * time.Millisecond, 250 * time.Millisecond, 100 * time.Millisecond}
 
-// Other device commands
+// Other device commands.
 var clearStatus = devCommand{0x30, 0x41}
 var disableHeater = devCommand{0x30, 0x66}
 var enableHeater = devCommand{0x30, 0x6d}
@@ -177,18 +177,6 @@ func NewI2C(b i2c.Bus, addr uint16, sampleRate SampleRate) (*Dev, error) {
 	return dev, dev.start()
 }
 
-// send continuous measurement start command.
-func (dev *Dev) start() error {
-	if err := dev.d.Tx(sampleRateCommands[dev.sampleRate], nil); err != nil {
-		return fmt.Errorf("hdc302x: init %w", err)
-	}
-	// Sleep for a minimum of one sample acquisition period. If you
-	// read before a sample has acquired, you get remote I/O error.
-	time.Sleep(sampleRateDurations[dev.sampleRate])
-	dev.halted = false
-	return nil
-}
-
 // Convert the raw count to a temperature.
 func countToTemperature(bytes []byte) physic.Temperature {
 	count := (uint16(bytes[0]) << 8) | uint16(bytes[1])
@@ -205,7 +193,7 @@ func countToHumidity(bytes []byte) physic.RelativeHumidity {
 }
 
 // Halt shuts down the device. If a SenseContinuous operation is in progress,
-// its aborted. Implements conn.Resource
+// its aborted. Implements conn.Resource.
 func (dev *Dev) Halt() error {
 	dev.mu.Lock()
 	defer dev.mu.Unlock()
@@ -259,7 +247,6 @@ func humidityToFloat64(humidity physic.RelativeHumidity) float64 {
 //
 // If interval is less than the device sample period, an error is returned.
 func (dev *Dev) SenseContinuous(interval time.Duration) (<-chan physic.Env, error) {
-
 	if dev.shutdown != nil {
 		return nil, errors.New("hdc302x: SenseContinuous already running")
 	}
@@ -299,110 +286,6 @@ func (dev *Dev) Precision(env *physic.Env) {
 	env.Pressure = 0
 }
 
-func (dev *Dev) readSerialNumber() int64 {
-	var result int64
-	cmd := []byte{0x36, 0x83}
-	r := make([]byte, 3)
-	// this is a 6 byte value read in 3 parts
-	for range 3 {
-		err := dev.d.Tx(cmd, r)
-		if err != nil || (common.CRC8(r[:2]) != r[2]) {
-			return result
-		}
-		result = result<<16 | (int64(r[0])<<8 | int64(r[1]))
-		cmd[1] += 1 // Increment the register to the next one.
-	}
-	return result
-}
-
-// read the alert / clear threshold values from the device.
-func (dev *Dev) readAlertValues(cfg *Configuration) error {
-
-	// Pair
-	// 	Low
-	//		Temp
-	//		Humidity
-	//	High
-	//		Temp
-	//		Humidity
-
-	var cmds = []devCommand{readLowAlertThresholds, readHighAlertThresholds, readLowClearThresholds, readHighClearThresholds}
-	var pairs = [2]*ThresholdPair{&cfg.AlertThresholds, &cfg.ClearThresholds}
-	var threshold *Threshold
-
-	r := make([]byte, 3)
-
-	for ix, cmd := range cmds {
-		pair := pairs[ix>>1]
-		if ix%2 == 0 {
-			threshold = &pair.Low
-		} else {
-			threshold = &pair.High
-		}
-
-		err := dev.d.Tx(cmd, r)
-		if err != nil {
-			return err
-		}
-		if common.CRC8(r[:2]) != r[2] {
-			return errInvalidCRC
-		}
-		wValue := uint16(r[0])<<8 | uint16(r[1])
-		// The alert value is returned as a 16 bit words, where bits 0-8 are the
-		// Temperature value, and bits 9-15 are the Humidity. The temperature
-		// bits correspond to bits 7-15 of the temperature, and bits 9-15 of the
-		// humidity. Refer to the datasheet.
-		temp := &threshold.Temperature
-		humidity := &threshold.Humidity
-		*temp = physic.Temperature(((float64(uint16(wValue<<7)) * temperatureScalar) / scaleDivisor) * float64(physic.Celsius))
-		*humidity = physic.RelativeHumidity(((float64(wValue&0xfe00) * humidityScalar) / scaleDivisor) * float64(physic.PercentRH))
-	}
-
-	return nil
-}
-
-// readOffsets returns temperature/humidity offset values stored to the device.
-func (dev *Dev) readOffsets(cfg *Configuration) error {
-	r := make([]byte, 3)
-	if err := dev.d.Tx(readSetOffsets, r); err != nil {
-		return fmt.Errorf("hdc302x: %w", err)
-	}
-	if common.CRC8(r[:2]) != r[2] {
-		return errInvalidCRC
-	}
-
-	// The result comes back as the humidity offset, followed by
-	// the temperature offset. The offsets are computed by summing
-	// the bits and applying the partial algorithm.
-
-	h := uint16((r[0] & 0x7f)) << 7
-	t := uint16((r[1] & 0x7f)) << 6
-	rh := float64(h) / scaleDivisor * humidityScalar
-	temp := (float64(t) * temperatureScalar) / scaleDivisor
-
-	if r[0]&0x80 == 0x00 {
-		rh *= -1.0
-	}
-	cfg.HumidityOffset = physic.RelativeHumidity(rh * float64(physic.PercentRH))
-
-	if r[1]&0x80 == 0x00 {
-		temp *= -1.0
-	}
-	cfg.TemperatureOffset = physic.Temperature(temp * float64(physic.Celsius))
-
-	return nil
-}
-
-func (dev *Dev) readVendorID() (uint16, error) {
-	r := make([]byte, 3)
-	err := dev.d.Tx(readVendorID, r)
-	if err == nil {
-		vid := uint16(r[0])<<8 | uint16(r[1])
-		return vid, nil
-	}
-	return 0, err
-}
-
 // ReadStatus returns the device's status word, and if successful, clears the
 // status. Refer to the Status* constants and the datasheet for interpretation.
 func (dev *Dev) ReadStatus() (StatusWord, error) {
@@ -436,21 +319,6 @@ func (dev *Dev) Configuration() (*Configuration, error) {
 	err = dev.readAlertValues(cfg)
 
 	return cfg, err
-}
-
-// setOffsets writes temperature and humidity offsets to the device.
-// Refer to the datasheet for information on offsets. The critical
-// thing to know is that the smallest offsets are ~0.2%RH, and ~
-// 0.2 degrees C.
-func (dev *Dev) setOffsets(cfg *Configuration) error {
-	var w = []byte{readSetOffsets[0],
-		readSetOffsets[1],
-		computeHumidityOffsetByte(cfg.HumidityOffset),
-		computeTemperatureOffsetByte(cfg.TemperatureOffset),
-		0,
-	}
-	w[4] = common.CRC8(w[2:4])
-	return dev.d.Tx(w, nil)
 }
 
 // Refer to the datasheet. Essentially, the offsets are only a specific set of
@@ -498,55 +366,6 @@ func (dev *Dev) Reset() error {
 	err := dev.d.Tx(reset, nil)
 	time.Sleep(time.Second)
 	return err
-}
-
-// setThreshold sets a threshold pair for either alert, or clear alert.
-// if typeAlert is true, it indicates the pair type is alert, otherwise
-// it's clear alert.
-func (dev *Dev) setThresholds(typeAlert bool, tp *ThresholdPair) error {
-	var cmds = [][]devCommand{{writeLowAlertThresholds, writeHighAlertThresholds},
-		{writeLowClearThresholds, writeHighClearThresholds}}
-
-	pair := 1
-	if typeAlert {
-		pair = 0
-	}
-	var th *Threshold
-	for ix := range 2 {
-		if ix == 0 {
-			th = &tp.Low
-		} else {
-			th = &tp.High
-		}
-		temp := temperatureToFloat64(th.Temperature)
-		tempBits := uint16(0)
-		for bit := 15; bit >= 0; bit-- {
-			bitVal := (float64(uint16(1<<bit)) * temperatureScalar) / scaleDivisor
-			if temp >= bitVal {
-				temp -= bitVal
-				tempBits |= (1 << bit)
-			}
-		}
-		humidity := humidityToFloat64(th.Humidity)
-		humBits := uint16(0)
-		for bit := 15; bit >= 0; bit-- {
-			bitVal := (float64(uint16(1<<bit)) * humidityScalar) / scaleDivisor
-			if humidity >= bitVal {
-				humidity -= bitVal
-				humBits |= (1 << bit)
-			}
-		}
-		wval := uint16(0)
-		wval = (humBits & 0xfe00) | tempBits>>7
-		w := []byte{cmds[pair][ix][0], cmds[pair][ix][1], byte(wval >> 8), byte(wval & 0xff), 0}
-		w[4] = common.CRC8(w[2:4])
-		err := dev.d.Tx(w, nil)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 // SetConfiguration takes a modified configuration struct and
@@ -604,7 +423,7 @@ func (dev *Dev) SetHeater(powerLevel HeaterPower) error {
 }
 
 func (dev *Dev) String() string {
-	return fmt.Sprintf("hdc302x: %s", dev.d.String())
+	return "hdc302x: " + dev.d.String()
 }
 
 func (cfg *Configuration) String() string {
@@ -663,3 +482,181 @@ func (tp *ThresholdPair) Equals(tpCompare *ThresholdPair) bool {
 
 var _ conn.Resource = &Dev{}
 var _ physic.SenseEnv = &Dev{}
+
+// send continuous measurement start command.
+func (dev *Dev) start() error {
+	if err := dev.d.Tx(sampleRateCommands[dev.sampleRate], nil); err != nil {
+		return fmt.Errorf("hdc302x: init %w", err)
+	}
+	// Sleep for a minimum of one sample acquisition period. If you
+	// read before a sample has acquired, you get remote I/O error.
+	time.Sleep(sampleRateDurations[dev.sampleRate])
+	dev.halted = false
+	return nil
+}
+
+func (dev *Dev) readSerialNumber() int64 {
+	var result int64
+	cmd := []byte{0x36, 0x83}
+	r := make([]byte, 3)
+	// this is a 6 byte value read in 3 parts
+	for range 3 {
+		err := dev.d.Tx(cmd, r)
+		if err != nil || (common.CRC8(r[:2]) != r[2]) {
+			return result
+		}
+		result = result<<16 | (int64(r[0])<<8 | int64(r[1]))
+		cmd[1]++ // Increment the register to the next one.
+	}
+	return result
+}
+
+// read the alert / clear threshold values from the device.
+func (dev *Dev) readAlertValues(cfg *Configuration) error {
+	// Pair
+	// 	Low
+	//		Temp
+	//		Humidity
+	//	High
+	//		Temp
+	//		Humidity
+
+	var cmds = []devCommand{readLowAlertThresholds, readHighAlertThresholds, readLowClearThresholds, readHighClearThresholds}
+	var pairs = [2]*ThresholdPair{&cfg.AlertThresholds, &cfg.ClearThresholds}
+	var threshold *Threshold
+
+	r := make([]byte, 3)
+
+	for ix, cmd := range cmds {
+		pair := pairs[ix>>1]
+		if ix%2 == 0 {
+			threshold = &pair.Low
+		} else {
+			threshold = &pair.High
+		}
+
+		err := dev.d.Tx(cmd, r)
+		if err != nil {
+			return err
+		}
+		if common.CRC8(r[:2]) != r[2] {
+			return errInvalidCRC
+		}
+		wValue := uint16(r[0])<<8 | uint16(r[1])
+		// The alert value is returned as a 16 bit words, where bits 0-8 are the
+		// Temperature value, and bits 9-15 are the Humidity. The temperature
+		// bits correspond to bits 7-15 of the temperature, and bits 9-15 of the
+		// humidity. Refer to the datasheet.
+		temp := &threshold.Temperature
+		humidity := &threshold.Humidity
+		*temp = physic.Temperature(((float64(wValue<<7) * temperatureScalar) / scaleDivisor) * float64(physic.Celsius))
+		*humidity = physic.RelativeHumidity(((float64(wValue&0xfe00) * humidityScalar) / scaleDivisor) * float64(physic.PercentRH))
+	}
+
+	return nil
+}
+
+// readOffsets returns temperature/humidity offset values stored to the device.
+func (dev *Dev) readOffsets(cfg *Configuration) error {
+	r := make([]byte, 3)
+	if err := dev.d.Tx(readSetOffsets, r); err != nil {
+		return fmt.Errorf("hdc302x: %w", err)
+	}
+	if common.CRC8(r[:2]) != r[2] {
+		return errInvalidCRC
+	}
+
+	// The result comes back as the humidity offset, followed by
+	// the temperature offset. The offsets are computed by summing
+	// the bits and applying the partial algorithm.
+
+	h := uint16((r[0] & 0x7f)) << 7
+	t := uint16((r[1] & 0x7f)) << 6
+	rh := float64(h) / scaleDivisor * humidityScalar
+	temp := (float64(t) * temperatureScalar) / scaleDivisor
+
+	if r[0]&0x80 == 0x00 {
+		rh *= -1.0
+	}
+	cfg.HumidityOffset = physic.RelativeHumidity(rh * float64(physic.PercentRH))
+
+	if r[1]&0x80 == 0x00 {
+		temp *= -1.0
+	}
+	cfg.TemperatureOffset = physic.Temperature(temp * float64(physic.Celsius))
+
+	return nil
+}
+
+func (dev *Dev) readVendorID() (uint16, error) {
+	r := make([]byte, 3)
+	err := dev.d.Tx(readVendorID, r)
+	if err == nil {
+		vid := uint16(r[0])<<8 | uint16(r[1])
+		return vid, nil
+	}
+	return 0, err
+}
+
+// setOffsets writes temperature and humidity offsets to the device.
+// Refer to the datasheet for information on offsets. The critical
+// thing to know is that the smallest offsets are ~0.2%RH, and ~
+// 0.2 degrees C.
+func (dev *Dev) setOffsets(cfg *Configuration) error {
+	var w = []byte{readSetOffsets[0],
+		readSetOffsets[1],
+		computeHumidityOffsetByte(cfg.HumidityOffset),
+		computeTemperatureOffsetByte(cfg.TemperatureOffset),
+		0,
+	}
+	w[4] = common.CRC8(w[2:4])
+	return dev.d.Tx(w, nil)
+}
+
+// setThreshold sets a threshold pair for either alert, or clear alert.
+// if typeAlert is true, it indicates the pair type is alert, otherwise
+// it's clear alert.
+func (dev *Dev) setThresholds(typeAlert bool, tp *ThresholdPair) error {
+	var cmds = [][]devCommand{{writeLowAlertThresholds, writeHighAlertThresholds},
+		{writeLowClearThresholds, writeHighClearThresholds}}
+
+	pair := 1
+	if typeAlert {
+		pair = 0
+	}
+	var th *Threshold
+	for ix := range 2 {
+		if ix == 0 {
+			th = &tp.Low
+		} else {
+			th = &tp.High
+		}
+		temp := temperatureToFloat64(th.Temperature)
+		tempBits := uint16(0)
+		for bit := 15; bit >= 0; bit-- {
+			bitVal := (float64(uint16(1<<bit)) * temperatureScalar) / scaleDivisor
+			if temp >= bitVal {
+				temp -= bitVal
+				tempBits |= (1 << bit)
+			}
+		}
+		humidity := humidityToFloat64(th.Humidity)
+		humBits := uint16(0)
+		for bit := 15; bit >= 0; bit-- {
+			bitVal := (float64(uint16(1<<bit)) * humidityScalar) / scaleDivisor
+			if humidity >= bitVal {
+				humidity -= bitVal
+				humBits |= (1 << bit)
+			}
+		}
+		wval := (humBits & 0xfe00) | tempBits>>7
+		w := []byte{cmds[pair][ix][0], cmds[pair][ix][1], byte(wval >> 8), byte(wval & 0xff), 0}
+		w[4] = common.CRC8(w[2:4])
+		err := dev.d.Tx(w, nil)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

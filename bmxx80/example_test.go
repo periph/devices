@@ -27,7 +27,11 @@ func Example() {
 	if err != nil {
 		log.Fatalf("failed to open I²C: %v", err)
 	}
-	defer b.Close()
+	defer func() {
+		if closeErr := b.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	d, err := bmxx80.NewI2C(b, 0x76, &bmxx80.DefaultOpts)
 	if err != nil {

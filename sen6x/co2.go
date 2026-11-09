@@ -154,7 +154,7 @@ func (d *Dev) GetAmbientPressure() (uint16, error) {
 // 700 to 1,200 hPa. Device default: 1013 hPa
 //
 // Note: This configuration is volatile, i.e. the pressure will be reverted to
-// its default value after a device reset
+// its default value after a device reset.
 func (d *Dev) SetAmbientPressure(hPa uint16) error {
 	if !d.model.hasCO2() {
 		return errors.New("sen6x: SetAmbientPressure requires a CO2-equipped model")

@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// This package provides a driver for the Sensiron SCD4x CO2 sensors.
+// Package scd4x provides a driver for Sensirion SCD4x CO2 sensors.
 // The scd4x family provide a compact sensor that can be used to measure
 // Temperature, Humidity, and CO2 concentration.
 //

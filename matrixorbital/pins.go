@@ -26,7 +26,7 @@ type gpoPin struct {
 
 // A generic routine to create our set of pins.
 func makePins(display *GPOEnabledDisplay, pins []gpio.PinOut) {
-	for ix := range len(pins) {
+	for ix := range pins {
 		pin := &gpoPin{name: fmt.Sprintf("GPO%d", ix+1), number: ix + 1, display: display}
 		pins[ix] = pin
 	}
@@ -57,7 +57,7 @@ func (pin *gpoPin) Function() string {
 	return "Out"
 }
 
-func (pin *gpoPin) PWM(duty gpio.Duty, f physic.Frequency) error {
+func (pin *gpoPin) PWM(_ gpio.Duty, _ physic.Frequency) error {
 	return errors.New("not implemented")
 }
 

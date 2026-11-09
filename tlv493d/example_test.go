@@ -27,17 +27,27 @@ func Example() {
 	if err != nil {
 		log.Fatalf("failed to open I²C: %v", err)
 	}
-	defer bus.Close()
+	defer func() {
+		if closeErr := bus.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	// Create a new TLV493D hall effect sensor.
 	tlv, err := tlv493d.New(bus, &tlv493d.DefaultOpts)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	defer tlv.Halt()
+	defer func() {
+		if closeErr := tlv.Halt(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	// Read a single value.
-	tlv.SetMode(tlv493d.LowPowerMode)
+	if callErr := tlv.SetMode(tlv493d.LowPowerMode); callErr != nil {
+		log.Fatal(callErr)
+	}
 	fmt.Println("Single reading")
 	reading, err := tlv.Read(tlv493d.HighPrecisionWithTemperature)
 

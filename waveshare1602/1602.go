@@ -35,9 +35,9 @@ import (
 type Variant string
 
 const (
-	// SKU 19537 - RGB Backlight
+	// SKU 19537 - RGB Backlight.
 	LCD1602RGBBacklight Variant = "LCD1602RGBBacklight"
-	// SKU 23991 - I²C w/ Monochrome Backlight
+	// SKU 23991 - I²C w/ Monochrome Backlight.
 	LCD1602MonoBacklight Variant = "LCD1602MonoBacklight"
 	// Not Implemented. SKU 30494, 30495, and 30496. Uses an SN3193 for
 	// controlling the backlight.

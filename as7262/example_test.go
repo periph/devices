@@ -29,7 +29,11 @@ func Example() {
 	if err != nil {
 		log.Fatalf("failed to open I²C: %v", err)
 	}
-	defer bus.Close()
+	defer func() {
+		if closeErr := bus.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	// Create a new spectrum sensor.
 	sensor, err := as7262.New(bus, &as7262.DefaultOpts)

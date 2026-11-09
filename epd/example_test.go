@@ -29,7 +29,11 @@ func Example() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer b.Close()
+	defer func() {
+		if closeErr := b.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	dev, err := epd.NewSPIHat(b, &epd.EPD2in13) // Display config and size
 	if err != nil {
@@ -55,7 +59,9 @@ func Example() {
 	if err := dev.Draw(dev.Bounds(), img, image.Point{}); err != nil {
 		log.Fatal(err)
 	}
-	dev.DisplayFrame() // After drawing on the display, you have to show the frame
+	if err := dev.DisplayFrame(); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func Example_other() {
@@ -69,7 +75,11 @@ func Example_other() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer b.Close()
+	defer func() {
+		if closeErr := b.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	dev, err := epd.NewSPIHat(b, &epd.EPD2in13) // Display config and size
 	if err != nil {
@@ -121,5 +131,7 @@ func Example_other() {
 	if err := dev.Draw(dev.Bounds(), img, image.Point{}); err != nil {
 		log.Fatal(err)
 	}
-	dev.DisplayFrame() // After drawing on the display, you have to show the frame
+	if err := dev.DisplayFrame(); err != nil {
+		log.Fatal(err)
+	}
 }

@@ -91,7 +91,7 @@ func (d *Dev) Read() (physic.Env, error) {
 
 	// Read 40 bits of data (humidity, temperature, checksum)
 	var data [5]byte
-	for i := 0; i < 40; i++ {
+	for i := range 40 {
 		if !waitForState(d.pin, false, 50*time.Microsecond) {
 			return physic.Env{}, errors.New("dht22: data sync error")
 		}

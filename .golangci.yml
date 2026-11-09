@@ -10,17 +10,154 @@ run:
 linters:
   default: none
   enable:
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - canonicalheader
+    - contextcheck
+    - copyloopvar
+    - dupl
+    - dupword
+    - durationcheck
+    - embeddedstructfieldcheck
+    - errcheck
+    - errchkjson
+    - errname
+    - errorlint
+    - exhaustive
+    - exptostd
+    - fatcontext
+    - forcetypeassert
+    - funcorder
+    - gocheckcompilerdirectives
+    - gochecksumtype
+    - gocritic
+    - godoclint
+    - godot
+    - gomoddirectives
+    - goprintffuncname
     - gosec
+    - gosmopolitan
     - govet
+    - grouper
+    - iface
+    - importas
+    - inamedparam
     - ineffassign
-    - misspell
+    - intrange
+    - iotamixing
+    - loggercheck
+    - makezero
+    - mirror
+    - modernize
+    - musttag
+    - nakedret
+    - nilerr
+    - nilnesserr
+    - nilnil
+    - noctx
+    - nolintlint
+    - nosprintfhostport
+    - paralleltest
+    - perfsprint
+    - prealloc
+    - predeclared
+    - reassign
+    - recvcheck
+    - revive
+    - sloglint
+    - sqlclosecheck
     - staticcheck
+    - tparallel
+    - unconvert
+    - unparam
     - unused
+    - usestdlibvars
+    - usetesting
+    - wastedassign
+    - whitespace
   exclusions:
     rules:
-      # The standalone gosec CI command scanned production sources only.
-      - path: _test\.go$
-        linters: [gosec]
+      # Register and device constants follow hardware documentation and public APIs.
+      - path: ^(mpu9250/reg/reg|ssd1306/ssd1306|mfrc522/commands/picc|mfrc522/blockaccess|pca9633/dev|hx711/hx711|max7219/max7219|tmp102/tmp102)\.go$
+        text: 'var-naming:'
+        linters: [revive]
+      # Existing device tests share simulated clocks, global state or hardware resources and run serially.
+      - path: '^(ads1x15/ads1x15_test\.go|aht20/aht20_test\.go|aip31068/dev_test\.go|am2320/am2320_test\.go|apa102/apa102_test\.go|apa102/temperature_test\.go|as7262/as7262_test\.go|bmxx80/bmp180_test\.go|bmxx80/bmx280_test\.go|cap1xxx/cap1xxx_test\.go|ccs811/ccs811_test\.go|dht22/dht22_test\.go|ds18b20/ds18b20_test\.go|ds248x/ds248x_test\.go|ep0099/ep0099_test\.go|hd44780/hd44780_test\.go|hdc302x/hdc302x_test\.go|hx711/hx711_test\.go|ina219/ina219_test\.go|lepton/cci/cci_test\.go|lepton/internal/internal_test\.go|lepton/lepton_test\.go|matrixorbital/lk2047t_test\.go|max7219/max7219_test\.go|mcp23xxx/group_test\.go|mcp23xxx/mcp23017_test\.go|mcp472x/mcp472x_test\.go|mcp9808/mcp9808_test\.go|mfrc522/mfrc522_test\.go|mpu9250/mpu9250_test\.go|nrzled/nrz_test\.go|nrzled/nrzled_spi_test\.go|nrzled/nrzled_stream_test\.go|nxp74hc595/74hc595_test\.go|pca9548/pca9548_test\.go|pca9633/dev_test\.go|pca9685/pca9685_test\.go|pcf857x/pcf857x_test\.go|scd4x/scd4x_test\.go|sen6x/co2_test\.go|sen6x/pm_test\.go|sen6x/rht_test\.go|sen6x/sen6x_test\.go|sen6x/status_test\.go|sen6x/vocnox_test\.go|serlcd/serlcd_test\.go|sht4x/sht4x_test\.go|sn3218/sn3218_test\.go|ssd1306/ssd1306_test\.go|tca95xx/tca9535_test\.go|tic/registers_test\.go|tic/tic_test\.go|tlv493d/tlv493d_test\.go|tm1637/tm1637_test\.go|tmp102/tmp102_test\.go|unicornhd/unicornhd_test\.go|videosink/display_test\.go|videosink/handler_test\.go|waveshare2in13v2/controller_test\.go|waveshare2in13v2/drawing_test\.go|waveshare2in13v2/waveshare213v2_test\.go|waveshare2in13v3/controller_test\.go|waveshare2in13v3/drawing_test\.go|waveshare2in13v3/waveshare213v3_test\.go|waveshare2in13v4/controller_test\.go|waveshare2in13v4/drawing_test\.go|waveshare2in13v4/waveshare213v4_test\.go)$'
+        linters: [paralleltest]
+      # Independent device encodings and fixture cases intentionally retain parallel structure.
+      - path: '^(epd/epd\.go|mcp9808/mcp9808_test\.go|nrzled/nrzled_stream_test\.go|sen6x/sen6x_test\.go|sen6x/vocnox\.go|sen6x/vocnox_test\.go|ssd1306/ssd1306_test\.go|unicornhd/unicornhd_test\.go|waveshare2in13v3/waveshare213v3\.go)$'
+        linters: [dupl]
+      # Hardware switches deliberately accept only modes supported by each device.
+      - path: '^(bmxx80/bmxx80\.go|epd/image2bit/image2bit\.go|inky/impression\.go|inky/inky\.go|mcp23xxx/pins\.go|sen6x/model\.go|tca95xx/pins\.go|tic/tic\.go|waveshare2in13v2/drawing\.go|waveshare2in13v3/drawing\.go|waveshare2in13v4/drawing\.go)$'
+        linters: [exhaustive]
+      # Device types implement separate value and pointer interfaces.
+      - path: '^(inky/types\.go|sgp30/sgp30\.go|st7567/st7567\.go)$'
+        linters: [recvcheck]
+      # Hardware paths retain their established allocation behavior.
+      - path: '^(apa102/apa102_test\.go|max7219/max7219\.go|mcp472x/mcp472x\.go|mfrc522/commands/low_level\.go|mfrc522/mfrc522\.go|nrzled/nrzled_spi_test\.go|sen6x/sen6x_test\.go|tmp102/tmp102_test\.go|waveshare2in13v3/controller\.go|waveshare2in13v3/controller_test\.go|waveshare2in13v4/controller\.go|waveshare2in13v4/controller_test\.go)$'
+        linters: [prealloc]
+      # Device interfaces preserve parameters shared with related implementations.
+      - path: '^(apa102/apa102_test\.go|mcp23xxx/registers\.go|nrzled/nrzled_spi_test\.go|tca95xx/registers\.go|tm1637/tm1637\.go|tmp102/tmp102\.go)$'
+        linters: [unparam]
+      # These assertions use constructors, color models, or pools with guaranteed types.
+      - path: ^(nrzled/nrzled|videosink/handler|waveshare2in13v[234]/waveshare213v[234])\.go$
+        linters: [forcetypeassert]
+      # Existing public resistor constants use the physical ohm symbol.
+      - path: ^ds248x/ds248x\.go$
+        linters: [asciicheck]
+      # The documented controller sequence deliberately repeats this command.
+      - path: ^waveshare2in13v4/controller\.go$
+        text: Duplicate words
+        linters: [dupword]
+      # LIRC New has no context-bearing caller API.
+      - path: ^lirc/lirc\.go$
+        linters: [noctx]
+      # Legacy device APIs keep their established public names and grouped comments.
+      - path: '^(adxl345/adxl345\.go|aht20/aht20\.go|aip31068/dev\.go|am2320/am2320\.go|ds18b20/ds18b20\.go|ep0099/ep0099\.go|hd44780/af_i2c_backpack\.go|hd44780/backlight\.go|hd44780/dev\.go|hd44780/hd44780\.go|hd44780/pcf857x_backpack\.go|hdc302x/hdc302x\.go|inky/impression\.go|inky/inky\.go|inky/types\.go|matrixorbital/lk2047t\.go|max7219/glyphs\.go|max7219/max7219\.go|mcp472x/mcp472x\.go|mpu9250/transport\.go|nxp74hc595/74hc595\.go|nxp74hc595/pin\.go|pca9633/dev\.go|pcf857x/pcf857x\.go|scd4x/scd4x\.go|sen6x/model\.go|sen6x/rht\.go|sen6x/status\.go|serlcd/serlcd\.go|sht4x/sht4x\.go|ssd1306/image1bit/image1bit\.go|st7567/st7567\.go|tca95xx/variants\.go|tic/tic\.go|tmp102/tmp102\.go|videosink/format\.go|waveshare1602/1602\.go|waveshare2in13v2/waveshare213v2\.go|waveshare2in13v3/waveshare213v3\.go|waveshare2in13v4/waveshare213v4\.go)$'
+        text: 'exported:'
+        linters: [revive]
+      # Hardware protocol names follow device specifications and existing APIs.
+      - path: '^(hd44780/pcf857x_backpack\.go|mpu9250/accelerometer/accelerometer\.go|serlcd/serlcd\.go|waveshare1602/1602\.go|waveshare2in13v2/waveshare213v2\.go|waveshare2in13v3/controller\.go|waveshare2in13v4/controller\.go)$'
+        text: 'var-naming:'
+        linters: [revive]
+      # Existing device descriptions are retained as indexed source summaries.
+      - path: '^(aip31068/dev\.go|am2320/am2320\.go|hdc302x/hdc302x\.go|matrixorbital/lk2047t\.go|max7219/max7219\.go|mcp472x/mcp472x\.go|nxp74hc595/74hc595\.go|pca9633/dev\.go|pcf857x/pcf857x\.go|scd4x/doc\.go|serlcd/serlcd\.go|sgp30/sgp30\.go|sht4x/sht4x\.go|st7567/st7567\.go|tmp102/doc\.go|waveshare1602/1602\.go|waveshare2in13v4/doc\.go)$'
+        text: 'package-comments:'
+        linters: [revive]
+      # Functional options retain their existing public API signatures.
+      - path: '^(mfrc522/mfrc522\.go)$'
+        text: 'unexported-return:'
+        linters: [revive]
+      # The existing exported API retains its established argument order.
+      - path: '^(sgp30/sgp30\.go)$'
+        text: 'context-as-argument:'
+        linters: [revive]
+      # The existing API preserves its established return ordering.
+      - path: '^(aht20/aht20\.go)$'
+        text: 'error-return:'
+        linters: [revive]
+      # Examples use fatal exits for concise hardware setup.
+      - path: '^(ads1x15/example_test\.go|aht20/example_test\.go|am2320/example_test\.go|apa102/example_test\.go|as7262/example_test\.go|bh1750/example_test\.go|bmxx80/example_test\.go|cap1xxx/example_test\.go|ds248x/example_test\.go|ep0099/example_test\.go|epd/example_test\.go|hd44780/example_test\.go|hdc302x/example_test\.go|ht16k33/example_test\.go|ina219/example_test\.go|inky/example_test\.go|max7219/example_test\.go|mcp23xxx/example_test\.go|mcp472x/example_test\.go|mcp9808/example_test\.go|mfrc522/example_test\.go|nxp74hc595/74hc595_test\.go|nxp74hc595/example_test\.go|pcf857x/example_test\.go|rainbowhat/example_test\.go|sht4x/example_test\.go|sn3218/example_test\.go|ssd1306/example_test\.go|st7567/example_test\.go|tca95xx/example_test\.go|tic/example_test\.go|tlv493d/example_test\.go|waveshare1602/example_test\.go|waveshare2in13v2/example_test\.go|waveshare2in13v3/example_test\.go|waveshare2in13v4/example_test\.go)$'
+        text: 'exitAfterDefer:'
+        linters: [gocritic]
+      # Legacy device API comments and grouped hardware constants remain unchanged.
+      - path: '^(ads1x15/ads1x15\.go|adxl345/adxl345\.go|aip31068/dev\.go|am2320/am2320\.go|hd44780/backlight\.go|hd44780/hd44780\.go|hdc302x/hdc302x\.go|matrixorbital/lk2047t\.go|max7219/max7219\.go|mcp472x/mcp472x\.go|mfrc522/mfrc522\.go|mpu9250/reg/reg\.go|nxp74hc595/74hc595\.go|nxp74hc595/pin\.go|pca9633/dev\.go|pcf857x/pcf857x\.go|scd4x/scd4x\.go|serlcd/serlcd\.go|sht4x/sht4x\.go|ssd1306/image1bit/image1bit\.go|tic/tic\.go|tmp102/tmp102\.go|waveshare1602/1602\.go|waveshare2in13v4/waveshare213v4\.go)$'
+        linters: [godoclint]
+      # Established register and protocol names are retained.
+      - path: '^(ads1x15/ads1x15\.go|apa102/apa102\.go|hx711/hx711_test\.go|mpu9250/mpu9250\.go|pca9685/servo\.go|serlcd/serlcd\.go|tmp102/tmp102\.go|waveshare2in13v3/controller\.go|waveshare2in13v4/controller\.go)$'
+        text: 'redefines-builtin-id:'
+        linters: [revive]
+      # Constant blocks mirror their hardware register definitions.
+      - path: '^(sht4x/sht4x\.go|tmp102/tmp102\.go|videosink/format\.go)$'
+        linters: [iotamixing]
+      # Device helper signatures retain their existing contract.
+      - path: '^(serlcd/serlcd_test\.go)$'
+        linters: [unparam]
+      # Existing register and protocol names are retained.
+      - path: '^(ads1x15/ads1x15\.go|apa102/apa102\.go|hx711/hx711_test\.go|mpu9250/mpu9250\.go|pca9685/servo\.go|serlcd/serlcd\.go|tmp102/tmp102\.go|waveshare2in13v3/controller\.go|waveshare2in13v4/controller\.go)$'
+        linters: [predeclared]
   settings:
     gosec:
       excludes: [G115]

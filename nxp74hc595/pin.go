@@ -32,7 +32,7 @@ func (pin *Pin) Number() int {
 	return pin.number
 }
 
-// Deprecated: returns "Out"
+// Deprecated: returns "Out".
 func (pin *Pin) Function() string {
 	return "Out"
 }
@@ -48,7 +48,7 @@ func (pin *Pin) Out(l gpio.Level) error {
 }
 
 // Not implemented.
-func (pin *Pin) PWM(duty gpio.Duty, f physic.Frequency) error {
+func (pin *Pin) PWM(_ gpio.Duty, _ physic.Frequency) error {
 	return ErrNotImplemented
 }
 

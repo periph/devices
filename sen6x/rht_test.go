@@ -89,8 +89,8 @@ func TestDevGetSHTHeaterMeasurements(t *testing.T) {
 				0x33, 0xbb, 0x4b, // Temp
 			},
 			want: &SHTHeaterMeasurements{
-				RH:   ptr(float32(25.44)),
-				Temp: ptr(float32(66.215)),
+				RH:   new(float32(25.44)),
+				Temp: new(float32(66.215)),
 			},
 		},
 		{

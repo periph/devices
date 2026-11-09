@@ -116,7 +116,6 @@ func TestNew(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
 			bus := &i2ctest.Playback{
 				Ops:       test.tx,
 				DontPanic: true,
@@ -125,8 +124,8 @@ func TestNew(t *testing.T) {
 			ina, err := New(bus, &test.opts)
 
 			if test.err != nil {
-				if err != test.err {
-					if test.err == stringErr {
+				if !errors.Is(err, test.err) {
+					if errors.Is(test.err, stringErr) {
 						if !strings.Contains(err.Error(), test.errString) {
 							t.Errorf("%v wanted err: %v, but got: %v", test.name, test.errString, err)
 						}
@@ -149,12 +148,9 @@ func TestNew(t *testing.T) {
 				if got != test.want {
 					t.Errorf("%v wanted: %v, but got: %v", test.name, test.want, got)
 				}
-
 			}
-
 		})
 	}
-
 }
 
 func TestSense(t *testing.T) {
@@ -254,8 +250,8 @@ func TestSense(t *testing.T) {
 			}
 			got, err := ina.Sense()
 			if test.err != nil {
-				if err != test.err {
-					if test.err == stringErr {
+				if !errors.Is(err, test.err) {
+					if errors.Is(test.err, stringErr) {
 						if !strings.Contains(err.Error(), test.errString) {
 							t.Errorf("%v wanted err: %v, but got: %v", test.name, test.errString, err)
 						}
@@ -274,7 +270,6 @@ func TestSense(t *testing.T) {
 				if got != test.want {
 					t.Errorf("%v wanted: %v, but got: %v", test.name, test.want, got)
 				}
-
 			}
 		})
 	}
@@ -334,7 +329,6 @@ func TestCalibrate(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
 			bus := i2ctest.Playback{
 				Ops:       test.tx,
 				DontPanic: true,
@@ -348,8 +342,8 @@ func TestCalibrate(t *testing.T) {
 
 			err := ina.calibrate(test.args.sense, test.args.maxCurrent)
 			if test.err != nil {
-				if err != test.err {
-					if test.err == stringErr {
+				if !errors.Is(err, test.err) {
+					if errors.Is(test.err, stringErr) {
 						if !strings.Contains(err.Error(), test.errString) {
 							t.Errorf("%v wanted err: %v, but got: %v", test.name, test.errString, err)
 						}

@@ -27,7 +27,11 @@ func Example() {
 	if err != nil {
 		log.Fatalf("failed to open I²C: %v", err)
 	}
-	defer b.Close()
+	defer func() {
+		if closeErr := b.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	// Create a new AHT20 device using I²C bus.
 	d, err := aht20.NewI2C(b, nil) // nil for default options or &aht20.DefaultOpts

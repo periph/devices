@@ -45,7 +45,11 @@ func TestTCA9535_out(t *testing.T) {
 	if dev == nil {
 		t.Fatal("dev is nil")
 	}
-	defer dev.Close()
+	t.Cleanup(func() {
+		if closeErr := dev.Close(); closeErr != nil {
+			t.Error(closeErr)
+		}
+	})
 
 	p0 := gpioreg.ByName("TCA9535_20_P0_0")
 	if nil == p0 {
@@ -73,7 +77,11 @@ func TestTCA9535_in(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer dev.Close()
+	t.Cleanup(func() {
+		if closeErr := dev.Close(); closeErr != nil {
+			t.Error(closeErr)
+		}
+	})
 
 	p0 := gpioreg.ByName("TCA9535_20_P0_0")
 
@@ -105,9 +113,17 @@ func TestTCA9535_inInverted(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer dev.Close()
+	t.Cleanup(func() {
+		if closeErr := dev.Close(); closeErr != nil {
+			t.Error(closeErr)
+		}
+	})
 
-	p0 := gpioreg.ByName("TCA9535_20_P0_0").(Pin)
+	pin := gpioreg.ByName("TCA9535_20_P0_0")
+	p0, ok := pin.(Pin)
+	if !ok {
+		t.Fatalf("pin type %T, want Pin", pin)
+	}
 
 	_ = p0.In(gpio.Float, gpio.NoEdge)
 	_ = p0.SetPolarityInverted(true)
@@ -198,7 +214,11 @@ func TestTCA9535_Tx(t *testing.T) {
 			if dev == nil {
 				t.Fatal("dev must not be nil")
 			}
-			defer dev.Close()
+			t.Cleanup(func() {
+				if closeErr := dev.Close(); closeErr != nil {
+					t.Error(closeErr)
+				}
+			})
 
 			if tc.output {
 				// Set the port for output
@@ -248,7 +268,11 @@ func TestTCA9535_fixedValues(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer dev.Close()
+	t.Cleanup(func() {
+		if closeErr := dev.Close(); closeErr != nil {
+			t.Error(closeErr)
+		}
+	})
 
 	if dev.Conns[0].Duplex() != conn.Half {
 		t.Errorf("Duplex() should return conn.Half")

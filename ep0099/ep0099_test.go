@@ -61,7 +61,9 @@ func TestHalt(t *testing.T) {
 	bus := initTestBus()
 	dev, _ := New(bus, testDefaultValidAddress)
 
-	dev.Halt()
+	if err := dev.Halt(); err != nil {
+		t.Fatal(err)
+	}
 	checkDevReset(t, dev, bus)
 }
 
@@ -113,15 +115,15 @@ func TestReturnErrorForInvalidChannel(t *testing.T) {
 	bus := initTestBus()
 	dev, _ := New(bus, testDefaultValidAddress)
 
-	if err := dev.On(98); err != errInvalidChannel {
+	if err := dev.On(98); !errors.Is(err, errInvalidChannel) {
 		t.Fatal("On should return invalid channel error, got ", err)
 	}
 
-	if err := dev.Off(98); err != errInvalidChannel {
+	if err := dev.Off(98); !errors.Is(err, errInvalidChannel) {
 		t.Fatal("Off should return invalid channel error, got ", err)
 	}
 
-	if err := dev.Off(98); err != errInvalidChannel {
+	if err := dev.Off(98); !errors.Is(err, errInvalidChannel) {
 		t.Fatal("Off should return invalid channel error, got ", err)
 	}
 }
@@ -181,7 +183,7 @@ func (b *testBus) String() string {
 	return "ep0099 test i2c bus"
 }
 
-func (b *testBus) Tx(addr uint16, w, r []byte) error {
+func (b *testBus) Tx(_ uint16, w, r []byte) error {
 	if len(w) == 1 && len(r) == 1 {
 		if w[0] < 1 || w[0] > 4 {
 			return errors.New("Invalid port")
@@ -193,6 +195,6 @@ func (b *testBus) Tx(addr uint16, w, r []byte) error {
 	return nil
 }
 
-func (b *testBus) SetSpeed(f physic.Frequency) error {
+func (b *testBus) SetSpeed(_ physic.Frequency) error {
 	return nil
 }

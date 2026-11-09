@@ -444,9 +444,9 @@ func (s *SmokeTest) step(str string) {
 // vertical pixels, and then the array scans horizontally and down.
 func broadStripes(w, h int) []byte {
 	img := make([]byte, w*h/8)
-	for y := 0; y < 8; y++ {
+	for y := range 8 {
 		// Horizontal stripes.
-		for x := 0; x < 64; x++ {
+		for x := range 64 {
 			img[x+128*y] = byte((y & 1) * 0xff)
 		}
 		// Vertical stripes.
@@ -459,10 +459,10 @@ func broadStripes(w, h int) []byte {
 
 func binaryPattern(w, h int) []byte {
 	img := make([]byte, w*h/8)
-	for i := 0; i < len(img); i++ {
+	for i := range img {
 		img[i] = 0
 	}
-	for i := 0; i < 256; i++ {
+	for i := range 256 {
 		offset := i % w
 		band := ((i / w) * w) * 2
 		img[band+offset] = byte(i)
@@ -472,10 +472,10 @@ func binaryPattern(w, h int) []byte {
 
 // round returns the duration rounded in µs.
 func round(d time.Duration) string {
-	µs := (d + time.Microsecond/2) / time.Microsecond
-	ms := µs / 1000
-	µs %= 1000
-	return fmt.Sprintf("%3d.%03dms", ms, µs)
+	us := (d + time.Microsecond/2) / time.Microsecond
+	ms := us / 1000
+	us %= 1000
+	return fmt.Sprintf("%3d.%03dms", ms, us)
 }
 
 // image1bit.Bit is not transparent, so it cannot be used with draw.DrawMask().

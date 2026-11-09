@@ -204,7 +204,7 @@ func (d *Dev) ReadTimeout(timeout time.Duration) (int32, error) {
 func (d *Dev) readRaw() (int32, error) {
 	// Shift the 24-bit 2's compliment value.
 	var value uint32
-	for i := 0; i < 24; i++ {
+	for range 24 {
 		if err := d.clk.Out(gpio.High); err != nil {
 			return 0, err
 		}
@@ -220,7 +220,7 @@ func (d *Dev) readRaw() (int32, error) {
 	}
 
 	// Pulse the clock 1-3 more times to set the new ADC mode.
-	for i := 0; i < int(d.inputMode); i++ {
+	for range d.inputMode {
 		if err := d.clk.Out(gpio.High); err != nil {
 			return 0, err
 		}

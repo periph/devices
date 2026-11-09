@@ -24,6 +24,12 @@ import (
 	"periph.io/x/host/v3/cpu"
 )
 
+// SPI represents a SPI master port implemented as bit-banging on 3 or 4 GPIO
+// pins.
+type SPI struct {
+	spiConn spiConn
+}
+
 // NewSPI returns an spi.PortCloser that communicates SPI over 3 or 4 pins.
 //
 // BUG(maruel): Completely untested.
@@ -38,12 +44,6 @@ func NewSPI(clk, mosi gpio.PinOut, miso gpio.PinIn, cs gpio.PinOut) (*SPI, error
 			csn: cs,
 		},
 	}, nil
-}
-
-// SPI represents a SPI master port implemented as bit-banging on 3 or 4 GPIO
-// pins.
-type SPI struct {
-	spiConn spiConn
 }
 
 func (s *SPI) String() string {
@@ -82,11 +82,11 @@ func (s *SPI) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, er
 	// Set clock idle polarity, ensuring an idle clock to start
 	s.spiConn.clockIdle = gpio.Level(mode&spi.Mode2 == spi.Mode2)
 	if err := s.spiConn.sck.Out(s.spiConn.clockIdle); err != nil {
-		return nil, fmt.Errorf("bitbang-spi: failed to idle clock: %v", err)
+		return nil, fmt.Errorf("bitbang-spi: failed to idle clock: %w", err)
 	}
 
 	if err := s.spiConn.initializePins(); err != nil {
-		return nil, fmt.Errorf("bitbang-spi: failed to initialize pins: %v", err)
+		return nil, fmt.Errorf("bitbang-spi: failed to initialize pins: %w", err)
 	}
 
 	return &s.spiConn, nil
@@ -171,23 +171,23 @@ func (s *spiConn) Tx(w, r []byte) (err error) {
 	defer s.mu.Unlock()
 
 	if err = s.assertCS(); err != nil {
-		return fmt.Errorf("bitbang-spi: failed to assert chip-select: %v", err)
+		return fmt.Errorf("bitbang-spi: failed to assert chip-select: %w", err)
 	}
 
-	for i := uint(0); i < uint(len(w)*8); i++ {
+	for i := range uint(len(w) * 8) {
 		if err = s.sdo.Out(w[i/8]&(1<<(i%8)) != 0); err != nil {
-			return fmt.Errorf("bitbang-spi: failed to send bit %d of word %d: %v", i%8, i/8, err)
+			return fmt.Errorf("bitbang-spi: failed to send bit %d of word %d: %w", i%8, i/8, err)
 		}
 
 		s.sleepHalfCycle()
 		if err = s.sck.Out(!s.clockIdle); err != nil {
-			return fmt.Errorf("bitbang-spi: failed to assert clock: %v", err)
+			return fmt.Errorf("bitbang-spi: failed to assert clock: %w", err)
 		}
 		s.sleepHalfCycle()
 
 		if s.readAfterClockPulse {
 			if err = s.sck.Out(s.clockIdle); err != nil {
-				return fmt.Errorf("bitbang-spi: failed to idle clock: %v", err)
+				return fmt.Errorf("bitbang-spi: failed to idle clock: %w", err)
 			}
 			s.sleepHalfCycle()
 		}
@@ -200,19 +200,19 @@ func (s *spiConn) Tx(w, r []byte) (err error) {
 
 		if !s.readAfterClockPulse {
 			if err = s.sck.Out(s.clockIdle); err != nil {
-				return fmt.Errorf("bitbang-spi: failed to idle clock: %v", err)
+				return fmt.Errorf("bitbang-spi: failed to idle clock: %w", err)
 			}
 		}
 	}
 	if err = s.unassertCS(); err != nil {
-		return fmt.Errorf("bitbang-spi: failed to unassert chip-select: %v", err)
+		return fmt.Errorf("bitbang-spi: failed to unassert chip-select: %w", err)
 	}
 
 	return nil
 }
 
 // TxPackets implements spi.Conn.
-func (s *spiConn) TxPackets(p []spi.Packet) error {
+func (s *spiConn) TxPackets(_ []spi.Packet) error {
 	return errors.New("bitbang-spi: not implemented")
 }
 
@@ -275,21 +275,21 @@ func (s *spiConn) unassertCS() error {
 
 func (s *spiConn) initializePins() error {
 	if err := s.unassertCS(); err != nil {
-		return fmt.Errorf("failed to unassert CS: %v", err)
+		return fmt.Errorf("failed to unassert CS: %w", err)
 	}
 	if s.sck != nil {
 		if err := s.sck.Out(s.clockIdle); err != nil {
-			return fmt.Errorf("failed to idle clock: %v", err)
+			return fmt.Errorf("failed to idle clock: %w", err)
 		}
 	}
 	if s.sdo != nil {
 		if err := s.sdo.Out(gpio.Low); err != nil {
-			return fmt.Errorf("failed to zero MOSI: %v", err)
+			return fmt.Errorf("failed to zero MOSI: %w", err)
 		}
 	}
 	if s.sdi != nil {
 		if err := s.sdi.In(gpio.PullUp, gpio.NoEdge); err != nil {
-			return fmt.Errorf("failed to initialize MISO: %v", err)
+			return fmt.Errorf("failed to initialize MISO: %w", err)
 		}
 	}
 	return nil

@@ -101,7 +101,6 @@ func (d *Dev) Sense(e *physic.Env) error {
 	end := time.Now().Add(d.opts.MeasurementReadTimeout)
 	data := make([]byte, 7)
 	for d.opts.MeasurementReadTimeout <= 0 || time.Now().Before(end) {
-
 		// read measurement
 		if err := d.d.Tx(nil, data); err != nil {
 			return err
@@ -194,7 +193,7 @@ func (d *Dev) Halt() error {
 	return nil
 }
 
-// IsInitialized returns true if the sensor is initialized (calibrated)
+// IsInitialized returns true if the sensor is initialized (calibrated).
 func (d *Dev) IsInitialized() (error, bool) {
 	data := make([]byte, 1)
 	if err := d.d.Tx([]byte{cmdStatus}, data); err != nil {
@@ -217,7 +216,7 @@ func calculateCRC8(data []byte) uint8 {
 
 	for _, b := range data {
 		crc ^= b
-		for i := 0; i < 8; i++ {
+		for range 8 {
 			if crc&0x80 != 0 {
 				crc = (crc << 1) ^ crc8Polynomial
 			} else {

@@ -141,10 +141,7 @@ func (d *Display) WriteString(s string) (int, error) {
 		return 0, err
 	}
 
-	pos := (4 - len(s))
-	if pos < 0 {
-		pos = 0
-	}
+	pos := max((4 - len(s)), 0)
 	// Go through each character and print it on the display.
 	for _, ch := range s {
 		if ch == '.' {

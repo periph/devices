@@ -113,6 +113,6 @@ func (c *calibration180) compensatePressure(up, ut int32, os uint) uint32 {
 	x1 = (p >> 8) * (p >> 8)
 	x1 = (x1 * 3038) >> 16
 	x2 = (-7357 * p) >> 16
-	p = p + (x1+x2+3791)>>4
+	p += (x1 + x2 + 3791) >> 4
 	return uint32(p)
 }

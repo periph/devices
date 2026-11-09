@@ -7,6 +7,7 @@
 package ccs811
 
 import (
+	"errors"
 	"fmt"
 
 	"periph.io/x/conn/v3/physic"
@@ -15,7 +16,7 @@ import (
 	"periph.io/x/conn/v3/i2c"
 )
 
-// MeasurementMode represents different ways how data is read
+// MeasurementMode represents different ways how data is read.
 type MeasurementMode byte
 
 // Different measurement mode constants:
@@ -53,43 +54,19 @@ type SensorErrorID byte
 
 // Error constants, applicable if status registers signals error.
 const (
-	//The CCS811 received an I2C write request addressed to this station but with invalid register address ID.
+	// The CCS811 received an I2C write request addressed to this station but with invalid register address ID.
 	writeRegInvalid SensorErrorID = 0x1
-	//The CCS811 received an I2C read request to a mailbox ID that is invalid.
+	// The CCS811 received an I2C read request to a mailbox ID that is invalid.
 	readRegInvalid SensorErrorID = 0x2
-	//The CCS811 received an I2C request to write an unsupported mode to MEAS_MODE.
+	// The CCS811 received an I2C request to write an unsupported mode to MEAS_MODE.
 	measModeInvalid SensorErrorID = 0x4
-	//The sensor resistance measurement has reached or exceeded the maximum range.
+	// The sensor resistance measurement has reached or exceeded the maximum range.
 	maxResistance SensorErrorID = 0x8
-	//The Heater current in the CCS811 is not in range.
+	// The Heater current in the CCS811 is not in range.
 	heaterFault SensorErrorID = 0x10
-	//The Heater voltage is not being applied correctly.
+	// The Heater voltage is not being applied correctly.
 	heaterSupply SensorErrorID = 0x20
 )
-
-func (d *Dev) errorCodeToError(errorCode SensorErrorID) error {
-	if errorCode == 0 {
-		return nil
-	}
-	errorText := ""
-	switch errorCode {
-	case writeRegInvalid:
-		errorText = "WRITE_REG_INVALID: The CCS811 received an I2C write request addressed to this station but with invalid register address ID."
-	case readRegInvalid:
-		errorText = "READ_REG_INVALID: The CCS811 received an I2C read request to a mailbox ID that is invalid."
-	case measModeInvalid:
-		errorText = "MEASMODE_INVALID: The CCS811 received an I2C request to write an unsupported mode to MEAS_MODE."
-	case maxResistance:
-		errorText = "MAX_RESISTANCE: The sensor resistance measurement has reached or exceeded the maximum range."
-	case heaterFault:
-		errorText = "HEATER_FAULT: The Heater current in the CCS811 is not in range."
-	case heaterSupply:
-		errorText = "HEATER_SUPPLY: The Heater voltage is not being applied correctly."
-	default:
-		errorText = fmt.Sprintf("Uknwown error, code: %d", errorCode)
-	}
-	return fmt.Errorf("sensor error: %s", errorText)
-}
 
 // Opts holds the configuration options. The address must be 0x5A or 0x5B.
 type Opts struct {
@@ -110,11 +87,11 @@ var DefaultOpts = Opts{
 // New creates a new driver for CCS811 VOC sensor.
 func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
 	if opts.Addr != 0x5A && opts.Addr != 0x5B {
-		return nil, fmt.Errorf("invalid device address, only 0x5A or 0x5B are allowed")
+		return nil, errors.New("invalid device address, only 0x5A or 0x5B are allowed")
 	}
 
 	if opts.MeasurementMode > MeasurementModeConstant250 {
-		return nil, fmt.Errorf("invalid measurement mode")
+		return nil, errors.New("invalid measurement mode")
 	}
 
 	dev := &Dev{
@@ -124,14 +101,14 @@ func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
 
 	// From boot mode to measurement mode.
 	if err := dev.StartSensorApp(); err != nil {
-		return nil, fmt.Errorf("error transitioning from boot do app mode: %v", err)
+		return nil, fmt.Errorf("error transitioning from boot do app mode: %w", err)
 	}
 	mmp := &MeasurementModeParams{MeasurementMode: opts.MeasurementMode,
 		GenerateInterrupt: opts.InterruptWhenReady,
 		UseThreshold:      opts.UseThreshold}
 
 	if err := dev.SetMeasurementModeRegister(*mmp); err != nil {
-		return nil, fmt.Errorf("error setting measurement mode: %v", err)
+		return nil, fmt.Errorf("error setting measurement mode: %w", err)
 	}
 
 	return dev, nil
@@ -143,7 +120,7 @@ type Dev struct {
 	opts Opts
 }
 
-const ( //Sensor's registers.
+const ( // Sensor's registers.
 	statusReg          byte = 0x00
 	measurementModeReg byte = 0x01
 	algoResultsReg     byte = 0x02
@@ -167,10 +144,10 @@ func (d *Dev) StartSensorApp() error {
 func (d *Dev) SetMeasurementModeRegister(mmp MeasurementModeParams) error {
 	mesModeValue := (mmp.MeasurementMode << 4)
 	if mmp.GenerateInterrupt {
-		mesModeValue = mesModeValue | (0x1 << 3)
+		mesModeValue |= (0x1 << 3)
 	}
 	if mmp.UseThreshold {
-		mesModeValue = mesModeValue | (0x1 << 2)
+		mesModeValue |= (0x1 << 2)
 	}
 
 	return d.c.Tx([]byte{measurementModeReg, byte(mesModeValue)}, nil)
@@ -281,7 +258,7 @@ func (d *Dev) GetBaseline() ([]byte, error) {
 // is stabilising, the output of the TVOC and eCO2 calculations may be higher
 // than expected.
 //
-// 2) The baseline must be written after the conditioning period
+// 2) The baseline must be written after the conditioning period.
 func (d *Dev) SetBaseline(baseline []byte) error {
 	w := []byte{baselineReg, baseline[0], baseline[1]}
 	return d.c.Tx(w, nil)
@@ -415,4 +392,28 @@ func (d *Dev) GetFirmwareData() (*FwVersions, error) {
 	version.ApplicationVersion = fmt.Sprintf("%d.%d.%d", major, minor, trivial)
 
 	return version, nil
+}
+
+func (d *Dev) errorCodeToError(errorCode SensorErrorID) error {
+	if errorCode == 0 {
+		return nil
+	}
+	var errorText string
+	switch errorCode {
+	case writeRegInvalid:
+		errorText = "WRITE_REG_INVALID: The CCS811 received an I2C write request addressed to this station but with invalid register address ID."
+	case readRegInvalid:
+		errorText = "READ_REG_INVALID: The CCS811 received an I2C read request to a mailbox ID that is invalid."
+	case measModeInvalid:
+		errorText = "MEASMODE_INVALID: The CCS811 received an I2C request to write an unsupported mode to MEAS_MODE."
+	case maxResistance:
+		errorText = "MAX_RESISTANCE: The sensor resistance measurement has reached or exceeded the maximum range."
+	case heaterFault:
+		errorText = "HEATER_FAULT: The Heater current in the CCS811 is not in range."
+	case heaterSupply:
+		errorText = "HEATER_SUPPLY: The Heater voltage is not being applied correctly."
+	default:
+		errorText = fmt.Sprintf("Uknwown error, code: %d", errorCode)
+	}
+	return fmt.Errorf("sensor error: %s", errorText)
 }

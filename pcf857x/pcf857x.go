@@ -44,6 +44,7 @@ package pcf857x
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -64,7 +65,7 @@ const (
 )
 
 var (
-	ErrNotImplmented error = errors.New("pcf857x: not implemented")
+	ErrNotImplmented = errors.New("pcf857x: not implemented")
 )
 
 // Dev is representation of a PCF857x device.
@@ -135,68 +136,6 @@ func (dev *Dev) Halt() error {
 	return nil
 }
 
-// read performs the low level i2c read operation from the device.
-func (dev *Dev) read(mask gpio.GPIOValue) (gpio.GPIOValue, error) {
-
-	// Before you can read a pin, you must have set it to high. If nothing
-	// pulls that down, then it's high. If it's pulled down, it's low.
-	err := dev.write(mask, mask)
-	if err != nil {
-		return 0, fmt.Errorf("pcf857x: %w", err)
-	}
-
-	dev.mu.Lock()
-	defer dev.mu.Unlock()
-	byteCount := 1
-	if dev.width > 8 {
-		byteCount += 1
-	}
-
-	r := make([]byte, byteCount)
-	err = dev.d.Tx(nil, r)
-	if err != nil {
-		return 0, fmt.Errorf("pcf857x: %w", err)
-	}
-	result := gpio.GPIOValue(r[0])
-	if byteCount > 1 {
-		result |= gpio.GPIOValue(r[1]) << 8
-
-	}
-	// turn off the bits we just read so that the next time through, we force
-	// the write high on them.
-	dev.value = result
-	result &= mask
-
-	return result, nil
-}
-
-// write performs the low-level write to the device. If the resulting value of
-// the device is unchanged, the write is skipped.
-func (dev *Dev) write(value, mask gpio.GPIOValue) error {
-	dev.mu.Lock()
-	defer dev.mu.Unlock()
-	wrValue := dev.value & (dev.mask ^ mask)
-	wrValue |= (value & mask)
-	if dev.value == wrValue {
-		return nil
-	}
-	byteCount := 1
-	if dev.width > 8 {
-		byteCount += 1
-	}
-	w := make([]byte, byteCount)
-	for ix := range byteCount {
-		w[ix] = byte(wrValue >> (ix * 8))
-	}
-	err := dev.d.Tx(w, nil)
-	if err == nil {
-		dev.value = wrValue
-	} else {
-		err = fmt.Errorf("pcf857x: %w", err)
-	}
-	return err
-}
-
 func (dev *Dev) String() string {
 	return fmt.Sprintf("%s_%x", dev.chipType, dev.d.Addr)
 }
@@ -208,20 +147,6 @@ func (gr *Group) Pins() []pin.Pin {
 		pins[ix] = &gr.pins[ix]
 	}
 	return pins
-}
-
-// This converts a mask for a group operation into a mask suitable for writing
-// to the device.
-func (gr *Group) groupMaskToDevMask(mask gpio.GPIOValue) gpio.GPIOValue {
-	m := gpio.GPIOValue(0)
-	for ix := range len(gr.pins) {
-		currentBit := gpio.GPIOValue(1 << ix)
-		if (mask & currentBit) == currentBit {
-			pinBit := gpio.GPIOValue(1) << gr.pins[ix].number
-			m |= pinBit
-		}
-	}
-	return m
 }
 
 // Return the GPIO pin by offset within the group.
@@ -296,7 +221,7 @@ func (gr *Group) Read(mask gpio.GPIOValue) (gpio.GPIOValue, error) {
 // is an interrupt pin, but you can't set a mask of pins that will trigger it. To
 // do that, you connect a GPIO pin from the host device that supports WaitForEdge
 // to monitor the INTR pin.
-func (gr *Group) WaitForEdge(timeout time.Duration) (number int, edge gpio.Edge, err error) {
+func (gr *Group) WaitForEdge(_ time.Duration) (number int, edge gpio.Edge, err error) {
 	// TODO: Implement wait for edge in the same way that it is for mcp23008
 	return 0, gpio.NoEdge, ErrNotImplmented
 }
@@ -310,11 +235,87 @@ func (gr *Group) Halt() error {
 
 func (gr *Group) String() string {
 	s := gr.dev.String() + "[ "
+	var sSb313 strings.Builder
 	for ix := range len(gr.pins) {
-		s += fmt.Sprintf("%d ", gr.pins[ix].Number())
+		sSb313.WriteString(fmt.Sprintf("%d ", gr.pins[ix].Number()))
 	}
+	s += sSb313.String()
 	s += "]"
 	return s
 }
 
 var _ gpio.Group = &Group{}
+
+// read performs the low level i2c read operation from the device.
+func (dev *Dev) read(mask gpio.GPIOValue) (gpio.GPIOValue, error) {
+	// Before you can read a pin, you must have set it to high. If nothing
+	// pulls that down, then it's high. If it's pulled down, it's low.
+	err := dev.write(mask, mask)
+	if err != nil {
+		return 0, fmt.Errorf("pcf857x: %w", err)
+	}
+
+	dev.mu.Lock()
+	defer dev.mu.Unlock()
+	byteCount := 1
+	if dev.width > 8 {
+		byteCount++
+	}
+
+	r := make([]byte, byteCount)
+	err = dev.d.Tx(nil, r)
+	if err != nil {
+		return 0, fmt.Errorf("pcf857x: %w", err)
+	}
+	result := gpio.GPIOValue(r[0])
+	if byteCount > 1 {
+		result |= gpio.GPIOValue(r[1]) << 8
+	}
+	// turn off the bits we just read so that the next time through, we force
+	// the write high on them.
+	dev.value = result
+	result &= mask
+
+	return result, nil
+}
+
+// write performs the low-level write to the device. If the resulting value of
+// the device is unchanged, the write is skipped.
+func (dev *Dev) write(value, mask gpio.GPIOValue) error {
+	dev.mu.Lock()
+	defer dev.mu.Unlock()
+	wrValue := dev.value & (dev.mask ^ mask)
+	wrValue |= (value & mask)
+	if dev.value == wrValue {
+		return nil
+	}
+	byteCount := 1
+	if dev.width > 8 {
+		byteCount++
+	}
+	w := make([]byte, byteCount)
+	for ix := range byteCount {
+		w[ix] = byte(wrValue >> (ix * 8))
+	}
+	err := dev.d.Tx(w, nil)
+	if err == nil {
+		dev.value = wrValue
+	} else {
+		err = fmt.Errorf("pcf857x: %w", err)
+	}
+	return err
+}
+
+// This converts a mask for a group operation into a mask suitable for writing
+// to the device.
+func (gr *Group) groupMaskToDevMask(mask gpio.GPIOValue) gpio.GPIOValue {
+	m := gpio.GPIOValue(0)
+	for ix := range len(gr.pins) {
+		currentBit := gpio.GPIOValue(1 << ix)
+		if (mask & currentBit) == currentBit {
+			pinBit := gpio.GPIOValue(1) << gr.pins[ix].number
+			m |= pinBit
+		}
+	}
+	return m
+}

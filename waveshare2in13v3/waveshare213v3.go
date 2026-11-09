@@ -22,7 +22,7 @@ import (
 	"periph.io/x/host/v3/rpi"
 )
 
-// Commands
+// Commands.
 const (
 	driverOutputControl               byte = 0x01
 	gateDrivingVoltageControl         byte = 0x03
@@ -59,7 +59,7 @@ const (
 	setDigitalBlockControl            byte = 0x7E
 )
 
-// Flags for the displayUpdateControl2 command
+// Flags for the displayUpdateControl2 command.
 const (
 	displayUpdateDisableClock byte = 1 << iota
 	displayUpdateDisableAnalog
@@ -178,18 +178,6 @@ func NewHat(p spi.Port, opts *Opts) (*Dev, error) {
 	rst := rpi.P1_11
 	busy := rpi.P1_18
 	return New(p, dc, cs, rst, busy, opts)
-}
-
-func (d *Dev) configMode(ctrl controller) {
-	var lut LUT
-
-	if d.mode == Full {
-		lut = d.opts.FullUpdate
-	} else {
-		lut = d.opts.PartialUpdate
-	}
-
-	configDisplayMode(ctrl, d.mode, lut)
 }
 
 // Init configures the display for usage through the other functions.
@@ -363,4 +351,16 @@ func (d *Dev) Reset() error {
 	time.Sleep(20 * time.Millisecond)
 
 	return eh.err
+}
+
+func (d *Dev) configMode(ctrl controller) {
+	var lut LUT
+
+	if d.mode == Full {
+		lut = d.opts.FullUpdate
+	} else {
+		lut = d.opts.PartialUpdate
+	}
+
+	configDisplayMode(ctrl, d.mode, lut)
 }

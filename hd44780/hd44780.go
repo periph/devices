@@ -34,9 +34,9 @@ const (
 
 // HD44780 is an implementation that supports writing to LCD displays using a
 // gpio.Group for the data pins, and discrete pins for the reset, enable, and
-// and backlight pins.
+// backlight pins.
 //
-// Implements periph.io/conn/x/display/TextDisplay and display.DisplayBacklight
+// Implements periph.io/conn/x/display/TextDisplay and display.DisplayBacklight.
 type HD44780 struct {
 	dataPins  gpio.Group
 	resetPin  gpio.PinOut
@@ -53,8 +53,8 @@ type HD44780 struct {
 }
 
 const (
-	delayCommand   time.Duration = 2000
-	delayCharacter time.Duration = 200
+	delayCommand   = 2000
+	delayCharacter = 200
 )
 
 var rowConstants = [][]byte{{0, 0, 64}, {0, 0, 64, 20, 84}}
@@ -62,7 +62,7 @@ var clearScreen = []byte{cmdByte, 0x01}
 var goHome = []byte{cmdByte, 0x02}
 var setCursorPosition = []byte{cmdByte, 0x80}
 
-// Return the row offset value
+// Return the row offset value.
 func getRowConstant(row, maxcols int) byte {
 	var offset int
 	if maxcols != 16 {
@@ -86,7 +86,6 @@ func NewHD44780(
 	resetPin, enablePin gpio.PinOut,
 	backlight any,
 	rows, cols int) (*HD44780, error) {
-
 	mode := mode4Bit
 	if len(dataPinGroup.Pins()) >= 8 {
 		mode = mode8Bit
@@ -110,8 +109,8 @@ func NewHD44780(
 	return lcd, lcd.init()
 }
 
-// Not supported by this device. Returns display.ErrNotImplemented
-func (lcd *HD44780) AutoScroll(enabled bool) error {
+// Not supported by this device. Returns display.ErrNotImplemented.
+func (lcd *HD44780) AutoScroll(_ bool) error {
 	// TODO: Wrap
 	return display.ErrNotImplemented
 }
@@ -122,13 +121,13 @@ func (lcd *HD44780) Clear() error {
 	return err
 }
 
-// Return the number of columns the display supports
+// Return the number of columns the display supports.
 func (lcd *HD44780) Cols() int {
 	return lcd.cols
 }
 
 // Set the cursor mode. You can pass multiple arguments.
-// Cursor(CursorOff, CursorUnderline)
+// Cursor(CursorOff, CursorUnderline).
 func (lcd *HD44780) Cursor(modes ...display.CursorMode) (err error) {
 	var val = byte(0x08)
 	if lcd.on {
@@ -155,14 +154,14 @@ func (lcd *HD44780) Cursor(modes ...display.CursorMode) (err error) {
 			val |= 0x01
 		default:
 			err = fmt.Errorf("HD44780 - unexpected cursor: %d", mode)
-			return
+			return err
 		}
 	}
 	_, err = lcd.Write([]byte{cmdByte, val & 0x0f})
 	return err
 }
 
-// Move the cursor home (MinRow(),MinCol())
+// Move the cursor home (MinRow(),MinCol()).
 func (lcd *HD44780) Home() (err error) {
 	_, err = lcd.Write(goHome)
 	return err
@@ -217,7 +216,7 @@ func (lcd *HD44780) String() string {
 	return fmt.Sprintf("HD44780 - Rows: %d, Cols: %d", lcd.rows, lcd.cols)
 }
 
-// Turn the display on / off
+// Turn the display on / off.
 func (lcd *HD44780) Display(on bool) error {
 	lcd.on = on
 	val := byte(0x08)
@@ -232,24 +231,22 @@ func (lcd *HD44780) Display(on bool) error {
 	}
 	_, err := lcd.Write([]byte{cmdByte, val})
 	return err
-
 }
 
 // Write a set of bytes to the display.
 func (lcd *HD44780) Write(p []byte) (n int, err error) {
-
 	if len(p) == 0 {
-		return
+		return n, err
 	}
 	if p[0] == cmdByte {
 		n = len(p) - 1
 		err = lcd.sendCommand(p[1:])
-		return
+		return n, err
 	}
 	lcd.delayWrite(delayCommand)
 	err = lcd.resetPin.Out(gpio.Level(modeData))
 	if err != nil {
-		return
+		return n, err
 	}
 
 	for _, byteVal := range p {
@@ -263,13 +260,13 @@ func (lcd *HD44780) Write(p []byte) (n int, err error) {
 			err = lcd.write8Bits(byteVal)
 		}
 		if err != nil {
-			return
+			return n, err
 		}
-		n += 1
+		n++
 		time.Sleep(delayCharacter * time.Microsecond)
 	}
 	lcd.lastWrite = time.Now().UnixMicro()
-	return
+	return n, err
 }
 
 // Write a string output to the display.
@@ -320,10 +317,10 @@ func (lcd *HD44780) RGBBacklight(red, green, blue display.Intensity) error {
 // penalizing the slower ones with unnecessary delays.
 //
 // The value of lcd.lastWrite is updated to the current time by the call.
-func (lcd *HD44780) delayWrite(microseconds time.Duration) {
-	diff := microseconds - time.Duration(time.Now().UnixMicro()-lcd.lastWrite)
+func (lcd *HD44780) delayWrite(microseconds int64) {
+	diff := microseconds - (time.Now().UnixMicro() - lcd.lastWrite)
 	if diff > 0 {
-		time.Sleep(time.Duration(diff) * time.Microsecond)
+		time.Sleep(time.Duration(diff * int64(time.Microsecond)))
 	}
 	lcd.lastWrite = time.Now().UnixMicro()
 }
@@ -397,9 +394,9 @@ func (lcd *HD44780) sendCommand(commands []byte) error {
 	}
 	for _, command := range commands {
 		if lcd.mode == mode4Bit {
-			err = lcd.write4Bits(byte(command >> 4))
+			err = lcd.write4Bits(command >> 4)
 			if err == nil {
-				err = lcd.write4Bits(byte(command))
+				err = lcd.write4Bits(command)
 			}
 		} else {
 			err = lcd.write8Bits(command)
@@ -407,7 +404,6 @@ func (lcd *HD44780) sendCommand(commands []byte) error {
 		if err != nil {
 			break
 		}
-
 	}
 	lcd.lastWrite = time.Now().UnixMicro()
 	return err

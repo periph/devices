@@ -58,7 +58,7 @@ type SelfTestResult struct {
 // MPU9250 defines the structure to keep reference to the transport.
 type MPU9250 struct {
 	transport Transport
-	debug     func(string, ...interface{})
+	debug     func(string, ...any)
 }
 
 // New creates the new instance of the driver.
@@ -125,9 +125,9 @@ func (m *MPU9250) Calibrate() error {
 		accelXBias, accelYBias, accelZBias, gyroXBias, gyroYBias, gyroZBias int16
 	)
 
-	for i := 0; i < int(packets); i++ {
-		for j := 0; j < registers; j++ {
-			b := byte(0)
+	for i := range packets {
+		for j := range registers {
+			var b byte
 			if b, err = m.GetFIFOByte(); err != nil {
 				return wrapf("can't read data byte %d of packet %d => %w", j, i, err)
 			}
@@ -170,7 +170,7 @@ func (m *MPU9250) Calibrate() error {
 	if err != nil {
 		return err
 	}
-	m.debug("Factory gyroscope bias: X:%d, Y:%d, Z:%d\n", int16(factoryGyroBiasX), int16(factoryGyroBiasY), int16(factoryGyroBiasZ))
+	m.debug("Factory gyroscope bias: X:%d, Y:%d, Z:%d\n", factoryGyroBiasX, factoryGyroBiasY, factoryGyroBiasZ)
 
 	if err = writeGyroOffset(gyroXBias, reg.MPU9250_GYRO_XOUT_H, reg.MPU9250_GYRO_XOUT_L); err != nil {
 		return err
@@ -206,7 +206,7 @@ func (m *MPU9250) Calibrate() error {
 	maskY := factoryBiasY & 1
 	maskZ := factoryBiasZ & 1
 
-	m.debug("Factory accelerometer bias: X:%d, Y:%d, Z:%d\n", int16(factoryBiasX), int16(factoryBiasY), int16(factoryBiasZ))
+	m.debug("Factory accelerometer bias: X:%d, Y:%d, Z:%d\n", factoryBiasX, factoryBiasY, factoryBiasZ)
 
 	// Accelerometer bias registers expect bias input as 2048 LSB per g, so that
 	// the accelerometer biases calculated above must be divided by 8.
@@ -264,7 +264,7 @@ func (m *MPU9250) SelfTest() (*SelfTestResult, error) {
 	}
 
 	collectData := func(ax, ay, az, gx, gy, gz *int32) error {
-		for i := 0; i < iterations; i++ {
+		for range iterations {
 			if err := add(m.GetAccelerationX, ax); err != nil {
 				return err
 			}
@@ -1482,35 +1482,38 @@ func (m *MPU9250) AccelerometerZIsEnabled() (bool, error) {
 
 // GetAccelerationX reads the X-axis accelerometer.
 func (m *MPU9250) GetAccelerationX() (int16, error) {
-	if enabled, err := m.AccelerometerXIsEnabled(); err == nil && enabled {
+	enabled, err := m.AccelerometerXIsEnabled()
+	if err == nil && enabled {
 		return uintToInt(m.ReadWord(reg.MPU9250_ACCEL_XOUT_H, reg.MPU9250_ACCEL_XOUT_L))
-	} else if !enabled {
-		return 0, wrapf("X acceleration disabled")
-	} else {
-		return 0, err
 	}
+	if !enabled {
+		return 0, wrapf("X acceleration disabled")
+	}
+	return 0, err
 }
 
 // GetAccelerationY reads the Y-axis accelerometer.
 func (m *MPU9250) GetAccelerationY() (int16, error) {
-	if enabled, err := m.AccelerometerYIsEnabled(); err == nil && enabled {
+	enabled, err := m.AccelerometerYIsEnabled()
+	if err == nil && enabled {
 		return uintToInt(m.ReadWord(reg.MPU9250_ACCEL_YOUT_H, reg.MPU9250_ACCEL_YOUT_L))
-	} else if !enabled {
-		return 0, wrapf("Y acceleration disabled")
-	} else {
-		return 0, err
 	}
+	if !enabled {
+		return 0, wrapf("Y acceleration disabled")
+	}
+	return 0, err
 }
 
 // GetAccelerationZ reads the Z-axis accelerometer.
 func (m *MPU9250) GetAccelerationZ() (int16, error) {
-	if enabled, err := m.AccelerometerZIsEnabled(); err == nil && enabled {
+	enabled, err := m.AccelerometerZIsEnabled()
+	if err == nil && enabled {
 		return uintToInt(m.ReadWord(reg.MPU9250_ACCEL_ZOUT_H, reg.MPU9250_ACCEL_ZOUT_L))
-	} else if !enabled {
-		return 0, wrapf("Z acceleration disabled")
-	} else {
-		return 0, err
 	}
+	if !enabled {
+		return 0, wrapf("Z acceleration disabled")
+	}
+	return 0, err
 }
 
 // SetAccelerationOffsetZ sets the acceleration trim offset for Z axis.
@@ -1623,35 +1626,38 @@ func (m *MPU9250) GyroZIsEnabled() (bool, error) {
 
 // GetRotationX gets X-axis gyroscope reading.
 func (m *MPU9250) GetRotationX() (int16, error) {
-	if enabled, err := m.GyroXIsEnabled(); enabled && err == nil {
+	enabled, err := m.GyroXIsEnabled()
+	if enabled && err == nil {
 		return asInt16(m.ReadWord(reg.MPU9250_GYRO_XOUT_H, reg.MPU9250_GYRO_XOUT_L))
-	} else if !enabled {
-		return 0, wrapf("X rotation disabled")
-	} else {
-		return 0, err
 	}
+	if !enabled {
+		return 0, wrapf("X rotation disabled")
+	}
+	return 0, err
 }
 
 // GetRotationY gets Y-axis gyroscope reading.
 func (m *MPU9250) GetRotationY() (int16, error) {
-	if enabled, err := m.GyroYIsEnabled(); enabled && err == nil {
+	enabled, err := m.GyroYIsEnabled()
+	if enabled && err == nil {
 		return asInt16(m.ReadWord(reg.MPU9250_GYRO_YOUT_H, reg.MPU9250_GYRO_YOUT_L))
-	} else if !enabled {
-		return 0, wrapf("Y rotation disabled")
-	} else {
-		return 0, err
 	}
+	if !enabled {
+		return 0, wrapf("Y rotation disabled")
+	}
+	return 0, err
 }
 
 // GetRotationZ gets Z-axis gyroscope reading.
 func (m *MPU9250) GetRotationZ() (int16, error) {
-	if enabled, err := m.GyroZIsEnabled(); enabled && err == nil {
+	enabled, err := m.GyroZIsEnabled()
+	if enabled && err == nil {
 		return asInt16(m.ReadWord(reg.MPU9250_GYRO_ZOUT_H, reg.MPU9250_GYRO_ZOUT_L))
-	} else if !enabled {
-		return 0, wrapf("Z rotation disabled")
-	} else {
-		return 0, err
 	}
+	if !enabled {
+		return 0, wrapf("Z rotation disabled")
+	}
+	return 0, err
 }
 
 // GetRotation reads the 3-axis gyroscope.
@@ -1730,7 +1736,7 @@ func (m *MPU9250) TemperatureIsEnabled() (bool, error) {
 // GetTemperature gets the current temperature.
 func (m *MPU9250) GetTemperature() (uint16, error) {
 	// TODO: Use physic.Kelvin.
-	//((Temp_out - room_temp_offset)/temp_sensitivity) + 21; //celcius
+	// ((Temp_out - room_temp_offset)/temp_sensitivity) + 21; //celcius
 	if enabled, err := m.TemperatureIsEnabled(); enabled && err != nil {
 		return 0, err
 	}
@@ -1825,7 +1831,7 @@ func (m *MPU9250) transferBatch(seq [][]byte, msg string) error {
 	return nil
 }
 
-func wrapf(format string, a ...interface{}) error {
+func wrapf(format string, a ...any) error {
 	return fmt.Errorf("mpu9250 "+format, a...)
 }
 

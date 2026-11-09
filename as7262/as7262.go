@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strings"
 	"sync"
 	"time"
 
@@ -79,9 +80,11 @@ type Spectrum struct {
 
 func (s Spectrum) String() string {
 	str := fmt.Sprintf("Spectrum: Gain:%s, Led Drive %s, Sense Time: %s", s.Gain, s.LedDrive, s.Integration)
+	var strSb82 strings.Builder
 	for _, band := range s.Bands {
-		str += "\n" + band.String()
+		strSb82.WriteString("\n" + band.String())
 	}
+	str += strSb82.String()
 	return str
 }
 
@@ -127,10 +130,9 @@ func (b Band) String() string {
 // For best resolution it is recommended that for a specific led drive
 // current that the senseTime or gain is increased until at least one of the
 // bands returns a count above 10000. The maximum senseTime time is 714ms
-// senseTime will be quantised into intervals of of 2.8ms. Actual time taken to
+// senseTime will be quantised into intervals of 2.8ms. Actual time taken to
 // make a reading is twice the senseTime.
 func (d *Dev) Sense(ledDrive physic.ElectricCurrent, senseTime time.Duration) (Spectrum, error) {
-
 	d.mu.Lock()
 
 	it, integration := calcSenseTime(senseTime)
@@ -183,7 +185,6 @@ func (d *Dev) Sense(ledDrive physic.ElectricCurrent, senseTime time.Duration) (S
 		case <-ctx.Done():
 			return Spectrum{}, errHalted
 		}
-
 	}
 
 	if err := d.writeVirtualRegister(ctx, ledControlReg, 0x00); err != nil {
@@ -250,17 +251,17 @@ func (d *Dev) String() string {
 	return "AMS AS7262 6 channel visible spectrum sensor"
 }
 
-// Gain is the sensor gain for all bands
+// Gain is the sensor gain for all bands.
 type Gain int
 
 const (
-	// G1x is gain of 1
+	// G1x is gain of 1.
 	G1x Gain = 0x00
-	// G4x is gain of 3.7
+	// G4x is gain of 3.7.
 	G4x Gain = 0x10
-	// G16x is a gain of 16
+	// G16x is a gain of 16.
 	G16x Gain = 0x20
-	// G64x us a gain of 64
+	// G64x us a gain of 64.
 	G64x Gain = 0x30
 )
 
@@ -307,7 +308,6 @@ func (d *Dev) Gain(gain Gain) error {
 // register, also status register must be checked for pending writes or data may
 // be discarded.
 func (d *Dev) writeVirtualRegister(ctx context.Context, register, data byte) error {
-
 	// Check for pending writes.
 	if err := d.pollStatus(ctx, writing); err != nil {
 		return err
@@ -337,7 +337,7 @@ func (d *Dev) writeVirtualRegister(ctx context.Context, register, data byte) err
 // data maybe read from the read register.
 func (d *Dev) readVirtualRegister(ctx context.Context, register byte, data []byte) error {
 	rx := make([]byte, 1)
-	for i := 0; i < len(data); i++ {
+	for i := range data {
 		// Check for pending reads.
 		if err := d.pollStatus(ctx, clearBuffer); err != nil {
 			return err
@@ -363,7 +363,7 @@ func (d *Dev) readVirtualRegister(ctx context.Context, register byte, data []byt
 	return nil
 }
 
-// Polls the data ready bit in the control register(virtual)
+// Polls the data ready bit in the control register(virtual).
 func (d *Dev) pollDataReady(ctx context.Context) error {
 	timeout := time.NewTimer(sensorTimeout)
 	defer timeout.Stop()
@@ -411,7 +411,7 @@ const (
 	reading direction = 1
 	// Writing is a bit mask for the status register.
 	writing direction = 2
-	// ClearBuffer clears any data left in the buffer and then checks the reading
+	// ClearBuffer clears any data left in the buffer and then checks the reading.
 	clearBuffer direction = 3
 )
 
@@ -483,7 +483,7 @@ const (
 )
 
 // calculateIntergrationTime converts a time.Duration into a value between 0 and
-// 256
+// 256.
 func calcSenseTime(t time.Duration) (uint8, time.Duration) {
 	if t > maxSenseTime {
 		return 255, maxSenseTime
@@ -493,7 +493,7 @@ func calcSenseTime(t time.Duration) (uint8, time.Duration) {
 	}
 	// Minimum step is 2.8ms
 	quantizedTime := t / minSenseTime
-	return uint8(quantizedTime), quantizedTime * minSenseTime
+	return uint8(quantizedTime), time.Duration(int64(quantizedTime) * int64(minSenseTime))
 }
 
 func calcLed(drive physic.ElectricCurrent) (uint8, physic.ElectricCurrent) {

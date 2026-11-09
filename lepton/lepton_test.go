@@ -14,7 +14,6 @@ import (
 	"testing"
 
 	"periph.io/x/conn/v3"
-	"periph.io/x/conn/v3/conntest"
 	"periph.io/x/conn/v3/i2c/i2ctest"
 	"periph.io/x/conn/v3/physic"
 	"periph.io/x/conn/v3/spi"
@@ -189,7 +188,7 @@ func TestNextFrame(t *testing.T) {
 			offset++
 		}
 		t.Fatalf("different pixels at offset %d", offset)
-		//t.Fatalf("different pixels at offset %d:\n%x\n%x", offset, ref.Pix[offset:], f.Pix[offset:])
+		// t.Fatalf("different pixels at offset %d:\n%x\n%x", offset, ref.Pix[offset:], f.Pix[offset:])
 	}
 	if err := i.Close(); err != nil {
 		t.Fatal(err)
@@ -213,7 +212,7 @@ func TestNextFrame_invalid_bounds(t *testing.T) {
 
 func TestNextFrame_fail_Tx(t *testing.T) {
 	i := i2ctest.Playback{Ops: initSequence()}
-	s := spitest.Playback{Playback: conntest.Playback{DontPanic: true}}
+	s := spitest.Playback{DontPanic: true}
 	d, err := New(&s, &i)
 	if err != nil {
 		t.Fatal(err)
@@ -228,7 +227,7 @@ func TestNextFrame_fail_Tx(t *testing.T) {
 
 func TestNextFrame_fail_Out(t *testing.T) {
 	i := i2ctest.Playback{Ops: initSequence()}
-	s := spitest.Playback{Playback: conntest.Playback{DontPanic: true}}
+	s := spitest.Playback{DontPanic: true}
 	d, err := New(&s, &i)
 	if err != nil {
 		t.Fatal(err)
@@ -365,8 +364,8 @@ func prepareFrame(t *testing.T) []byte {
 	buf.Write(appendHeader(t, 2, tmp))
 	img := referenceFrame()
 	r := img.Bounds()
-	for y := 0; y < r.Max.Y; y++ {
-		for x := 0; x < r.Max.X; x++ {
+	for y := range r.Max.Y {
+		for x := range r.Max.X {
 			internal.Big16.PutUint16(tmp[x*2:], uint16(img.Intensity14At(x, y)))
 		}
 		buf.Write(appendHeader(t, y+3, tmp))
@@ -418,7 +417,7 @@ func (s *spiStream) Tx(w, r []byte) error {
 	return s.err
 }
 
-func (s *spiStream) TxPackets(p []spi.Packet) error {
+func (s *spiStream) TxPackets(_ []spi.Packet) error {
 	s.t.Fatal("TxPackets is not implemented")
 	return nil
 }

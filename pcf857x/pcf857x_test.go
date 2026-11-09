@@ -125,9 +125,7 @@ func TestPinsSequentially(t *testing.T) {
 				if direction == 0 {
 					// swap the direction so we're now going pin[8] => pin[0] and stay in
 					// the loop to repeat the test.
-					x := pRead
-					pRead = p
-					p = x
+					pRead, p = p, pRead
 				}
 			}
 		}
@@ -145,7 +143,7 @@ func TestGroup(t *testing.T) {
 
 	set1 := make([]int, dev.width>>1)
 	set2 := make([]int, dev.width>>1)
-	for ix := range len(set1) {
+	for ix := range set1 {
 		set1[ix] = ix
 		set2[ix] = ix + len(set1)
 	}
@@ -169,10 +167,8 @@ func TestGroup(t *testing.T) {
 			x = grTest.ByOffset(pinNumber)
 			if x == nil {
 				t.Errorf("group.ByOffset returned nil for pin number %d", pinNumber)
-			} else {
-				if x.Number() != pin.Number() {
-					t.Errorf("group.ByOffset() didn't return the expected pin. Expected %d, found %d", pin.Number(), x.Number())
-				}
+			} else if x.Number() != pin.Number() {
+				t.Errorf("group.ByOffset() didn't return the expected pin. Expected %d, found %d", pin.Number(), x.Number())
 			}
 			x = grTest.ByName(pin.Name())
 			if x == nil || x.Name() != pin.Name() {
@@ -202,9 +198,7 @@ func TestGroup(t *testing.T) {
 			}
 		}
 		if groupNumber == 0 {
-			x := gr1
-			gr1 = gr2
-			gr2 = x
+			gr1, gr2 = gr2, gr1
 		}
 	}
 	err = gr1.Halt()

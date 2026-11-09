@@ -24,7 +24,6 @@ import (
 )
 
 func Example() {
-
 	// Make sure periph is initialized.
 	if _, err := host.Init(); err != nil {
 		log.Fatal(err)
@@ -34,7 +33,11 @@ func Example() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer hat.Halt()
+	defer func() {
+		if closeErr := hat.Halt(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	handleButton := func(btn gpio.PinIn, led gpio.PinOut) {
 		ledState := false

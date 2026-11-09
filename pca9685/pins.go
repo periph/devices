@@ -40,9 +40,9 @@ func (d *Dev) CreatePin(channel int) (gpio.PinIO, error) {
 
 // RegisterPins makes PWM channels available as PWM pins in the pin registry
 //
-// Pin names have the following format: PCA9685_<HexAddress>_<channel> (e.g. PCA9685_40_11)
+// Pin names have the following format: PCA9685_<HexAddress>_<channel> (e.g. PCA9685_40_11).
 func (d *Dev) RegisterPins() error {
-	for i := 0; i < 16; i++ {
+	for i := range 16 {
 		pin, err := d.CreatePin(i)
 		if err != nil {
 			return err
@@ -54,9 +54,9 @@ func (d *Dev) RegisterPins() error {
 	return nil
 }
 
-// UnregisterPins remove all previously created pin handles of this device from the GPIO registry
+// UnregisterPins remove all previously created pin handles of this device from the GPIO registry.
 func (d *Dev) UnregisterPins() error {
-	for i := 0; i < 16; i++ {
+	for i := range 16 {
 		err := gpioreg.Unregister(d.pinName(i))
 		if err != nil {
 			return err
@@ -89,7 +89,7 @@ func (p *pin) Function() string {
 	return string(p.Func())
 }
 
-func (p *pin) In(pull gpio.Pull, edge gpio.Edge) error {
+func (p *pin) In(_ gpio.Pull, _ gpio.Edge) error {
 	return errors.New("PCA9685: Pin cannot be configured as input")
 }
 
@@ -97,7 +97,7 @@ func (p *pin) Read() gpio.Level {
 	return gpio.INVALID.Read()
 }
 
-func (p *pin) WaitForEdge(timeout time.Duration) bool {
+func (p *pin) WaitForEdge(_ time.Duration) bool {
 	return false
 }
 
@@ -109,7 +109,7 @@ func (p *pin) DefaultPull() gpio.Pull {
 	return gpio.Float
 }
 
-func (p *pin) Out(l gpio.Level) error {
+func (p *pin) Out(_ gpio.Level) error {
 	return p.PWM(gpio.DutyMax, 0)
 }
 
@@ -127,10 +127,7 @@ func (p *pin) PWM(duty gpio.Duty, freq physic.Frequency) error {
 	}
 
 	// PWM duty scaled down from 24 to 12 bits
-	scaled := duty >> 12
-	if scaled > dutyMax {
-		scaled = dutyMax
-	}
+	scaled := min(duty>>12, dutyMax)
 	return p.dev.SetPwm(p.channel, 0, scaled)
 }
 

@@ -8,6 +8,7 @@ package mcp23xxx
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"periph.io/x/conn/v3"
@@ -34,7 +35,7 @@ func (dev *Dev) Group(port int, pins []int) *gpio.Group {
 		grouppins[ix] = pp
 	}
 	defMask := gpio.GPIOValue((1 << len(pins)) - 1)
-	var pgif interface{} = &pinGroup{dev: dev, port: port, pins: grouppins, defaultMask: defMask}
+	var pgif any = &pinGroup{dev: dev, port: port, pins: grouppins, defaultMask: defMask}
 	if gpiogroup, ok := pgif.(gpio.Group); ok {
 		return &gpiogroup
 	}
@@ -98,7 +99,7 @@ func (pg *pinGroup) Out(value, mask gpio.GPIOValue) error {
 			}
 			wrMask |= 1 << pg.pins[bit].Number()
 		}
-		value = value >> 1
+		value >>= 1
 	}
 	port := pg.pins[0].port
 	// Verify pins are set for output
@@ -149,19 +150,19 @@ func (pg *pinGroup) Read(mask gpio.GPIOValue) (result gpio.GPIOValue, err error)
 	port := pg.pins[0].port
 	currentIn, err := port.iodir.readValue(true)
 	if err != nil {
-		return
+		return result, err
 	}
 	// We need to make some pins Input. Write the value to the iodir register.
 	if (currentIn & rmask) != rmask {
 		err = port.iodir.writeValue(currentIn|rmask, false)
 		if err != nil {
-			return
+			return result, err
 		}
 	}
 	// Now, perform the read itself.
 	v, err := port.gpio.readValue(false)
 	if err != nil {
-		return
+		return result, err
 	}
 	// Now convert the set pins into the Group value
 	for ix, pin := range pg.pins {
@@ -169,7 +170,7 @@ func (pg *pinGroup) Read(mask gpio.GPIOValue) (result gpio.GPIOValue, err error)
 			result |= 1 << ix
 		}
 	}
-	return
+	return result, err
 }
 
 // WaitForEdge listens for a GPIO pin change event. The MCP23XXXX devices
@@ -189,15 +190,15 @@ func (pg *pinGroup) Read(mask gpio.GPIOValue) (result gpio.GPIOValue, err error)
 //
 // In the event that the changed pin is NOT part of the io group, the
 // triggering pin number will be returned, along with the error
-// ErrPinNotInGroup
-func (pg *pinGroup) WaitForEdge(timeout time.Duration) (number int, edge gpio.Edge, err error) {
+// ErrPinNotInGroup.
+func (pg *pinGroup) WaitForEdge(_ time.Duration) (number int, edge gpio.Edge, err error) {
 	return -1, gpio.NoEdge, gpio.ErrGroupFeatureNotImplemented
 }
 
 // Halt() interrupts a pending WaitForEdge() call if one is in process.
 func (pg *pinGroup) Halt() error {
 	if pg.dev.edgePin != nil {
-		var ifpin interface{} = pg.dev.edgePin
+		var ifpin any = pg.dev.edgePin
 		if r, ok := ifpin.(conn.Resource); ok {
 			return r.Halt()
 		}
@@ -209,9 +210,11 @@ func (pg *pinGroup) Halt() error {
 // String returns the device variant name and configured pins for the group.
 func (pg *pinGroup) String() string {
 	s := fmt.Sprintf("%s - [ ", pg.dev)
+	var sSb212 strings.Builder
 	for ix := range len(pg.pins) {
-		s += fmt.Sprintf("%d ", pg.pins[ix].Number())
+		sSb212.WriteString(fmt.Sprintf("%d ", pg.pins[ix].Number()))
 	}
+	s += sSb212.String()
 	s += "]"
 	return s
 }

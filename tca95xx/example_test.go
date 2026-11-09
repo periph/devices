@@ -27,7 +27,11 @@ func Example() {
 	if err != nil {
 		log.Fatalf("failed to open I²C: %v", err)
 	}
-	defer bus.Close()
+	defer func() {
+		if closeErr := bus.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	// Create a new I2C IO extender
 	extender, err := tca95xx.New(bus, tca95xx.TCA9534, 0x20)

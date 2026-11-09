@@ -35,7 +35,11 @@ func Example() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer b.Close()
+	defer func() {
+		if closeErr := b.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 	opts := ssd1306.DefaultOpts
 	opts.W = *width
 	opts.H = *height
@@ -78,7 +82,7 @@ func Example() {
 	for w, h := opts.W, opts.H; w > 0 && h > 0; w, h = w-4, h-4 {
 		rect := image.Rect(0, 0, w, h)
 		draw.Draw(img, rect.Add(image.Point{X: rectNum * 2, Y: rectNum * 2}), &image.Uniform{colors[rectNum%2]}, image.Point{}, draw.Src)
-		rectNum += 1
+		rectNum++
 	}
 
 	if err := dev.Draw(dev.Bounds(), img, image.Point{}); err != nil {
@@ -94,7 +98,7 @@ func Example() {
 	angle := float64(0)
 	angleStep := float64((4 * math.Pi) / float64(opts.W))
 	scale := float64((opts.H >> 1) - 4)
-	for step := opts.W - 1; step >= 0; step -= 1 {
+	for step := opts.W - 1; step >= 0; step-- {
 		y := int(float64(math.Sin(angle)*scale)) + opts.H>>1
 		img.SetBit(step, y, image1bit.On)
 		angle += angleStep

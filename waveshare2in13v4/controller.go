@@ -7,9 +7,9 @@
 package waveshare2in13v4
 
 type controller interface {
-	sendCommand(byte)
-	sendData([]byte)
-	sendByte(byte)
+	sendCommand(command byte)
+	sendData(data []byte)
+	sendByte(data byte)
 	readBusy()
 }
 
@@ -176,15 +176,15 @@ func setCursor(ctrl controller, x int, y int) {
 func clear(ctrl controller, color byte, opts *Opts) {
 	var linewidth int
 	if opts.Width%8 == 0 {
-		linewidth = int(opts.Width / 8)
+		linewidth = opts.Width / 8
 	} else {
-		linewidth = int(opts.Width/8) + 1
+		linewidth = opts.Width/8 + 1
 	}
 
 	var buff []byte
 	ctrl.sendCommand(writeRAMBW)
-	for j := 0; j < opts.Height; j++ {
-		for i := 0; i < linewidth; i++ {
+	for range opts.Height {
+		for range linewidth {
 			buff = append(buff, color)
 		}
 	}

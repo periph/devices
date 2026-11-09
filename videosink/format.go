@@ -6,7 +6,10 @@
 
 package videosink
 
-import "fmt"
+import (
+	"fmt"
+	"strconv"
+)
 
 type ImageFormat int
 
@@ -26,7 +29,7 @@ func (f ImageFormat) String() string {
 	case JPEG:
 		return "JPEG"
 	default:
-		return fmt.Sprint(int(f))
+		return strconv.Itoa(int(f))
 	}
 }
 

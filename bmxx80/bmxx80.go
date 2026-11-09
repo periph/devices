@@ -150,17 +150,37 @@ type Opts struct {
 
 func (o *Opts) delayTypical280() time.Duration {
 	// Page 51.
-	µs := 1000
+	us := 1000
 	if o.Temperature != Off {
-		µs += 2000 * o.Temperature.asValue()
+		us += 2000 * o.Temperature.asValue()
 	}
 	if o.Pressure != Off {
-		µs += 2000*o.Pressure.asValue() + 500
+		us += 2000*o.Pressure.asValue() + 500
 	}
 	if o.Humidity != Off {
-		µs += 2000*o.Humidity.asValue() + 500
+		us += 2000*o.Humidity.asValue() + 500
 	}
-	return time.Microsecond * time.Duration(µs)
+	return time.Microsecond * time.Duration(us)
+}
+
+// Dev is a handle to an initialized BMxx80 device.
+//
+// The actual device type was auto detected.
+type Dev struct {
+	d         conn.Conn
+	isSPI     bool
+	is280     bool
+	isBME     bool
+	opts      Opts
+	measDelay time.Duration
+	name      string
+	os        uint8
+	cal180    calibration180
+	cal280    calibration280
+
+	mu   sync.Mutex
+	stop chan struct{}
+	wg   sync.WaitGroup
 }
 
 // NewI2C returns an object that communicates over I²C to BMP180/BME280/BMP280
@@ -196,33 +216,13 @@ func NewSPI(p spi.Port, opts *Opts) (*Dev, error) {
 	// It works both in Mode0 and Mode3.
 	c, err := p.Connect(10*physic.MegaHertz, spi.Mode3, 8)
 	if err != nil {
-		return nil, fmt.Errorf("bmxx80: %v", err)
+		return nil, fmt.Errorf("bmxx80: %w", err)
 	}
 	d := &Dev{d: c, isSPI: true}
 	if err := d.makeDev(opts); err != nil {
 		return nil, err
 	}
 	return d, nil
-}
-
-// Dev is a handle to an initialized BMxx80 device.
-//
-// The actual device type was auto detected.
-type Dev struct {
-	d         conn.Conn
-	isSPI     bool
-	is280     bool
-	isBME     bool
-	opts      Opts
-	measDelay time.Duration
-	name      string
-	os        uint8
-	cal180    calibration180
-	cal280    calibration280
-
-	mu   sync.Mutex
-	stop chan struct{}
-	wg   sync.WaitGroup
 }
 
 func (d *Dev) String() string {
@@ -295,12 +295,10 @@ func (d *Dev) SenseContinuous(interval time.Duration) (<-chan physic.Env, error)
 
 	sensing := make(chan physic.Env)
 	d.stop = make(chan struct{})
-	d.wg.Add(1)
-	go func() {
-		defer d.wg.Done()
+	d.wg.Go(func() {
 		defer close(sensing)
 		d.sensingContinuous(interval, sensing, d.stop)
-	}()
+	})
 	return sensing, nil
 }
 
@@ -513,7 +511,7 @@ func (d *Dev) writeCommands(b []byte) error {
 }
 
 func (d *Dev) wrap(err error) error {
-	return fmt.Errorf("%s: %v", strings.ToLower(d.name), err)
+	return fmt.Errorf("%s: %w", strings.ToLower(d.name), err)
 }
 
 var doSleep = time.Sleep

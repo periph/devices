@@ -183,11 +183,12 @@ func TestDev_Precision(t *testing.T) {
 	var env physic.Env
 	dev.Precision(&env)
 
-	if env.Temperature == 0 {
+	switch {
+	case env.Temperature == 0:
 		t.Fatal("expected temperature precision")
-	} else if env.Pressure != 0 {
+	case env.Pressure != 0:
 		t.Fatal("expected no pressure precision")
-	} else if env.Humidity == 0 {
+	case env.Humidity == 0:
 		t.Fatal("expected humidity precision")
 	}
 }

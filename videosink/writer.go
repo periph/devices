@@ -9,6 +9,7 @@ package videosink
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"net/textproto"
@@ -22,7 +23,7 @@ func randomBoundary() string {
 	if _, err := io.ReadFull(rand.Reader, buf[:]); err != nil {
 		panic(err)
 	}
-	return fmt.Sprintf("%x", buf[:])
+	return hex.EncodeToString(buf[:])
 }
 
 type partWriter struct {

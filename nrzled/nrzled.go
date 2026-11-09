@@ -41,6 +41,22 @@ type Opts struct {
 	Freq physic.Frequency
 }
 
+// Dev is a handle to the LED strip.
+type Dev struct {
+	// Immutable.
+	name      string
+	s         spi.Conn
+	p         gpiostream.PinOut
+	numPixels int
+	channels  int             // Number of channels per pixel
+	rect      image.Rectangle // Device bounds
+
+	// Mutable.
+	b      gpiostream.BitStream // NRZ encoded bits; cached to reduce heap fragmentation
+	rawBuf []byte               // NRZ encoded bits; excluding the padding
+	pixels []byte               // Double buffer of RGB/RGBW pixels; enables partial Draw()
+}
+
 // NewStream opens a handle to a compatible LED strip.
 func NewStream(p gpiostream.PinOut, opts *Opts) (*Dev, error) {
 	// Allow a wider range in case there's new devices with higher supported
@@ -87,7 +103,7 @@ func NewSPI(p spi.Port, opts *Opts) (*Dev, error) {
 	// the end as the overhead for SPI Tx() tear down and the next one is likely
 	// at least 10µs.
 	// In the front, we definitely want it, as SPIs might otherwise be high for
-	// quite a while while setting themselves up, causing the first symbol to be
+	// quite a while setting themselves up, causing the first symbol to be
 	// interpreted as a logical 1.
 	bufSize := 3 + streamLen + 3
 	if l, ok := p.(conn.Limits); ok {
@@ -111,22 +127,6 @@ func NewSPI(p spi.Port, opts *Opts) (*Dev, error) {
 	}, nil
 }
 
-// Dev is a handle to the LED strip.
-type Dev struct {
-	// Immutable.
-	name      string
-	s         spi.Conn
-	p         gpiostream.PinOut
-	numPixels int
-	channels  int             // Number of channels per pixel
-	rect      image.Rectangle // Device bounds
-
-	// Mutable.
-	b      gpiostream.BitStream // NRZ encoded bits; cached to reduce heap fragmentation
-	rawBuf []byte               // NRZ encoded bits; excluding the padding
-	pixels []byte               // Double buffer of RGB/RGBW pixels; enables partial Draw()
-}
-
 func (d *Dev) String() string {
 	return d.name
 }
@@ -146,7 +146,7 @@ func (d *Dev) Halt() error {
 			d.rawBuf[i+2] = c
 		}
 		if err := d.p.StreamOut(&d.b); err != nil {
-			return fmt.Errorf("nrzled: %v", err)
+			return fmt.Errorf("nrzled: %w", err)
 		}
 		return nil
 	}
@@ -156,7 +156,7 @@ func (d *Dev) Halt() error {
 		d.rawBuf[i] = 0x88
 	}
 	if err := d.s.Tx(d.b.Bits, nil); err != nil {
-		return fmt.Errorf("nrzled: %v", err)
+		return fmt.Errorf("nrzled: %w", err)
 	}
 	return nil
 }
@@ -213,7 +213,7 @@ func (d *Dev) Draw(r image.Rectangle, src image.Image, sp image.Point) error {
 		// Generic version.
 		m := srcR.Max.X - srcR.Min.X
 		if d.channels == 3 {
-			for i := 0; i < m; i++ {
+			for i := range m {
 				c := color.NRGBAModel.Convert(src.At(srcR.Min.X+i, srcR.Min.Y)).(color.NRGBA)
 				j := 3 * i
 				putNRZMSB3(d.b.Bits[3*(j+0):], c.G)
@@ -221,7 +221,7 @@ func (d *Dev) Draw(r image.Rectangle, src image.Image, sp image.Point) error {
 				putNRZMSB3(d.b.Bits[3*(j+2):], c.B)
 			}
 		} else {
-			for i := 0; i < m; i++ {
+			for i := range m {
 				c := color.NRGBAModel.Convert(src.At(srcR.Min.X+i, srcR.Min.Y)).(color.NRGBA)
 				j := 4 * i
 				putNRZMSB3(d.b.Bits[3*(j+0):], c.G)
@@ -245,7 +245,7 @@ func (d *Dev) Write(pixels []byte) (int, error) {
 	if d.s == nil {
 		rasterBits(d.b.Bits, pixels, d.channels, d.channels)
 		if err := d.p.StreamOut(&d.b); err != nil {
-			return 0, fmt.Errorf("nrzled: %v", err)
+			return 0, fmt.Errorf("nrzled: %w", err)
 		}
 		return len(pixels), nil
 	}
@@ -265,7 +265,7 @@ func (d *Dev) Write(pixels []byte) (int, error) {
 func rasterBits(out, in []byte, outChannels, inChannels int) {
 	pixels := len(in) / inChannels
 	if outChannels == 3 {
-		for i := 0; i < pixels; i++ {
+		for i := range pixels {
 			j := i * inChannels
 			k := 3 * i
 			putNRZMSB3(out[3*(k+0):], in[j+1])
@@ -273,7 +273,7 @@ func rasterBits(out, in []byte, outChannels, inChannels int) {
 			putNRZMSB3(out[3*(k+2):], in[j+2])
 		}
 	} else {
-		for i := 0; i < pixels; i++ {
+		for i := range pixels {
 			j := i * inChannels
 			k := 4 * i
 			putNRZMSB3(out[3*(k+0):], in[j+1])
@@ -308,12 +308,12 @@ func (d *Dev) rasterSPI(dst []byte, src []byte, srcHasAlpha bool) {
 		pBytes = 4
 	}
 	length := len(src) / pBytes
-	stride := 4 //number of spi-bytes in color-byte
-	for i := 0; i < length; i++ {
+	stride := 4 // number of spi-bytes in color-byte
+	for i := range length {
 		sOff := pBytes * i
-		dOff := 3 * stride * i //3 channels * stride
+		dOff := 3 * stride * i // 3 channels * stride
 		r, g, b := src[sOff], src[sOff+1], src[sOff+2]
-		//grb color order, msb first
+		// grb color order, msb first
 		copy(dst[dOff+stride*0:dOff+stride*1], nrzMSB4[g][:])
 		copy(dst[dOff+stride*1:dOff+stride*2], nrzMSB4[r][:])
 		copy(dst[dOff+stride*2:dOff+stride*3], nrzMSB4[b][:])

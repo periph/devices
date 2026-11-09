@@ -38,28 +38,34 @@ func TestMCP23017_out(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer dev.Close()
+	t.Cleanup(func() {
+		if err := dev.Close(); err != nil {
+			t.Error(err)
+		}
+	})
 
 	pA0 := gpioreg.ByName("MCP23017_20_PORTA_0")
-	pA0.Out(gpio.Low)
-	pA0.Out(gpio.High)
+	if err := pA0.Out(gpio.Low); err != nil {
+		t.Fatal(err)
+	}
+	if err := pA0.Out(gpio.High); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestMCP23S17_out(t *testing.T) {
 	scenario := &spitest.Playback{
-		Playback: conntest.Playback{
-			Ops: []conntest.IO{
-				// iodira is read
-				{W: []byte{0x41, 0x00}, R: []byte{0xFF}},
-				{W: []byte{0x41, 0x01}, R: []byte{0xFF}},
-				// iodira is set to output
-				{W: []byte{0x40, 0x00, 0xFE}, R: nil},
-				// olata is read
-				{W: []byte{0x41, 0x14}, R: []byte{0x00}},
-				// writing back unchanged value is omitted
-				// writing high output
-				{W: []byte{0x40, 0x14, 0x01}, R: nil},
-			},
+		Ops: []conntest.IO{
+			// iodira is read
+			{W: []byte{0x41, 0x00}, R: []byte{0xFF}},
+			{W: []byte{0x41, 0x01}, R: []byte{0xFF}},
+			// iodira is set to output
+			{W: []byte{0x40, 0x00, 0xFE}, R: nil},
+			// olata is read
+			{W: []byte{0x41, 0x14}, R: []byte{0x00}},
+			// writing back unchanged value is omitted
+			// writing high output
+			{W: []byte{0x40, 0x14, 0x01}, R: nil},
 		},
 	}
 
@@ -71,12 +77,20 @@ func TestMCP23S17_out(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer dev.Close()
+	t.Cleanup(func() {
+		if err := dev.Close(); err != nil {
+			t.Error(err)
+		}
+	})
 
 	pA0 := gpioreg.ByName("MCP23S17_PORTA_0")
 
-	pA0.Out(gpio.Low)
-	pA0.Out(gpio.High)
+	if err := pA0.Out(gpio.Low); err != nil {
+		t.Fatal(err)
+	}
+	if err := pA0.Out(gpio.High); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestMCP23017_in(t *testing.T) {
@@ -99,11 +113,17 @@ func TestMCP23017_in(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer dev.Close()
+	t.Cleanup(func() {
+		if err := dev.Close(); err != nil {
+			t.Error(err)
+		}
+	})
 
 	pA0 := gpioreg.ByName("MCP23017_20_PORTA_0")
 
-	pA0.In(gpio.Float, gpio.NoEdge)
+	if err := pA0.In(gpio.Float, gpio.NoEdge); err != nil {
+		t.Fatal(err)
+	}
 	l := pA0.Read()
 	if l != gpio.High {
 		t.Errorf("Input should be High")
@@ -132,12 +152,24 @@ func TestMCP23017_inInverted(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer dev.Close()
+	t.Cleanup(func() {
+		if err := dev.Close(); err != nil {
+			t.Error(err)
+		}
+	})
 
-	pA0 := gpioreg.ByName("MCP23017_20_PORTA_0").(Pin)
+	pin := gpioreg.ByName("MCP23017_20_PORTA_0")
+	pA0, ok := pin.(Pin)
+	if !ok {
+		t.Fatalf("pin type %T, want Pin", pin)
+	}
 
-	pA0.In(gpio.Float, gpio.NoEdge)
-	pA0.SetPolarityInverted(true)
+	if err := pA0.In(gpio.Float, gpio.NoEdge); err != nil {
+		t.Fatal(err)
+	}
+	if err := pA0.SetPolarityInverted(true); err != nil {
+		t.Fatal(err)
+	}
 	l := pA0.Read()
 	if l != gpio.High {
 		t.Errorf("Input should be High")
@@ -165,11 +197,17 @@ func TestMCP23017_inPullUp(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer dev.Close()
+	t.Cleanup(func() {
+		if err := dev.Close(); err != nil {
+			t.Error(err)
+		}
+	})
 
 	pA0 := gpioreg.ByName("MCP23017_20_PORTA_0")
 
-	pA0.In(gpio.PullUp, gpio.NoEdge)
+	if err := pA0.In(gpio.PullUp, gpio.NoEdge); err != nil {
+		t.Fatal(err)
+	}
 	l := pA0.Read()
 	if l != gpio.High {
 		t.Errorf("Input should be High")

@@ -8,6 +8,7 @@ package ht16k33_test
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"periph.io/x/conn/v3/i2c/i2creg"
@@ -25,13 +26,21 @@ func Example() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer bus.Close()
+	defer func() {
+		if closeErr := bus.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	display, err := ht16k33.NewAlphaNumericDisplay(bus, ht16k33.I2CAddr)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer display.Halt()
+	defer func() {
+		if closeErr := display.Halt(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	if _, err := display.WriteString("ABCD"); err != nil {
 		log.Fatal(err)
@@ -43,12 +52,12 @@ func Example() {
 	}
 	time.Sleep(1 * time.Second)
 
-	if _, err := display.WriteString(fmt.Sprintf("%d", 1234)); err != nil {
+	if _, err := display.WriteString(strconv.Itoa(1234)); err != nil {
 		log.Fatal(err)
 	}
 	time.Sleep(1 * time.Second)
 
-	if _, err := display.WriteString(fmt.Sprintf("%d", 60)); err != nil {
+	if _, err := display.WriteString(strconv.Itoa(60)); err != nil {
 		log.Fatal(err)
 	}
 	time.Sleep(1 * time.Second)

@@ -36,7 +36,11 @@ func ExampleNewI2C() {
 	}
 	fmt.Print(p.String())
 
-	defer p.Close()
+	defer func() {
+		if closeErr := p.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	d, err := NewI2C(p, I2CAddr, &DefaultOpts)
 	if err != nil {
@@ -48,7 +52,6 @@ func ExampleNewI2C() {
 // ExampleNewSpi uses an adxl345 device connected by SPI.
 // it reads the acceleration values every 30ms for 30 seconds.
 func ExampleNewSpi() {
-
 	mustInitHost()
 
 	// Use spireg SPI port registry to find the first available SPI bus.
@@ -57,7 +60,11 @@ func ExampleNewSpi() {
 		log.Fatal(err)
 	}
 
-	defer p.Close()
+	defer func() {
+		if closeErr := p.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	d, err := NewSpi(p, &DefaultOpts)
 	if err != nil {
@@ -69,15 +76,13 @@ func ExampleNewSpi() {
 
 // mustInitHost Make sure host is initialized.
 func mustInitHost() {
-
 	if _, err := host.Init(); err != nil {
 		log.Fatal(err)
 	}
 }
 
-// measure reads the acceleration values every 30ms for <duration> seconds
+// measure reads the acceleration values every 30ms for <duration> seconds.
 func measure(d *Dev, duration time.Duration) {
-
 	fmt.Println(d.String())
 
 	mode := d.Mode()

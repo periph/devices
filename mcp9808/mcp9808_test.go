@@ -8,6 +8,7 @@ package mcp9808
 
 import (
 	"encoding/binary"
+	"errors"
 	"reflect"
 	"testing"
 	"time"
@@ -61,7 +62,7 @@ func TestNew(t *testing.T) {
 		}
 
 		_, err := New(&bus, &tt.opts)
-		if err != tt.want {
+		if !errors.Is(err, tt.want) {
 			t.Errorf("New(%s) expected %v but got %v ", tt.name, tt.want, err)
 		}
 	}
@@ -133,7 +134,7 @@ func TestSense(t *testing.T) {
 		if err == nil && tt.want != e.Temperature {
 			t.Errorf("%s Sense() expected %v but got %v ", tt.name, tt.want, e.Temperature)
 		}
-		if err != tt.err {
+		if !errors.Is(err, tt.err) {
 			t.Errorf("%s Sense() expected %v but got %v ", tt.name, tt.err, err)
 		}
 	}
@@ -207,7 +208,7 @@ func TestSenseContinuous(t *testing.T) {
 
 		if tt.Halt {
 			e := <-env
-			if err = mcp9808.Halt(); err != tt.err {
+			if err = mcp9808.Halt(); !errors.Is(err, tt.err) {
 				t.Errorf("SenseContinuous() %s wanted err: %v, but got: %v", tt.name, tt.err, err)
 			}
 			if err == nil && e.Temperature != tt.want {
@@ -215,10 +216,9 @@ func TestSenseContinuous(t *testing.T) {
 			}
 		}
 
-		if err != tt.err {
+		if !errors.Is(err, tt.err) {
 			t.Errorf("SenseContinuous() %s wanted err: %v, but got: %v", tt.name, tt.err, err)
 		}
-		mcp9808.Halt()
 	}
 }
 
@@ -314,7 +314,7 @@ func TestSenseTemp(t *testing.T) {
 		if tt.want != got {
 			t.Errorf("%s SenseTemp() expected %v but got %v ", tt.name, tt.want, got)
 		}
-		if err != tt.err {
+		if !errors.Is(err, tt.err) {
 			t.Errorf("%s SenseTemp() expected %v but got %v ", tt.name, tt.err, err)
 		}
 	}
@@ -512,7 +512,7 @@ func TestSenseWithAlerts(t *testing.T) {
 			enabled: true,
 		}
 		temp, alerts, err := mcp9808.SenseWithAlerts(tt.lower, tt.upper, tt.critical)
-		if err != tt.err {
+		if !errors.Is(err, tt.err) {
 			t.Errorf("SenseWithAlerts(%s) wanted err: %v but got: %v", tt.name, tt.err, err)
 		}
 		if temp != tt.temp {
@@ -552,7 +552,6 @@ func TestDevHalt(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-
 		bus := i2ctest.Playback{
 			Ops:       tt.tx,
 			DontPanic: true,
@@ -564,7 +563,7 @@ func TestDevHalt(t *testing.T) {
 			enabled: tt.enabled,
 		}
 
-		if err := mcp9808.Halt(); err != tt.err {
+		if err := mcp9808.Halt(); !errors.Is(err, tt.err) {
 			t.Errorf("Halt(%s) wanted error: %v but got: %v", tt.name, tt.err, err)
 		}
 		if mcp9808.enabled != tt.want {
@@ -609,7 +608,6 @@ func TestDev_enable(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-
 		bus := i2ctest.Playback{
 			Ops:       tt.tx,
 			DontPanic: true,
@@ -621,7 +619,7 @@ func TestDev_enable(t *testing.T) {
 			enabled: tt.enabled,
 		}
 
-		if err := mcp9808.enable(); err != tt.err {
+		if err := mcp9808.enable(); !errors.Is(err, tt.err) {
 			t.Errorf("enable(%s) wanted error: %v but got: %v", tt.name, tt.err, err)
 		}
 		if mcp9808.enabled != tt.want {
@@ -708,10 +706,9 @@ func TestDev_setResolution(t *testing.T) {
 				Conn:  &i2c.Dev{Bus: &bus, Addr: 0x18},
 				Order: binary.BigEndian},
 		}
-		if err := mcp9808.setResolution(tt.res); err != tt.err {
+		if err := mcp9808.setResolution(tt.res); !errors.Is(err, tt.err) {
 			t.Errorf("setResolution(%s) expected %v but got %v", tt.name, tt.err, err)
 		}
-
 	}
 
 	for _, tt := range fails {
@@ -725,7 +722,7 @@ func TestDev_setResolution(t *testing.T) {
 				Conn:  &i2c.Dev{Bus: &bus, Addr: 0x18},
 				Order: binary.BigEndian},
 		}
-		if err := mcp9808.setResolution(tt.res); err != tt.err {
+		if err := mcp9808.setResolution(tt.res); !errors.Is(err, tt.err) {
 			t.Errorf("setResolution(%s) expected %v but got %v", tt.name, tt.err, err)
 		}
 	}
@@ -780,7 +777,7 @@ func TestDev_setCriticalAlert(t *testing.T) {
 				Order: binary.BigEndian},
 			critical: tt.crit,
 		}
-		if err := mcp9808.setCriticalAlert(tt.alert); err != tt.err {
+		if err := mcp9808.setCriticalAlert(tt.alert); !errors.Is(err, tt.err) {
 			t.Errorf("setCriticalAlert(%s) expected %v but got %v", tt.name, tt.err, err)
 		}
 	}
@@ -835,7 +832,7 @@ func TestDev_setUpperAlert(t *testing.T) {
 				Order: binary.BigEndian},
 			upper: tt.upper,
 		}
-		if err := mcp9808.setUpperAlert(tt.alert); err != tt.err {
+		if err := mcp9808.setUpperAlert(tt.alert); !errors.Is(err, tt.err) {
 			t.Errorf("setUpperAlert(%s) expected %v but got %v", tt.name, tt.err, err)
 		}
 	}
@@ -890,7 +887,7 @@ func TestDev_setLowerAlert(t *testing.T) {
 				Order: binary.BigEndian},
 			lower: tt.lower,
 		}
-		if err := mcp9808.setLowerAlert(tt.alert); err != tt.err {
+		if err := mcp9808.setLowerAlert(tt.alert); !errors.Is(err, tt.err) {
 			t.Errorf("setLowerAlert(%s) expected %v but got %v", tt.name, tt.err, err)
 		}
 	}

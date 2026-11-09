@@ -63,35 +63,6 @@ func NewI2C(bus i2c.Bus, address uint16) (*Dev, error) {
 	return dev, nil
 }
 
-func (d *Dev) init() error {
-	if err := d.SetAllPwm(0, 0); err != nil {
-		return err
-	}
-
-	if _, err := d.dev.Write([]byte{mode2, outDrv}); err != nil {
-		return err
-	}
-	if _, err := d.dev.Write([]byte{mode1, allCall}); err != nil {
-		return err
-	}
-
-	time.Sleep(100 * time.Millisecond)
-
-	modeRead := [1]byte{}
-	if err := d.dev.Tx([]byte{mode1}, modeRead[:]); err != nil {
-		return err
-	}
-
-	mode := (modeRead[0] & ^sleep) | ai
-	if _, err := d.dev.Write([]byte{mode1, mode}); err != nil {
-		return err
-	}
-
-	time.Sleep(5 * time.Millisecond)
-
-	return d.SetPwmFreq(50 * physic.Hertz)
-}
-
 // SetPwmFreq set the PWM frequency.
 func (d *Dev) SetPwmFreq(freqHz physic.Frequency) error {
 	if d.freq == freqHz {
@@ -123,19 +94,6 @@ func (d *Dev) SetPwmFreq(freqHz physic.Frequency) error {
 
 	_, err := d.dev.Write([]byte{mode1, oldmode | restart})
 	d.freq = freqHz
-	return err
-}
-
-// setPWM writes a PWM value in a specific register.
-func (d *Dev) setPWM(register uint8, on, off gpio.Duty) error {
-	// Chained writes are possible due to auto-increment.
-	_, err := d.dev.Write([]byte{
-		register,
-		byte(on),
-		byte(on >> 8),
-		byte(off),
-		byte(off >> 8),
-	})
 	return err
 }
 
@@ -190,4 +148,46 @@ func verifyChannel(channel int) error {
 		return fmt.Errorf("PCA9685: invalid channel: %d", channel)
 	}
 	return nil
+}
+
+func (d *Dev) init() error {
+	if err := d.SetAllPwm(0, 0); err != nil {
+		return err
+	}
+
+	if _, err := d.dev.Write([]byte{mode2, outDrv}); err != nil {
+		return err
+	}
+	if _, err := d.dev.Write([]byte{mode1, allCall}); err != nil {
+		return err
+	}
+
+	time.Sleep(100 * time.Millisecond)
+
+	modeRead := [1]byte{}
+	if err := d.dev.Tx([]byte{mode1}, modeRead[:]); err != nil {
+		return err
+	}
+
+	mode := (modeRead[0] & ^sleep) | ai
+	if _, err := d.dev.Write([]byte{mode1, mode}); err != nil {
+		return err
+	}
+
+	time.Sleep(5 * time.Millisecond)
+
+	return d.SetPwmFreq(50 * physic.Hertz)
+}
+
+// setPWM writes a PWM value in a specific register.
+func (d *Dev) setPWM(register uint8, on, off gpio.Duty) error {
+	// Chained writes are possible due to auto-increment.
+	_, err := d.dev.Write([]byte{
+		register,
+		byte(on),
+		byte(on >> 8),
+		byte(off),
+		byte(off >> 8),
+	})
+	return err
 }

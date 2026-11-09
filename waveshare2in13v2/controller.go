@@ -7,8 +7,8 @@
 package waveshare2in13v2
 
 type controller interface {
-	sendCommand(byte)
-	sendData([]byte)
+	sendCommand(command byte)
+	sendData(data []byte)
 	waitUntilIdle()
 }
 

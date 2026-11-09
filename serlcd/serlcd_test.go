@@ -21,10 +21,10 @@ import (
 	"periph.io/x/host/v3"
 )
 
-var liveDevice bool = false
+var liveDevice = false
 var bus i2c.Bus
-var eepromTests bool = false
-var sleepDuration time.Duration = time.Millisecond
+var eepromTests = false
+var sleepDuration = time.Millisecond
 
 // Playback for interface tests.
 var pbInterface = []i2ctest.IO{
@@ -240,7 +240,6 @@ func init() {
 	} else {
 		bus = &i2ctest.Playback{DontPanic: true}
 	}
-
 }
 
 // getDev returns a SerLCD device for testing connected to either a live
@@ -255,7 +254,10 @@ func getDev(t *testing.T, playbackOps ...[]i2ctest.IO) (*Dev, error) {
 		}
 	} else {
 		if len(playbackOps) == 1 {
-			pb := bus.(*i2ctest.Playback)
+			pb, ok := bus.(*i2ctest.Playback)
+			if !ok {
+				t.Fatalf("bus type %T, want *i2ctest.Playback", bus)
+			}
 			pb.Ops = playbackOps[0]
 			pb.Count = 0
 		}
@@ -318,7 +320,7 @@ func TestBacklight(t *testing.T) {
 	time.Sleep(sleepDuration)
 }
 
-// TestRGBBacklight tests the RGB Backlight works as expected
+// TestRGBBacklight tests the RGB Backlight works as expected.
 func TestRGBBacklight(t *testing.T) {
 	if liveDevice && !eepromTests {
 		return

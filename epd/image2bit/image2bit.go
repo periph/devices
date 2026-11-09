@@ -47,7 +47,7 @@ func (b Gray) String() string {
 	}
 }
 
-// All possible colors
+// All possible colors.
 const (
 	White     Gray = 3
 	LightGray Gray = 2
@@ -123,7 +123,7 @@ func (i *BitPlane) Opaque() bool {
 	return true
 }
 
-// Set implements draw.Image
+// Set implements draw.Image.
 func (i *BitPlane) Set(x, y int, c color.Color) {
 	i.SetGray(x, y, convertGray(c))
 }
@@ -136,8 +136,8 @@ func (i *BitPlane) SetGray(x, y int, b Gray) {
 
 	byteIndex, bitIndex, mask := i.getOffset(x, y)
 
-	i.PixMSB[byteIndex] = byte((i.PixMSB[byteIndex] & mask) | (byte(b>>1) << bitIndex))
-	i.PixLSB[byteIndex] = byte((i.PixLSB[byteIndex] & mask) | (byte(b&1) << bitIndex))
+	i.PixMSB[byteIndex] = (i.PixMSB[byteIndex] & mask) | (byte(b>>1) << bitIndex)
+	i.PixLSB[byteIndex] = (i.PixLSB[byteIndex] & mask) | (byte(b&1) << bitIndex)
 }
 
 func (i *BitPlane) getOffset(x, y int) (byteIndex, bitIndex uint, mask byte) {
@@ -148,12 +148,12 @@ func (i *BitPlane) getOffset(x, y int) (byteIndex, bitIndex uint, mask byte) {
 	return
 }
 
-// convert color to gray as color.Color
+// convert color to gray as color.Color.
 func convert(c color.Color) color.Color {
 	return convertGray(c)
 }
 
-// convert color to gray
+// convert color to gray.
 func convertGray(c color.Color) Gray {
 	switch t := c.(type) {
 	case Gray:
@@ -165,5 +165,5 @@ func convertGray(c color.Color) Gray {
 	}
 }
 
-// verify that we satisfy the draw.Image interface
+// verify that we satisfy the draw.Image interface.
 var _ draw.Image = &BitPlane{}

@@ -57,7 +57,7 @@ type portpin struct {
 func (p *port) pins() []Pin {
 	result := make([]Pin, 8)
 	var i uint8
-	for i = 0; i < 8; i++ {
+	for i = range 8 {
 		result[i] = &portpin{
 			port:   p,
 			pinbit: i,
@@ -87,7 +87,7 @@ func (p *portpin) Function() string {
 	return string(p.Func())
 }
 
-func (p *portpin) In(pull gpio.Pull, edge gpio.Edge) error {
+func (p *portpin) In(pull gpio.Pull, _ gpio.Edge) error {
 	// Set pin to input
 	err := p.port.iodir.getAndSetBit(p.pinbit, true, true)
 	if err != nil {
@@ -129,7 +129,7 @@ func (p *portpin) Read() gpio.Level {
 	return gpio.Low
 }
 
-func (p *portpin) WaitForEdge(timeout time.Duration) bool {
+func (p *portpin) WaitForEdge(_ time.Duration) bool {
 	// TODO interrupt handling
 	return false
 }
@@ -160,7 +160,7 @@ func (p *portpin) Out(l gpio.Level) error {
 	return p.port.olat.getAndSetBit(p.pinbit, l == gpio.High, true)
 }
 
-func (p *portpin) PWM(duty gpio.Duty, f physic.Frequency) error {
+func (p *portpin) PWM(_ gpio.Duty, _ physic.Frequency) error {
 	return errors.New("MCP23xxx: PWM is not supported")
 }
 

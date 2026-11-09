@@ -22,7 +22,11 @@ func Example() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer i2cBus.Close()
+	defer func() {
+		if closeErr := i2cBus.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	// We need to set an alert ping that will let us know when a touch event
 	// occurs. The alert pin is the pin connected to the IRQ/interrupt pin.

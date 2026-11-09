@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package waveshare2in13v3 controls Waveshare 2.13 v3 e-paper displays.
+// Package waveshare2in13v4 controls Waveshare 2.13 v4 e-paper displays.
 //
 // Datasheet:
 // https://files.waveshare.com/upload/5/59/2.13inch_e-Paper_V3_Specificition.pdf

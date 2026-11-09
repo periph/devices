@@ -47,7 +47,15 @@ func TestGetVar8(t *testing.T) {
 				Ops:       test.ops,
 				DontPanic: true,
 			}
-			defer b.Close()
+			t.Cleanup(func() {
+				// Failed transactions can leave deliberately unused playback operations.
+				if test.expectErr {
+					return
+				}
+				if err := b.Close(); err != nil {
+					t.Error(err)
+				}
+			})
 
 			dev := Dev{
 				c:       &i2c.Dev{Bus: &b, Addr: I2CAddr},
@@ -104,7 +112,15 @@ func TestGetVar16(t *testing.T) {
 				Ops:       test.ops,
 				DontPanic: true,
 			}
-			defer b.Close()
+			t.Cleanup(func() {
+				// Failed transactions can leave deliberately unused playback operations.
+				if test.expectErr {
+					return
+				}
+				if err := b.Close(); err != nil {
+					t.Error(err)
+				}
+			})
 
 			dev := Dev{
 				c:       &i2c.Dev{Bus: &b, Addr: I2CAddr},
@@ -161,7 +177,15 @@ func TestGetVar32(t *testing.T) {
 				Ops:       test.ops,
 				DontPanic: true,
 			}
-			defer b.Close()
+			t.Cleanup(func() {
+				// Failed transactions can leave deliberately unused playback operations.
+				if test.expectErr {
+					return
+				}
+				if err := b.Close(); err != nil {
+					t.Error(err)
+				}
+			})
 
 			dev := Dev{
 				c:       &i2c.Dev{Bus: &b, Addr: I2CAddr},
@@ -194,7 +218,11 @@ func TestCommandQuick(t *testing.T) {
 		},
 		DontPanic: true,
 	}
-	defer b.Close()
+	t.Cleanup(func() {
+		if err := b.Close(); err != nil {
+			t.Error(err)
+		}
+	})
 
 	dev := Dev{
 		c:       &i2c.Dev{Bus: &b, Addr: I2CAddr},
@@ -235,7 +263,11 @@ func TestCommandW7(t *testing.T) {
 			Ops:       test.ops,
 			DontPanic: true,
 		}
-		defer b.Close()
+		t.Cleanup(func() {
+			if err := b.Close(); err != nil {
+				t.Error(err)
+			}
+		})
 
 		dev := Dev{
 			c:       &i2c.Dev{Bus: &b, Addr: I2CAddr},
@@ -261,7 +293,11 @@ func TestCommandW32(t *testing.T) {
 		},
 		DontPanic: true,
 	}
-	defer b.Close()
+	t.Cleanup(func() {
+		if err := b.Close(); err != nil {
+			t.Error(err)
+		}
+	})
 
 	dev := Dev{
 		c:       &i2c.Dev{Bus: &b, Addr: I2CAddr},
@@ -324,7 +360,11 @@ func TestGetSegment(t *testing.T) {
 				Ops:       test.ops,
 				DontPanic: true,
 			}
-			defer b.Close()
+			t.Cleanup(func() {
+				if err := b.Close(); err != nil {
+					t.Error(err)
+				}
+			})
 
 			dev := Dev{
 				c:       &i2c.Dev{Bus: &b, Addr: I2CAddr},

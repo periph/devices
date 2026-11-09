@@ -13,6 +13,7 @@ import (
 )
 
 func TestNewGray14(t *testing.T) {
+	t.Parallel()
 	data := []struct {
 		r      image.Rectangle
 		l      int
@@ -82,6 +83,7 @@ func TestNewGray14(t *testing.T) {
 }
 
 func TestAt(t *testing.T) {
+	t.Parallel()
 	img := NewGray14(image.Rect(0, 0, 1, 1))
 	img.SetIntensity14(0, 0, Intensity14(16383))
 	c := img.At(0, 0)
@@ -96,6 +98,7 @@ func TestAt(t *testing.T) {
 }
 
 func TestIntensity14At(t *testing.T) {
+	t.Parallel()
 	img := NewGray14(image.Rect(0, 0, 1, 1))
 	img.SetIntensity14(0, 0, Intensity14(16383))
 	if g := img.Intensity14At(0, 0); g != Intensity14(16383) {
@@ -108,28 +111,31 @@ func TestIntensity14At(t *testing.T) {
 }
 
 func TestColorModel(t *testing.T) {
+	t.Parallel()
 	img := NewGray14(image.Rect(0, 0, 1, 8))
 	if v := img.ColorModel(); v != Intensity14Model {
 		t.Fatalf("%s", v)
 	}
-	if v := img.ColorModel().Convert(color.NRGBA{0x00, 0x00, 0x00, 0xFF}).(Intensity14); v != Intensity14(0) {
+	if v, ok := img.ColorModel().Convert(color.NRGBA{0x00, 0x00, 0x00, 0xFF}).(Intensity14); !ok || v != Intensity14(0) {
 		t.Fatalf("%s", v)
 	}
-	if v := img.ColorModel().Convert(color.NRGBA{0x7F, 0x7F, 0x7F, 0xFF}).(Intensity14); v != Intensity14(8159) {
+	if v, ok := img.ColorModel().Convert(color.NRGBA{0x7F, 0x7F, 0x7F, 0xFF}).(Intensity14); !ok || v != Intensity14(8159) {
 		t.Fatalf("%s", v)
 	}
-	if v := img.ColorModel().Convert(color.NRGBA{0xFF, 0xFF, 0xFF, 0xFF}).(Intensity14); v != Intensity14(16383) {
+	if v, ok := img.ColorModel().Convert(color.NRGBA{0xFF, 0xFF, 0xFF, 0xFF}).(Intensity14); !ok || v != Intensity14(16383) {
 		t.Fatalf("%s", v)
 	}
 }
 
 func TestOpaque(t *testing.T) {
+	t.Parallel()
 	if !NewGray14(image.Rect(0, 0, 1, 8)).Opaque() {
 		t.Fatal("image is always opaque")
 	}
 }
 
 func TestPixOffset(t *testing.T) {
+	t.Parallel()
 	data := []struct {
 		r      image.Rectangle
 		x, y   int
@@ -166,6 +172,7 @@ func TestPixOffset(t *testing.T) {
 }
 
 func TestSetIntensity14(t *testing.T) {
+	t.Parallel()
 	img := NewGray14(image.Rect(0, 0, 1, 1))
 	if img.Pix[0] != 0 {
 		t.Fatal(img.Pix)
@@ -179,6 +186,7 @@ func TestSetIntensity14(t *testing.T) {
 }
 
 func TestSet(t *testing.T) {
+	t.Parallel()
 	img := NewGray14(image.Rect(0, 0, 1, 1))
 	img.Set(0, 0, color.NRGBA{0x80, 0x80, 0x80, 0xFF})
 	if img.Pix[0] != 8224 {

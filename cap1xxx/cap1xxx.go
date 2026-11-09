@@ -74,25 +74,6 @@ func (i TouchStatus) String() string {
 	return touchStatusName[touchStatusIndex[i]:touchStatusIndex[i+1]]
 }
 
-// NewI2C returns a new device that communicates over I²C to
-// one of the supported cap1xxx device.
-//
-// Use default options if nil is used.
-func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
-	if opts == nil {
-		opts = &DefaultOpts
-	}
-	addr, err := opts.i2cAddr()
-	if err != nil {
-		return nil, wrapf("%v", err)
-	}
-	d, err := makeDev(&i2c.Dev{Bus: b, Addr: addr}, false, opts)
-	if err != nil {
-		return nil, err
-	}
-	return d, nil
-}
-
 /*
 // NewSPI returns an object that communicates over SPI to cap1xxx touch
 // sensor.
@@ -112,6 +93,25 @@ type Dev struct {
 	inputStatuses []TouchStatus
 	numLEDs       int
 	lastReset     time.Time
+}
+
+// NewI2C returns a new device that communicates over I²C to
+// one of the supported cap1xxx device.
+//
+// Use default options if nil is used.
+func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
+	if opts == nil {
+		opts = &DefaultOpts
+	}
+	addr, err := opts.i2cAddr()
+	if err != nil {
+		return nil, wrapf("%v", err)
+	}
+	d, err := makeDev(&i2c.Dev{Bus: b, Addr: addr}, false, opts)
+	if err != nil {
+		return nil, err
+	}
+	return d, nil
 }
 
 func (d *Dev) String() string {
@@ -138,22 +138,22 @@ func (d *Dev) InputStatus(t []TouchStatus) error {
 	}
 
 	// Read deltas (in two's complement, capped at -128 to 127).
-	//deltasB := [len(d.inputStatuses)]byte{}
-	//if err = d.c.ReadStruct(0x10, &deltasB); err != nil {
+	// deltasB := [len(d.inputStatuses)]byte{}
+	// if err = d.c.ReadStruct(0x10, &deltasB); err != nil {
 	//	return d.inputStatuses, wrapf("failed to read the delta values: %v", err)
-	//}
-	//deltas := [len(d.inputStatuses)]int{}
-	//for i, b := range deltasB {
+	// }
+	// deltas := [len(d.inputStatuses)]int{}
+	// for i, b := range deltasB {
 	//	deltas[i] = int(int8(b))
-	//}
+	// }
 	// Read thresholds.
-	//thresholds := [len(d.inputStatuses)]byte{}
-	//if err = d.c.ReadStruct(0x30, &thresholds); err != nil {
+	// thresholds := [len(d.inputStatuses)]byte{}
+	// if err = d.c.ReadStruct(0x30, &thresholds); err != nil {
 	//	return d.inputStatuses, wrapf("failed to read the threshold values: %v", err)
-	//}
+	// }
 
 	// Convert the data into a sensor state.
-	for i := uint8(0); i < uint8(len(d.inputStatuses)); i++ {
+	for i := range uint8(len(d.inputStatuses)) {
 		// Check if the bit is set.
 		// TODO(mattetti): check if the event is passed the threshold:
 		// deltas[i] > int(thresholds[i])
@@ -172,7 +172,7 @@ func (d *Dev) InputStatus(t []TouchStatus) error {
 			d.inputStatuses[i] = OffStatus
 		}
 	}
-	copy(t, d.inputStatuses[:])
+	copy(t, d.inputStatuses)
 	return nil
 }
 
@@ -213,7 +213,7 @@ func (d *Dev) AllLEDs(on bool) error {
 
 // SetLED sets the state of a LED as on or off.
 //
-// Only works if the LEDs are not linked to the sensors
+// Only works if the LEDs are not linked to the sensors.
 func (d *Dev) SetLED(idx int, state bool) error {
 	if d.opts.LinkedLEDs {
 		return wrapf("can't manually set LEDs when they are linked to sensors")
@@ -390,7 +390,7 @@ func makeDev(c conn.Conn, isSPI bool, opts *Opts) (*Dev, error) {
 		byte(0)<<3 | byte(1)<<2 |
 		byte(0)<<1 | byte(0)<<0)
 	if err := d.c.WriteUint8(0x2a, multitouchConfig); err != nil {
-		return nil, fmt.Errorf("failed to enable multitouch: %v", err)
+		return nil, fmt.Errorf("failed to enable multitouch: %w", err)
 	}
 	// Averaging and Sampling Config.
 	samplingConfig := (byte(0)<<7 |
@@ -592,7 +592,7 @@ const (
 
 var sleep = time.Sleep
 
-func wrapf(format string, a ...interface{}) error {
+func wrapf(format string, a ...any) error {
 	return fmt.Errorf("cap1xxx: "+format, a...)
 }
 

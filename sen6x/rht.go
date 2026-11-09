@@ -197,11 +197,11 @@ func (d *Dev) GetSHTHeaterMeasurements() (*SHTHeaterMeasurements, error) {
 	hm := &SHTHeaterMeasurements{}
 
 	if rawRH := binary.BigEndian.Uint16(data[0:2]); rawRH != 0x7fff {
-		hm.RH = ptr(float32(rawRH) / 100.0)
+		hm.RH = new(float32(rawRH) / 100.0)
 	}
 
 	if rawTemp := int16(binary.BigEndian.Uint16(data[2:4])); rawTemp != 0x7fff {
-		hm.Temp = ptr(float32(rawTemp) / 200.0)
+		hm.Temp = new(float32(rawTemp) / 200.0)
 	}
 
 	return hm, nil

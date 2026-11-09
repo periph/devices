@@ -16,7 +16,7 @@ func CRC8(bytes []byte) byte {
 			if (crc & 0x80) == 0 {
 				crc <<= 1
 			} else {
-				crc = (byte)((crc << 1) ^ 0x31)
+				crc = (crc << 1) ^ 0x31
 			}
 		}
 	}

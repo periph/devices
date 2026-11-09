@@ -2,11 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package mfrc522 controls a Mifare RFID card reader.
-//
-// # Datasheet
-//
-// https://www.nxp.com/docs/en/data-sheet/MFRC522.pdf
+// Block and sector access bits for MIFARE RFID cards.
+
 package mfrc522
 
 import "fmt"
@@ -73,18 +70,6 @@ func (ba *BlocksAccess) String() string {
 	return fmt.Sprintf("B0: %d, B1: %d, B2: %d, B3: %d", ba.B0, ba.B1, ba.B2, ba.B3)
 }
 
-// serialize calculates the block access and stores it into the passed slice, that must be at least 4 bytes wide.
-func (ba *BlocksAccess) serialize(dst []byte) error {
-	if len(dst) != 4 {
-		return wrapf("serialized array must be of size at least 4")
-	}
-	dst[0] = ((^ba.getBits(2) & 0x0F) << 4) | (^ba.getBits(1) & 0x0F)
-	dst[1] = ((ba.getBits(1) & 0x0F) << 4) | (^ba.getBits(3) & 0x0F)
-	dst[2] = ((ba.getBits(3) & 0x0F) << 4) | (ba.getBits(2) & 0x0F)
-	dst[3] = dst[0] ^ dst[1] ^ dst[2]
-	return nil
-}
-
 // Init parses the given byte array into the block access structure.
 func (ba *BlocksAccess) Init(ad []byte) {
 	ba.B0 = BlockAccess(((ad[1] & 0x10) >> 2) | ((ad[2] & 0x01) << 1) | ((ad[2] & 0x10) >> 5))
@@ -104,3 +89,15 @@ func calcBlockAddress(sector int, block int) byte {
 }
 
 var _ fmt.Stringer = &BlocksAccess{}
+
+// serialize calculates the block access and stores it into the passed slice, that must be at least 4 bytes wide.
+func (ba *BlocksAccess) serialize(dst []byte) error {
+	if len(dst) != 4 {
+		return wrapf("serialized array must be of size at least 4")
+	}
+	dst[0] = ((^ba.getBits(2) & 0x0F) << 4) | (^ba.getBits(1) & 0x0F)
+	dst[1] = ((ba.getBits(1) & 0x0F) << 4) | (^ba.getBits(3) & 0x0F)
+	dst[2] = ((ba.getBits(3) & 0x0F) << 4) | (ba.getBits(2) & 0x0F)
+	dst[3] = dst[0] ^ dst[1] ^ dst[2]
+	return nil
+}

@@ -75,7 +75,6 @@ func New(bus i2c.Bus,
 	backlight any,
 	rows,
 	cols int) (*Dev, error) {
-
 	dev := &Dev{
 		d:    &i2c.Dev{Bus: bus, Addr: address},
 		rows: rows,
@@ -95,42 +94,7 @@ func New(bus i2c.Bus,
 	return dev, wrap(err)
 }
 
-// Perform the display initialization routine,
-func (dev *Dev) init() error {
-	// Set the lines display value
-	var modeToSet = []byte{cmdByte, displayMode[1]}
-	if dev.rows > 1 {
-		modeToSet[1] = modeToSet[1] | 0x08
-	}
-	_, err := dev.Write(modeToSet)
-	if err == nil {
-		err = dev.Display(true)
-		time.Sleep(40 * time.Microsecond)
-	}
-	if err == nil {
-		err = dev.Clear()
-		time.Sleep(2000 * time.Microsecond)
-	}
-
-	if err == nil {
-		err = dev.Home()
-		time.Sleep(40 * time.Microsecond)
-	}
-
-	if err == nil {
-		// Set the entry mode
-		_, err = dev.Write(defaultEntryMode)
-	}
-	if err == nil {
-		_ = dev.Backlight(0xff)
-	}
-	if err != nil {
-		err = wrap(err)
-	}
-	return err
-}
-
-// Return the row offset value
+// Return the row offset value.
 func getRowConstant(row, maxcols int) byte {
 	var offset int
 	if maxcols != 16 {
@@ -139,12 +103,12 @@ func getRowConstant(row, maxcols int) byte {
 	return rowConstants[offset][row]
 }
 
-// Enable/Disable auto scroll
-func (dev *Dev) AutoScroll(enabled bool) error {
+// Enable/Disable auto scroll.
+func (dev *Dev) AutoScroll(_ bool) error {
 	return ErrNotImplemented
 }
 
-// Return the number of columns the display supports
+// Return the number of columns the display supports.
 func (dev *Dev) Cols() int {
 	return dev.cols
 }
@@ -159,7 +123,7 @@ func (dev *Dev) Clear() error {
 }
 
 // Set the cursor mode. You can pass multiple arguments.
-// Cursor(CursorOff, CursorUnderline)
+// Cursor(CursorOff, CursorUnderline).
 func (dev *Dev) Cursor(modes ...display.CursorMode) (err error) {
 	var val = byte(0x08)
 	if dev.on {
@@ -186,15 +150,14 @@ func (dev *Dev) Cursor(modes ...display.CursorMode) (err error) {
 			val |= 0x01
 		default:
 			err = fmt.Errorf("Waveshare1602 - unexpected cursor: %d", mode)
-			return
+			return err
 		}
 	}
 	_, err = dev.Write([]byte{cmdByte, val & 0x0f})
 	return wrap(err)
-
 }
 
-// Turn the display on / off
+// Turn the display on / off.
 func (dev *Dev) Display(on bool) error {
 	dev.on = on
 	val := byte(0x08)
@@ -209,7 +172,6 @@ func (dev *Dev) Display(on bool) error {
 	}
 	_, err := dev.Write([]byte{cmdByte, val})
 	return err
-
 }
 
 // Halt clears the display, turns the backlight off, and turns the display off.
@@ -221,7 +183,7 @@ func (dev *Dev) Halt() error {
 	return nil
 }
 
-// Move the cursor home (MinRow(),MinCol())
+// Move the cursor home (MinRow(),MinCol()).
 func (dev *Dev) Home() error {
 	_, err := dev.Write(goHome)
 	return err
@@ -278,21 +240,6 @@ func (dev *Dev) String() string {
 	return fmt.Sprintf("%s Rows: %d Cols: %d", packageName, dev.rows, dev.cols)
 }
 
-// Read the busy flag to make sure it's clear to write. It's a little wonky
-// initially but then smooths out, so it makes a best effort and ignores errors.
-func (dev *Dev) waitForFree() {
-	tLimit := time.Now().Add(3 * time.Millisecond)
-	w := make([]byte, 2)
-	r := make([]byte, 1)
-	for time.Now().Before(tLimit) {
-		err := dev.d.Tx(w, r)
-		if err == nil && (r[0]&busyFlag) == 0 {
-			break
-		}
-		time.Sleep(100 * time.Microsecond)
-	}
-}
-
 // Write a set of bytes to the display. This routine handles control
 // and data characters transparently.
 func (dev *Dev) Write(p []byte) (n int, err error) {
@@ -301,7 +248,7 @@ func (dev *Dev) Write(p []byte) (n int, err error) {
 	dev.waitForFree()
 
 	lastControl := -1
-	for i := range len(p) {
+	for i := range p {
 		if p[i] == cmdByte {
 			lastControl = i
 		}
@@ -310,7 +257,6 @@ func (dev *Dev) Write(p []byte) (n int, err error) {
 	w := make([]byte, 0, len(p))
 
 	for pos := 0; pos < len(p); {
-
 		// So, when we're writing, we need to send a control byte first
 		// that says type data, or cmd. We then send the bytes. If the
 		// type changes, then we need to send a new control byte.
@@ -319,7 +265,7 @@ func (dev *Dev) Write(p []byte) (n int, err error) {
 		// set, and we send a control byte for each character sent.
 		var controlByte byte = 0x00
 		if p[pos] == cmdByte {
-			pos += 1
+			pos++
 		} else {
 			controlByte |= dataByte
 		}
@@ -332,7 +278,7 @@ func (dev *Dev) Write(p []byte) (n int, err error) {
 		}
 
 		w = append(w, p[pos])
-		pos += 1
+		pos++
 	}
 	err = dev.d.Tx(w, nil)
 	if err == nil {
@@ -372,3 +318,53 @@ var _ conn.Resource = &Dev{}
 var _ display.TextDisplay = &Dev{}
 var _ display.DisplayBacklight = &Dev{}
 var _ display.DisplayRGBBacklight = &Dev{}
+
+// Perform the display initialization routine,.
+func (dev *Dev) init() error {
+	// Set the lines display value
+	var modeToSet = []byte{cmdByte, displayMode[1]}
+	if dev.rows > 1 {
+		modeToSet[1] |= 0x08
+	}
+	_, err := dev.Write(modeToSet)
+	if err == nil {
+		err = dev.Display(true)
+		time.Sleep(40 * time.Microsecond)
+	}
+	if err == nil {
+		err = dev.Clear()
+		time.Sleep(2000 * time.Microsecond)
+	}
+
+	if err == nil {
+		err = dev.Home()
+		time.Sleep(40 * time.Microsecond)
+	}
+
+	if err == nil {
+		// Set the entry mode
+		_, err = dev.Write(defaultEntryMode)
+	}
+	if err == nil {
+		_ = dev.Backlight(0xff)
+	}
+	if err != nil {
+		err = wrap(err)
+	}
+	return err
+}
+
+// Read the busy flag to make sure it's clear to write. It's a little wonky
+// initially but then smooths out, so it makes a best effort and ignores errors.
+func (dev *Dev) waitForFree() {
+	tLimit := time.Now().Add(3 * time.Millisecond)
+	w := make([]byte, 2)
+	r := make([]byte, 1)
+	for time.Now().Before(tLimit) {
+		err := dev.d.Tx(w, r)
+		if err == nil && (r[0]&busyFlag) == 0 {
+			break
+		}
+		time.Sleep(100 * time.Microsecond)
+	}
+}

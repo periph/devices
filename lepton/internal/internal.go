@@ -88,9 +88,9 @@ func init() {
 
 func makeReversedTable(poly uint16, t *table) {
 	width := uint16(16)
-	for i := uint16(0); i < 256; i++ {
+	for i := range uint16(256) {
 		crc := i << (width - 8)
-		for j := 0; j < 8; j++ {
+		for range 8 {
 			if crc&(1<<(width-1)) != 0 {
 				crc = (crc << 1) ^ poly
 			} else {

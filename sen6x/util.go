@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// SEN6x string-length and typed-pointer helpers.
+// SEN6x string-length helpers.
 
 package sen6x
 
@@ -17,8 +17,4 @@ func clen(n []byte) int {
 	}
 
 	return len(n)
-}
-
-func ptr[T uint16 | int16 | float32](n T) *T {
-	return &n
 }

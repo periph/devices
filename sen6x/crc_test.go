@@ -12,6 +12,7 @@ import (
 )
 
 func TestCRC8(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name string
 		b0   byte
@@ -57,6 +58,7 @@ func TestCRC8(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			got := crc8(tc.b0, tc.b1)
 			if got != tc.want {
 				t.Errorf("got %#02x, want %#02x", got, tc.want)
@@ -66,6 +68,7 @@ func TestCRC8(t *testing.T) {
 }
 
 func TestValidateAndStripCRC(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name    string
 		raw     []byte
@@ -107,6 +110,7 @@ func TestValidateAndStripCRC(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			got, err := validateAndStripCRC(tc.raw)
 
 			if err != nil && !tc.wantErr {
@@ -125,6 +129,7 @@ func TestValidateAndStripCRC(t *testing.T) {
 }
 
 func TestPackWordsWithCRC(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name string
 		raw  []uint16
@@ -150,6 +155,7 @@ func TestPackWordsWithCRC(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			got := packWordsWithCRC(tc.raw)
 			if !bytes.Equal(got, tc.want) {
 				t.Errorf("got %#v, want %#v", got, tc.want)
@@ -159,6 +165,7 @@ func TestPackWordsWithCRC(t *testing.T) {
 }
 
 func TestPackBytesWithCRC(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name    string
 		b       []byte
@@ -195,6 +202,7 @@ func TestPackBytesWithCRC(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			got, err := packBytesWithCRC(tc.b)
 
 			if err != nil && !tc.wantErr {

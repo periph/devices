@@ -23,7 +23,7 @@ import (
 	"periph.io/x/host/v3/rpi"
 )
 
-// EPD commands
+// EPD commands.
 const (
 	driverOutputControl            byte = 0x01
 	boosterSoftStartControl        byte = 0x0C
@@ -55,9 +55,9 @@ type LUT []byte
 type PartialUpdate bool
 
 const (
-	// Full LUT config to update all the display
+	// Full LUT config to update all the display.
 	Full PartialUpdate = false
-	// Partial LUT config only a part of the display
+	// Partial LUT config only a part of the display.
 	Partial PartialUpdate = true
 )
 
@@ -193,6 +193,22 @@ type Opts struct {
 	PartialUpdate LUT
 }
 
+// Dev is an open handle to the display controller.
+type Dev struct {
+	// Communication
+	c    conn.Conn
+	dc   gpio.PinOut
+	cs   gpio.PinOut
+	rst  gpio.PinOut
+	busy gpio.PinIO
+
+	// Display size controlled by the e-paper display.
+	rect image.Rectangle
+
+	update PartialUpdate
+	opts   *Opts
+}
+
 // NewSPI returns a Dev object that communicates over SPI to a E-Paper display controller.
 func NewSPI(p spi.Port, dc, cs, rst gpio.PinOut, busy gpio.PinIO, opts *Opts) (*Dev, error) {
 	if dc == gpio.INVALID {
@@ -229,29 +245,13 @@ func NewSPI(p spi.Port, dc, cs, rst gpio.PinOut, busy gpio.PinIO, opts *Opts) (*
 }
 
 // NewSPIHat returns a Dev object that communicates over SPI
-// and have the default config for the e-paper hat for raspberry pi
+// and have the default config for the e-paper hat for raspberry pi.
 func NewSPIHat(p spi.Port, opts *Opts) (*Dev, error) {
 	dc := rpi.P1_22
 	cs := rpi.P1_24
 	rst := rpi.P1_11
 	busy := rpi.P1_18
 	return NewSPI(p, dc, cs, rst, busy, opts)
-}
-
-// Dev is an open handle to the display controller.
-type Dev struct {
-	// Communication
-	c    conn.Conn
-	dc   gpio.PinOut
-	cs   gpio.PinOut
-	rst  gpio.PinOut
-	busy gpio.PinIO
-
-	// Display size controlled by the e-paper display.
-	rect image.Rectangle
-
-	update PartialUpdate
-	opts   *Opts
 }
 
 func (d *Dev) String() string {
@@ -334,7 +334,7 @@ func (d *Dev) ClearFrameMemory(color byte) error {
 		return err
 	}
 	// send the color data
-	for i := 0; i < (w / 8 * h); i++ {
+	for range w / 8 * h {
 		if err := d.sendData([]byte{color}); err != nil {
 			return err
 		}
@@ -459,7 +459,7 @@ func (d *Dev) Init() error {
 	return d.setLut(Full)
 }
 
-// Reset can be also used to awaken the device
+// Reset can be also used to awaken the device.
 func (d *Dev) Reset() {
 	_ = d.rst.Out(gpio.Low)
 	time.Sleep(200 * time.Millisecond)

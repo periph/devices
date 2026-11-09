@@ -64,7 +64,7 @@ func DetectOpts(bus i2c.Bus) (*Opts, error) {
 	// Read data from EEPROM
 	data, err := readEep(bus)
 	if err != nil {
-		return nil, fmt.Errorf("failed to detect Inky board: %v", err)
+		return nil, fmt.Errorf("failed to detect Inky board: %w", err)
 	}
 	options := new(Opts)
 

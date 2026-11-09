@@ -135,77 +135,12 @@ func (d *Dev) SenseContinuous(interval time.Duration) (<-chan *SensorValues, err
 
 	results := make(chan *SensorValues)
 	d.stop = make(chan struct{})
-	d.wg.Add(1)
-	go func() {
-		defer d.wg.Done()
+	d.wg.Go(func() {
 		defer close(results)
 		d.doSenseContinuous(interval, results, d.stop)
-	}()
+	})
 
 	return results, nil
-}
-
-func (d *Dev) doSenseContinuous(interval time.Duration, results chan<- *SensorValues, stop <-chan struct{}) {
-	t := time.NewTicker(interval)
-	defer t.Stop()
-
-	if err := d.StartContinuousMeasurement(); err != nil {
-		log.Printf("sen6x: failed to start continuous measurement: %v", err)
-		return
-	}
-
-	for {
-		d.mu.Lock()
-
-		if interval < deviceSamplingInterval {
-			if err := d.waitOnDataReady(stop); err != nil {
-				d.mu.Unlock()
-				log.Printf("sen6x: failed to check if data is ready: %v", err)
-				return
-			}
-		}
-
-		sv, err := d.doReadMeasuredValues()
-		d.mu.Unlock()
-
-		if err != nil {
-			log.Printf("sen6x: failed to read measured values: %v", err)
-			return
-		}
-
-		select {
-		case results <- sv:
-		case <-stop:
-			return
-		}
-
-		select {
-		case <-stop:
-			return
-		case <-t.C:
-		}
-	}
-}
-
-func (d *Dev) waitOnDataReady(stop <-chan struct{}) error {
-	t := time.NewTicker(300 * time.Millisecond)
-	defer t.Stop()
-
-	for {
-		ready, err := d.doGetDataReady()
-		if err != nil {
-			return err
-		}
-		if ready {
-			return nil
-		}
-
-		select {
-		case <-stop:
-			return nil
-		case <-t.C:
-		}
-	}
 }
 
 // Halt halts continuous sensing, cleans up resources, and puts the sensor in idle mode.
@@ -262,15 +197,6 @@ func (d *Dev) GetDataReady() (bool, error) {
 	return d.doGetDataReady()
 }
 
-func (d *Dev) doGetDataReady() (bool, error) {
-	data, err := d.writeAndRead(cmdGetDataReady, nil)
-	if err != nil {
-		return false, err
-	}
-
-	return data[1] == 1, nil
-}
-
 // ReadMeasuredValues reads the current measured values. Measurement must have
 // already been started by [Dev.StartContinuousMeasurement]. After starting the
 // measurement, it takes some time (~1.1 s) until the first measurement results
@@ -287,89 +213,6 @@ func (d *Dev) ReadMeasuredValues() (*SensorValues, error) {
 	defer d.mu.Unlock()
 
 	return d.doReadMeasuredValues()
-}
-
-func (d *Dev) doReadMeasuredValues() (*SensorValues, error) {
-	var cmd command
-	switch d.model {
-	case SEN62:
-		cmd = cmdReadMeasuredValuesSEN62
-	case SEN63C:
-		cmd = cmdReadMeasuredValuesSEN63C
-	case SEN65:
-		cmd = cmdReadMeasuredValuesSEN65
-	case SEN66:
-		cmd = cmdReadMeasuredValuesSEN66
-	case SEN68:
-		cmd = cmdReadMeasuredValuesSEN68
-	case SEN69C:
-		cmd = cmdReadMeasuredValuesSEN69C
-	default:
-		return nil, fmt.Errorf("sen6x: unknown model: %v", d.model)
-	}
-
-	data, err := d.writeAndRead(cmd, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	sv := &SensorValues{}
-
-	if rawPM1 := binary.BigEndian.Uint16(data[0:2]); rawPM1 != 0xffff {
-		sv.PM1 = ptr(float32(rawPM1) / 10.0)
-	}
-	if rawPM25 := binary.BigEndian.Uint16(data[2:4]); rawPM25 != 0xffff {
-		sv.PM25 = ptr(float32(rawPM25) / 10.0)
-	}
-	if rawPM4 := binary.BigEndian.Uint16(data[4:6]); rawPM4 != 0xffff {
-		sv.PM4 = ptr(float32(rawPM4) / 10.0)
-	}
-	if rawPM10 := binary.BigEndian.Uint16(data[6:8]); rawPM10 != 0xffff {
-		sv.PM10 = ptr(float32(rawPM10) / 10.0)
-	}
-
-	if rawRH := int16(binary.BigEndian.Uint16(data[8:10])); rawRH != 0x7fff {
-		sv.RH = ptr(float32(rawRH) / 100.0)
-	}
-	if rawTemp := int16(binary.BigEndian.Uint16(data[10:12])); rawTemp != 0x7fff {
-		sv.Temp = ptr(float32(rawTemp) / 200.0)
-	}
-
-	i := 12
-	if d.model.hasVOCNOx() {
-		if rawVOC := int16(binary.BigEndian.Uint16(data[i : i+2])); rawVOC != 0x7fff {
-			sv.VOC = ptr(float32(rawVOC) / 10.0)
-		}
-		i += 2
-
-		if rawNOx := int16(binary.BigEndian.Uint16(data[i : i+2])); rawNOx != 0x7fff {
-			sv.NOx = ptr(float32(rawNOx) / 10.0)
-		}
-		i += 2
-	}
-
-	if d.model.hasHCHO() {
-		if rawHCHO := binary.BigEndian.Uint16(data[i : i+2]); rawHCHO != 0xffff {
-			sv.HCHO = ptr(float32(rawHCHO) / 10.0)
-		}
-		i += 2
-	}
-
-	if d.model.hasCO2() {
-		if d.model == SEN66 {
-			// SEN66 encodes CO2 concentration as a uint16.
-			if rawCO2 := binary.BigEndian.Uint16(data[i : i+2]); rawCO2 != 0xffff {
-				sv.CO2 = ptr(int16(rawCO2))
-			}
-		} else {
-			// SEN63C and SEN69C encode CO2 concentration as an int16.
-			if rawCO2 := int16(binary.BigEndian.Uint16(data[i : i+2])); rawCO2 != 0x7fff {
-				sv.CO2 = ptr(rawCO2)
-			}
-		}
-	}
-
-	return sv, nil
 }
 
 // ReadMeasuredRawValues reads the current raw measured values.
@@ -404,21 +247,21 @@ func (d *Dev) ReadMeasuredRawValues() (*RawSensorValues, error) {
 	rv := &RawSensorValues{}
 
 	if rawRH := int16(binary.BigEndian.Uint16(data[0:2])); rawRH != 0x7fff {
-		rv.RH = ptr(float32(rawRH) / 100)
+		rv.RH = new(float32(rawRH) / 100)
 	}
 	if rawTemp := int16(binary.BigEndian.Uint16(data[2:4])); rawTemp != 0x7fff {
-		rv.Temp = ptr(float32(rawTemp) / 200)
+		rv.Temp = new(float32(rawTemp) / 200)
 	}
 
 	i := 4
 	if d.model.hasVOCNOx() {
 		if rawVOC := binary.BigEndian.Uint16(data[i : i+2]); rawVOC != 0xffff {
-			rv.VOC = ptr(rawVOC)
+			rv.VOC = new(rawVOC)
 		}
 		i += 2
 
 		if rawNOx := binary.BigEndian.Uint16(data[i : i+2]); rawNOx != 0xffff {
-			rv.NOx = ptr(rawNOx)
+			rv.NOx = new(rawNOx)
 		}
 		i += 2
 	}
@@ -428,7 +271,7 @@ func (d *Dev) ReadMeasuredRawValues() (*RawSensorValues, error) {
 	// raw CO2 measurements.
 	if d.model == SEN66 {
 		if rawCO2 := binary.BigEndian.Uint16(data[i : i+2]); rawCO2 != 0xffff {
-			rv.CO2 = ptr(rawCO2)
+			rv.CO2 = new(rawCO2)
 		}
 	}
 
@@ -500,7 +343,7 @@ func (d *Dev) writeAndWait(cmd command, txData []byte) error {
 	buf[1] = byte(cmd.id)
 	copy(buf[2:], txData)
 
-	if err := d.dev.Tx(buf[:], nil); err != nil {
+	if err := d.dev.Tx(buf, nil); err != nil {
 		return err
 	}
 
@@ -530,3 +373,158 @@ func (d *Dev) writeAndRead(cmd command, txData []byte) ([]byte, error) {
 }
 
 var _ conn.Resource = &Dev{}
+
+func (d *Dev) doSenseContinuous(interval time.Duration, results chan<- *SensorValues, stop <-chan struct{}) {
+	t := time.NewTicker(interval)
+	defer t.Stop()
+
+	if err := d.StartContinuousMeasurement(); err != nil {
+		log.Printf("sen6x: failed to start continuous measurement: %v", err)
+		return
+	}
+
+	for {
+		d.mu.Lock()
+
+		if interval < deviceSamplingInterval {
+			if err := d.waitOnDataReady(stop); err != nil {
+				d.mu.Unlock()
+				log.Printf("sen6x: failed to check if data is ready: %v", err)
+				return
+			}
+		}
+
+		sv, err := d.doReadMeasuredValues()
+		d.mu.Unlock()
+
+		if err != nil {
+			log.Printf("sen6x: failed to read measured values: %v", err)
+			return
+		}
+
+		select {
+		case results <- sv:
+		case <-stop:
+			return
+		}
+
+		select {
+		case <-stop:
+			return
+		case <-t.C:
+		}
+	}
+}
+
+func (d *Dev) waitOnDataReady(stop <-chan struct{}) error {
+	t := time.NewTicker(300 * time.Millisecond)
+	defer t.Stop()
+
+	for {
+		ready, err := d.doGetDataReady()
+		if err != nil {
+			return err
+		}
+		if ready {
+			return nil
+		}
+
+		select {
+		case <-stop:
+			return nil
+		case <-t.C:
+		}
+	}
+}
+
+func (d *Dev) doGetDataReady() (bool, error) {
+	data, err := d.writeAndRead(cmdGetDataReady, nil)
+	if err != nil {
+		return false, err
+	}
+
+	return data[1] == 1, nil
+}
+
+func (d *Dev) doReadMeasuredValues() (*SensorValues, error) {
+	var cmd command
+	switch d.model {
+	case SEN62:
+		cmd = cmdReadMeasuredValuesSEN62
+	case SEN63C:
+		cmd = cmdReadMeasuredValuesSEN63C
+	case SEN65:
+		cmd = cmdReadMeasuredValuesSEN65
+	case SEN66:
+		cmd = cmdReadMeasuredValuesSEN66
+	case SEN68:
+		cmd = cmdReadMeasuredValuesSEN68
+	case SEN69C:
+		cmd = cmdReadMeasuredValuesSEN69C
+	default:
+		return nil, fmt.Errorf("sen6x: unknown model: %v", d.model)
+	}
+
+	data, err := d.writeAndRead(cmd, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	sv := &SensorValues{}
+
+	if rawPM1 := binary.BigEndian.Uint16(data[0:2]); rawPM1 != 0xffff {
+		sv.PM1 = new(float32(rawPM1) / 10.0)
+	}
+	if rawPM25 := binary.BigEndian.Uint16(data[2:4]); rawPM25 != 0xffff {
+		sv.PM25 = new(float32(rawPM25) / 10.0)
+	}
+	if rawPM4 := binary.BigEndian.Uint16(data[4:6]); rawPM4 != 0xffff {
+		sv.PM4 = new(float32(rawPM4) / 10.0)
+	}
+	if rawPM10 := binary.BigEndian.Uint16(data[6:8]); rawPM10 != 0xffff {
+		sv.PM10 = new(float32(rawPM10) / 10.0)
+	}
+
+	if rawRH := int16(binary.BigEndian.Uint16(data[8:10])); rawRH != 0x7fff {
+		sv.RH = new(float32(rawRH) / 100.0)
+	}
+	if rawTemp := int16(binary.BigEndian.Uint16(data[10:12])); rawTemp != 0x7fff {
+		sv.Temp = new(float32(rawTemp) / 200.0)
+	}
+
+	i := 12
+	if d.model.hasVOCNOx() {
+		if rawVOC := int16(binary.BigEndian.Uint16(data[i : i+2])); rawVOC != 0x7fff {
+			sv.VOC = new(float32(rawVOC) / 10.0)
+		}
+		i += 2
+
+		if rawNOx := int16(binary.BigEndian.Uint16(data[i : i+2])); rawNOx != 0x7fff {
+			sv.NOx = new(float32(rawNOx) / 10.0)
+		}
+		i += 2
+	}
+
+	if d.model.hasHCHO() {
+		if rawHCHO := binary.BigEndian.Uint16(data[i : i+2]); rawHCHO != 0xffff {
+			sv.HCHO = new(float32(rawHCHO) / 10.0)
+		}
+		i += 2
+	}
+
+	if d.model.hasCO2() {
+		if d.model == SEN66 {
+			// SEN66 encodes CO2 concentration as a uint16.
+			if rawCO2 := binary.BigEndian.Uint16(data[i : i+2]); rawCO2 != 0xffff {
+				sv.CO2 = new(int16(rawCO2))
+			}
+		} else {
+			// SEN63C and SEN69C encode CO2 concentration as an int16.
+			if rawCO2 := int16(binary.BigEndian.Uint16(data[i : i+2])); rawCO2 != 0x7fff {
+				sv.CO2 = new(rawCO2)
+			}
+		}
+	}
+
+	return sv, nil
+}

@@ -20,7 +20,7 @@ import (
 // PPM=Parts Per Million. Units of measure for CO2 concentration.
 type PPM int
 
-// Sensor Variant type
+// Sensor Variant type.
 type Variant int
 
 const (
@@ -33,7 +33,7 @@ type ResetMode int
 
 const (
 	ResetFactory ResetMode = iota
-	// Reset to last values stored in EEPROM
+	// Reset to last values stored in EEPROM.
 	ResetEEPROM
 )
 
@@ -196,6 +196,7 @@ func (ppm *PPM) String() string {
 // The sensor reading. Returns CO2 PPM, Temperature, and Humidity.
 type Env struct {
 	physic.Env
+
 	CO2 PPM
 }
 
@@ -220,7 +221,6 @@ func NewI2C(b i2c.Bus, addr uint16) (*Dev, error) {
 //	cfg, _ :=dev.GetConfiguration()
 //	fmt.Printf("Configuration=%#v\n", cfg)
 func (d *Dev) GetConfiguration() (*DevConfig, error) {
-
 	cfg := &DevConfig{}
 	var words []uint16
 	var err error
@@ -282,7 +282,6 @@ func (d *Dev) GetConfiguration() (*DevConfig, error) {
 // commit the writes to EEPROM. If you do not persist changes, then those settings
 // will be lost when the unit is power-cycled.
 func (d *Dev) SetConfiguration(newCfg *DevConfig) error {
-
 	_ = d.Halt()
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -302,7 +301,6 @@ func (d *Dev) SetConfiguration(newCfg *DevConfig) error {
 	}
 
 	if currentConfig.ASCEnabled != newCfg.ASCEnabled {
-
 		if newCfg.ASCEnabled {
 			w[0] = 1
 		} else {
@@ -395,11 +393,12 @@ func (d *Dev) Persist() error {
 // ResetFactory DOES NOT reset AmbientPressure to 0.
 func (d *Dev) Reset(mode ResetMode) error {
 	var err error
-	if mode == ResetFactory {
+	switch mode {
+	case ResetFactory:
 		_, err = d.sendCommand(cmdPerformFactoryReset, nil)
-	} else if mode == ResetEEPROM {
+	case ResetEEPROM:
 		_, err = d.sendCommand(cmdReinit, nil)
-	} else {
+	default:
 		err = fmt.Errorf("scd4x: invalid reset mode 0x%x", mode)
 	}
 	return err
@@ -417,85 +416,13 @@ func makeWriteData(data []uint16) []byte {
 	return bytes
 }
 
-// All commands to read or write to the sensor go through this function.
-func (d *Dev) sendCommand(cmd command, writeData []uint16) ([]uint16, error) {
-
-	if d.sensing && !cmd.whileSensing {
-		// We're in sense mode and this command isn't compatible. Stop sensing.
-		if err := d.Halt(); err != nil {
-			return nil, err
-		}
-	}
-
-	w := make([]byte, 2)
-	w[0] = byte((cmd.cmdWord >> 8) & 0xff)
-	w[1] = byte(cmd.cmdWord & 0xff)
-	if writeData != nil {
-		writeBytes := makeWriteData(writeData)
-		w = append(w, writeBytes...)
-	}
-	var r []byte
-	if cmd.responseSize > 0 {
-		r = make([]byte, cmd.responseSize)
-	}
-
-	err := d.d.Tx(w, r)
-	if err != nil {
-		return nil, fmt.Errorf("scd4x cmd 0x%x: %w", cmd.cmdWord, err)
-	}
-	if cmd.responseSize == 0 {
-		return nil, nil
-	}
-
-	// OK, we need to convert the bytes into a slice of words and
-	// verify the CRC as we go.
-	result := make([]uint16, cmd.responseSize/3)
-	for ix := range len(result) {
-		crc := common.CRC8(r[ix*3 : ix*3+2])
-		if r[ix*3+2] != crc {
-			return nil, fmt.Errorf("scd4x cmd 0x%x: invalid crc", cmd.cmdWord)
-		}
-
-		word := uint16(r[ix*3])<<8 | uint16(r[ix*3+1])
-
-		result[ix] = word
-	}
-
-	return result, nil
-}
-
-// start continuous sensing.
-func (d *Dev) start() error {
-	if d.sensing {
-		return nil
-	}
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	_, err := d.sendCommand(cmdWakeUp, nil)
-	if err != nil {
-		// If an SCD4x is in measurement mode, then any non-measurement mode
-		// command will return an error. In that case, send a stop measurement
-		// command, wait the specified time and try sending a re-init.
-		_, _ = d.sendCommand(cmdStopMeasurement, nil)
-		time.Sleep(550 * time.Millisecond)
-	}
-	time.Sleep(50 * time.Millisecond)
-
-	_, err = d.sendCommand(cmdStartMeasurement, nil)
-	if err == nil {
-		d.sensing = true
-	}
-	return err
-}
-
 // Formula used for temperature offset calculation.
 func countToOffset(count uint16) physic.Temperature {
 	frac := 175.0 / 65535.0
 	return physic.Temperature(frac * float64(count))
 }
 
-// countToTemp converts a device count to Temperature
+// countToTemp converts a device count to Temperature.
 func countToTemp(count uint16) physic.Temperature {
 	frac := float64(count) / 65535.0
 	result := -45 + 175*frac
@@ -606,5 +533,76 @@ func (d *Dev) Precision(env *Env) {
 }
 
 func (d *Dev) String() string {
-	return fmt.Sprintf("scd4x: %s", d.d.String())
+	return "scd4x: " + d.d.String()
+}
+
+// All commands to read or write to the sensor go through this function.
+func (d *Dev) sendCommand(cmd command, writeData []uint16) ([]uint16, error) {
+	if d.sensing && !cmd.whileSensing {
+		// We're in sense mode and this command isn't compatible. Stop sensing.
+		if err := d.Halt(); err != nil {
+			return nil, err
+		}
+	}
+
+	w := make([]byte, 2)
+	w[0] = byte((cmd.cmdWord >> 8) & 0xff)
+	w[1] = byte(cmd.cmdWord & 0xff)
+	if writeData != nil {
+		writeBytes := makeWriteData(writeData)
+		w = append(w, writeBytes...) //nolint:makezero // The existing prefix contains the command.
+	}
+	var r []byte
+	if cmd.responseSize > 0 {
+		r = make([]byte, cmd.responseSize)
+	}
+
+	err := d.d.Tx(w, r)
+	if err != nil {
+		return nil, fmt.Errorf("scd4x cmd 0x%x: %w", cmd.cmdWord, err)
+	}
+	if cmd.responseSize == 0 {
+		return nil, nil
+	}
+
+	// OK, we need to convert the bytes into a slice of words and
+	// verify the CRC as we go.
+	result := make([]uint16, cmd.responseSize/3)
+	for ix := range result {
+		crc := common.CRC8(r[ix*3 : ix*3+2])
+		if r[ix*3+2] != crc {
+			return nil, fmt.Errorf("scd4x cmd 0x%x: invalid crc", cmd.cmdWord)
+		}
+
+		word := uint16(r[ix*3])<<8 | uint16(r[ix*3+1])
+
+		result[ix] = word
+	}
+
+	return result, nil
+}
+
+// start continuous sensing.
+func (d *Dev) start() error {
+	if d.sensing {
+		return nil
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	_, err := d.sendCommand(cmdWakeUp, nil)
+	if err != nil {
+		// If an SCD4x is in measurement mode, then any non-measurement mode
+		// command will return an error. In that case, send a stop measurement
+		// command, wait the specified time and try sending a re-init.
+		_, _ = d.sendCommand(cmdStopMeasurement, nil)
+		time.Sleep(550 * time.Millisecond)
+	}
+	time.Sleep(50 * time.Millisecond)
+
+	_, err = d.sendCommand(cmdStartMeasurement, nil)
+	if err == nil {
+		d.sensing = true
+	}
+	return err
 }

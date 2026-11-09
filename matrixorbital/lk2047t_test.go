@@ -7,6 +7,7 @@
 package matrixorbital
 
 import (
+	"errors"
 	"fmt"
 	"hash"
 	"hash/crc32"
@@ -33,10 +34,10 @@ func (mr *mockReadWriterCloser) Read(p []byte) (n int, err error) {
 	if mr.closed {
 		err = io.EOF
 	}
-	cPos := rand.Intn(len(mr.readChars))
-	p[0] = byte(mr.readChars[cPos])
+	cPos := rand.Intn(len(mr.readChars)) // #nosec G404 -- Randomness only varies test inputs.
+	p[0] = mr.readChars[cPos]
 	n = 1
-	mr.bytesRead += 1
+	mr.bytesRead++
 	return
 }
 
@@ -46,7 +47,9 @@ func (mr *mockReadWriterCloser) Write(p []byte) (n int, err error) {
 		return
 	}
 	n = len(p)
-	mr.hash.Write(p)
+	if _, err = mr.hash.Write(p); err != nil {
+		return
+	}
 	mr.bytesWritten += n
 	return
 }
@@ -72,7 +75,6 @@ func (mr *mockReadWriterCloser) Shutdown(t *testing.T, expectedHash uint32) {
 // getDisplay returns an LCD display constructed with a mock read/writer for
 // testing.
 func getDisplay() (*LK2047T, *mockReadWriterCloser) {
-
 	wr := &mockReadWriterCloser{readChars: "ABCDEGH", hash: crc32.NewIEEE()}
 
 	return NewWriterLK2047T(wr, 4, 20), wr
@@ -95,9 +97,9 @@ func TestTextDisplay(t *testing.T) {
 func TestInterface(t *testing.T) {
 	dev, mock := getDisplay()
 	defer mock.Shutdown(t, 0x1d42cd75)
-	errors := displaytest.TestTextDisplay(dev, false)
-	for _, err := range errors {
-		if err != display.ErrNotImplemented {
+	testErrors := displaytest.TestTextDisplay(dev, false)
+	for _, err := range testErrors {
+		if !errors.Is(err, display.ErrNotImplemented) {
 			t.Error(err)
 		}
 	}
@@ -172,7 +174,6 @@ func TestKeypad(t *testing.T) {
 	go func() {
 		for {
 			if received.Load() >= expected {
-
 				if err := dev.Halt(); err != nil {
 					t.Error(err)
 				}

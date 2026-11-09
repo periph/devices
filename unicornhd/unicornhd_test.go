@@ -271,8 +271,8 @@ func TestDrawWritesSequenceImageToSpi(t *testing.T) {
 
 	img := image.NewNRGBA(image.Rect(0, 0, width, height))
 	var c uint8
-	for y := 0; y < height; y++ {
-		for x := 0; x < width; x++ {
+	for y := range height {
+		for x := range width {
 			r := c
 			c++
 			// Blue is set before Green on purpose to avoid having a straight sequence.
@@ -360,6 +360,6 @@ type spiFail struct {
 	spitest.Playback
 }
 
-func (s *spiFail) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, error) {
+func (s *spiFail) Connect(_ physic.Frequency, _ spi.Mode, _ int) (spi.Conn, error) {
 	return nil, errors.New("failing")
 }

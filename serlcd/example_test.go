@@ -29,7 +29,11 @@ func Example() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer bus.Close()
+	defer func() {
+		if closeErr := bus.Close(); closeErr != nil {
+			log.Print(closeErr)
+		}
+	}()
 
 	conn := &i2c.Dev{Bus: bus, Addr: serlcd.DefaultI2CAddress}
 	dev := serlcd.NewConn(conn, 4, 20)
@@ -48,5 +52,4 @@ func Example() {
 			fmt.Println(e)
 		}
 	}
-
 }

@@ -8,6 +8,7 @@ package mcp472x
 
 import (
 	"encoding/json"
+	"errors"
 	"math"
 	"testing"
 	"time"
@@ -40,7 +41,6 @@ func TestBasic(t *testing.T) {
 }
 
 func TestPotentialToCount(t *testing.T) {
-
 	d, err := New(nil, 0, MCP4728, MCP4728InternalRef)
 	if err != nil {
 		t.Fatal(err)
@@ -215,7 +215,6 @@ func TestOutputParams4728(t *testing.T) {
 		} else {
 			t.Errorf("testcase %s expected %d bytes, received %d", tc.outputParam.String(), len(tc.expectedBytes), len(bytes))
 		}
-
 	}
 }
 
@@ -283,7 +282,7 @@ func testSetEEPROM(d *Dev, dac byte, t *testing.T) {
 			t.Errorf("Read EEPROM after program. Expected PDMode %d, got %d", op.PDMode, curEeprom.PDMode)
 		}
 		op.V *= 2
-		op.PDMode += 1
+		op.PDMode++
 	}
 }
 
@@ -312,7 +311,7 @@ func testFastWrite(d *Dev, t *testing.T) {
 	// Now, write 768mV to all channels.
 	vTest := 768 * physic.MilliVolt
 	count, _, _ := d.PotentialToCount(vTest)
-	for ix := range len(vals) {
+	for ix := range vals {
 		vals[ix] = count
 	}
 	t.Logf("Writing %s to all channels", vTest)
@@ -324,7 +323,7 @@ func testFastWrite(d *Dev, t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	for ix := range len(cur) {
+	for ix := range cur {
 		diffMillivolts := math.Abs(float64((cur[ix].V - vTest) / physic.MilliVolt))
 		if diffMillivolts > 2 {
 			t.Errorf("Channel %d expected %s, received %s", ix, vTest, cur[ix].V)
@@ -343,14 +342,13 @@ func TestSetGetOutput4728(t *testing.T) {
 	testSetGetOutput(d, t)
 
 	err = d.SetOutput()
-	if err == nil || err != errInvalidInputCount {
+	if err == nil || !errors.Is(err, errInvalidInputCount) {
 		t.Error("SetOutput() failed to error on zero outputs")
 	}
 	err = d.SetOutput(SetOutputParam{}, SetOutputParam{}, SetOutputParam{}, SetOutputParam{}, SetOutputParam{})
-	if err == nil || err != errInvalidInputCount {
+	if err == nil || !errors.Is(err, errInvalidInputCount) {
 		t.Error("SetOutput() failed to error on too many outputs")
 	}
-
 }
 
 func TestSetEEPROM4728(t *testing.T) {
@@ -361,14 +359,13 @@ func TestSetEEPROM4728(t *testing.T) {
 	testSetEEPROM(d, 2, t)
 
 	err = d.SetOutputWithSave()
-	if err == nil || err != errInvalidInputCount {
+	if err == nil || !errors.Is(err, errInvalidInputCount) {
 		t.Error("SetOutputWithSave() failed to error on zero outputs")
 	}
 	err = d.SetOutputWithSave(SetOutputParam{}, SetOutputParam{}, SetOutputParam{}, SetOutputParam{}, SetOutputParam{})
-	if err == nil || err != errInvalidInputCount {
+	if err == nil || !errors.Is(err, errInvalidInputCount) {
 		t.Error("SetOutputWithSave() failed to error on too many outputs")
 	}
-
 }
 
 func TestFastWrite4728(t *testing.T) {

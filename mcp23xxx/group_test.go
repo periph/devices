@@ -34,13 +34,15 @@ func TestGroup(t *testing.T) {
 	// The test fixture has an led on pin 0, and also wires pin 0 -> pin 4.
 	// If I don't set pin 4 for input, then it breaks the LED blinking.
 	// It's not important to the test, but it's nice to have a visual indicator.
-	reader, _ := interface{}(extender.Pins[0][4]).(gpio.PinIn)
+	reader, _ := any(extender.Pins[0][4]).(gpio.PinIn)
 	_ = reader.In(gpio.PullNoChange, gpio.NoEdge)
-	var ifpin interface{} = extender.Pins[0][0]
+	var ifpin any = extender.Pins[0][0]
 	if writer, ok := ifpin.(gpio.PinOut); ok {
 		l := gpio.High
 		for range 20 {
-			writer.Out(l)
+			if err := writer.Out(l); err != nil {
+				t.Fatal(err)
+			}
 			l = !l
 			if liveTest {
 				time.Sleep(500 * time.Millisecond)
@@ -70,15 +72,22 @@ func TestReadWrite(t *testing.T) {
 		t.Error("gRead is nil!")
 	}
 	// Turn off the GPIOs
-	defer gOut.Out(0, 0)
-	defer gRead.Out(0, 0)
+	outGroup, readGroup := gOut, gRead
+	t.Cleanup(func() {
+		if err := outGroup.Out(0, 0); err != nil {
+			t.Error(err)
+		}
+	})
+	t.Cleanup(func() {
+		if err := readGroup.Out(0, 0); err != nil {
+			t.Error(err)
+		}
+	})
 
 	for i := range 2 {
 		if i == 1 {
 			/* Now invert it. */
-			x := gRead
-			gRead = gOut
-			gOut = x
+			gRead, gOut = gOut, gRead
 		}
 		for i := range gpio.GPIOValue(16) {
 			err := gOut.Out(i, 0)
@@ -107,9 +116,13 @@ func TestReadWrite(t *testing.T) {
 		wvalue := i
 		for bit := range 4 {
 			if (wvalue & (1 << bit)) == (1 << bit) {
-				pinset[bit].Out(gpio.High)
+				if err := pinset[bit].Out(gpio.High); err != nil {
+					t.Fatal(err)
+				}
 			} else {
-				pinset[bit].Out(gpio.Low)
+				if err := pinset[bit].Out(gpio.Low); err != nil {
+					t.Fatal(err)
+				}
 			}
 		}
 		r, err := gRead.Read(0)

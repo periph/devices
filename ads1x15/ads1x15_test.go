@@ -17,6 +17,7 @@ import (
 )
 
 func TestChannel_String(t *testing.T) {
+	t.Parallel()
 	// Mainly to increase test coverage...
 	data := []struct {
 		c        Channel
@@ -40,6 +41,7 @@ func TestChannel_String(t *testing.T) {
 }
 
 func TestChannel_number(t *testing.T) {
+	t.Parallel()
 	// Mainly to increase test coverage...
 	data := []struct {
 		c        Channel
@@ -64,7 +66,11 @@ func TestChannel_number(t *testing.T) {
 
 func TestDev_String(t *testing.T) {
 	b := i2ctest.Playback{}
-	defer b.Close()
+	t.Cleanup(func() {
+		if err := b.Close(); err != nil {
+			t.Error(err)
+		}
+	})
 	d, err := NewADS1115(&b, &DefaultOpts)
 	if err != nil {
 		t.Fatal(err)
@@ -79,7 +85,11 @@ func TestDev_String(t *testing.T) {
 
 func TestPinADC(t *testing.T) {
 	b := i2ctest.Playback{}
-	defer b.Close()
+	t.Cleanup(func() {
+		if err := b.Close(); err != nil {
+			t.Error(err)
+		}
+	})
 	d, err := NewADS1015(&b, &DefaultOpts)
 	if err != nil {
 		t.Fatal(err)
@@ -101,16 +111,20 @@ func TestPinADC(t *testing.T) {
 	if v := p.Function(); v != "ADC" {
 		t.Fatal(v)
 	}
-	if v := p.(pin.PinFunc).Func(); v != analog.ADC {
+	pf, ok := p.(pin.PinFunc)
+	if !ok {
+		t.Fatalf("pin type %T does not implement pin.PinFunc", p)
+	}
+	if v := pf.Func(); v != analog.ADC {
 		t.Fatal(v)
 	}
-	if v := p.(pin.PinFunc).SupportedFuncs(); !reflect.DeepEqual(v, []pin.Func{analog.ADC}) {
+	if v := pf.SupportedFuncs(); !reflect.DeepEqual(v, []pin.Func{analog.ADC}) {
 		t.Fatal(v)
 	}
-	if err := p.(pin.PinFunc).SetFunc(analog.ADC); err != nil {
+	if err := pf.SetFunc(analog.ADC); err != nil {
 		t.Fatal(err)
 	}
-	if err := p.(pin.PinFunc).SetFunc(pin.FuncNone); err == nil {
+	if err := pf.SetFunc(pin.FuncNone); err == nil {
 		t.Fatal("expected failure")
 	}
 }
@@ -130,7 +144,11 @@ func TestPinADC_Read(t *testing.T) {
 			},
 		},
 	}
-	defer b.Close()
+	t.Cleanup(func() {
+		if err := b.Close(); err != nil {
+			t.Error(err)
+		}
+	})
 
 	d, err := NewADS1015(&b, &DefaultOpts)
 	if err != nil {
@@ -212,7 +230,8 @@ func TestPinADC_ReadContinous(t *testing.T) {
 		},
 		DontPanic: true,
 	}
-	defer b.Close()
+	// Optional extra polling transactions may remain when the reader stops.
+	t.Cleanup(func() { _ = b.Close() })
 
 	rawValues := []int32{21200, 21184}
 	voltValues := []physic.ElectricPotential{3975 * physic.MilliVolt, 3972 * physic.MilliVolt}

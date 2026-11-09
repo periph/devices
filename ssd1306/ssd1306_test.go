@@ -479,7 +479,7 @@ func TestI2C_Halt(t *testing.T) {
 
 func TestNewSPI_fail(t *testing.T) {
 	if d, err := NewSPI(&spitest.Playback{
-		Playback: conntest.Playback{Ops: []conntest.IO{{W: []byte{0}, R: []byte{0x06}}}},
+		Ops: []conntest.IO{{W: []byte{0}, R: []byte{0x06}}},
 	}, nil, &Opts{H: 64}); d != nil || err == nil {
 		t.Fatal(d, err)
 	}
@@ -496,18 +496,16 @@ func TestNewSPI_fail(t *testing.T) {
 
 func TestSPI_3wire(t *testing.T) {
 	// Not supported yet.
-	if dev, err := NewSPI(&spitest.Playback{Playback: conntest.Playback{Ops: []conntest.IO{{W: []byte{0}, R: []byte{0x06}}}}}, nil, &DefaultOpts); dev != nil || err == nil {
+	if dev, err := NewSPI(&spitest.Playback{Ops: []conntest.IO{{W: []byte{0}, R: []byte{0x06}}}}, nil, &DefaultOpts); dev != nil || err == nil {
 		t.Fatal("SPI 3-wire is not supported")
 	}
 }
 
 func TestSPI_4wire_String(t *testing.T) {
 	port := spitest.Playback{
-		Playback: conntest.Playback{
-			Ops: []conntest.IO{
-				{W: []byte{0x00}, R: []byte{0x06}},
-				{W: getInitCmd(&Opts{W: 128, H: 64, MirrorVertical: false, MirrorHorizontal: false}, _SSD1306)},
-			},
+		Ops: []conntest.IO{
+			{W: []byte{0x00}, R: []byte{0x06}},
+			{W: getInitCmd(&Opts{W: 128, H: 64, MirrorVertical: false, MirrorHorizontal: false}, _SSD1306)},
 		},
 	}
 	dev, err := NewSPI(&port, &gpiotest.Pin{N: "pin1", Num: 42}, &DefaultOpts)
@@ -530,40 +528,38 @@ func TestSPI_4wire_Write_differential(t *testing.T) {
 	buf2[130-128] = 1
 	buf2[131-128] = 2
 	port := spitest.Playback{
-		Playback: conntest.Playback{
-			Ops: []conntest.IO{
-				{W: []byte{0}, R: []byte{0x06}},
-				{W: getInitCmd(&Opts{W: 128, H: 64, MirrorVertical: false, MirrorHorizontal: false}, _SSD1306)},
+		Ops: []conntest.IO{
+			{W: []byte{0}, R: []byte{0x06}},
+			{W: getInitCmd(&Opts{W: 128, H: 64, MirrorVertical: false, MirrorHorizontal: false}, _SSD1306)},
 
-				// Page 1
-				{W: []byte{0xB0, 0x00, 0x10}},
-				{W: buf1},
-				// Page 2
-				{W: []byte{0xB1, 0x00, 0x10}},
-				{W: make([]byte, 128)},
-				// Page 3
-				{W: []byte{0xB2, 0x00, 0x10}},
-				{W: make([]byte, 128)},
-				// Page 4
-				{W: []byte{0xB3, 0x00, 0x10}},
-				{W: make([]byte, 128)},
-				// Page 5
-				{W: []byte{0xB4, 0x00, 0x10}},
-				{W: make([]byte, 128)},
-				// Page 6
-				{W: []byte{0xB5, 0x00, 0x10}},
-				{W: make([]byte, 128)},
-				// Page 7
-				{W: []byte{0xB6, 0x00, 0x10}},
-				{W: make([]byte, 128)},
-				// Page 8
-				{W: []byte{0xB7, 0x00, 0x10}},
-				{W: make([]byte, 128)},
+			// Page 1
+			{W: []byte{0xB0, 0x00, 0x10}},
+			{W: buf1},
+			// Page 2
+			{W: []byte{0xB1, 0x00, 0x10}},
+			{W: make([]byte, 128)},
+			// Page 3
+			{W: []byte{0xB2, 0x00, 0x10}},
+			{W: make([]byte, 128)},
+			// Page 4
+			{W: []byte{0xB3, 0x00, 0x10}},
+			{W: make([]byte, 128)},
+			// Page 5
+			{W: []byte{0xB4, 0x00, 0x10}},
+			{W: make([]byte, 128)},
+			// Page 6
+			{W: []byte{0xB5, 0x00, 0x10}},
+			{W: make([]byte, 128)},
+			// Page 7
+			{W: []byte{0xB6, 0x00, 0x10}},
+			{W: make([]byte, 128)},
+			// Page 8
+			{W: []byte{0xB7, 0x00, 0x10}},
+			{W: make([]byte, 128)},
 
-				// Only write to column 3 of page 1
-				{W: []byte{0xB1, 0x03, 0x10}},
-				{W: []byte{0x02}},
-			},
+			// Only write to column 3 of page 1
+			{W: []byte{0xB1, 0x03, 0x10}},
+			{W: []byte{0x02}},
 		},
 	}
 	dev, err := NewSPI(&port, &gpiotest.Pin{N: "pin1", Num: 42}, &DefaultOpts)
@@ -588,36 +584,34 @@ func TestSPI_4wire_Write_differential_fail(t *testing.T) {
 	buf1 := make([]byte, 128)
 	buf1[29] = 1
 	port := spitest.Playback{
-		Playback: conntest.Playback{
-			Ops: []conntest.IO{
-				{W: getInitCmd(&Opts{W: 128, H: 64, MirrorVertical: false, MirrorHorizontal: false}, _SSD1306)},
-				// Page 1
-				{W: []byte{0xB0, 0x00, 0x10}},
-				{W: buf1},
-				// Page 2
-				{W: []byte{0xB1, 0x00, 0x10}},
-				{W: make([]byte, 128)},
-				// Page 3
-				{W: []byte{0xB2, 0x00, 0x10}},
-				{W: make([]byte, 128)},
-				// Page 4
-				{W: []byte{0xB3, 0x00, 0x10}},
-				{W: make([]byte, 128)},
-				// Page 5
-				{W: []byte{0xB4, 0x00, 0x10}},
-				{W: make([]byte, 128)},
-				// Page 6
-				{W: []byte{0xB5, 0x00, 0x10}},
-				{W: make([]byte, 128)},
-				// Page 7
-				{W: []byte{0xB6, 0x00, 0x10}},
-				{W: make([]byte, 128)},
-				// Page 8
-				{W: []byte{0xB7, 0x00, 0x10}},
-				{W: make([]byte, 128)},
-			},
-			DontPanic: true,
+		Ops: []conntest.IO{
+			{W: getInitCmd(&Opts{W: 128, H: 64, MirrorVertical: false, MirrorHorizontal: false}, _SSD1306)},
+			// Page 1
+			{W: []byte{0xB0, 0x00, 0x10}},
+			{W: buf1},
+			// Page 2
+			{W: []byte{0xB1, 0x00, 0x10}},
+			{W: make([]byte, 128)},
+			// Page 3
+			{W: []byte{0xB2, 0x00, 0x10}},
+			{W: make([]byte, 128)},
+			// Page 4
+			{W: []byte{0xB3, 0x00, 0x10}},
+			{W: make([]byte, 128)},
+			// Page 5
+			{W: []byte{0xB4, 0x00, 0x10}},
+			{W: make([]byte, 128)},
+			// Page 6
+			{W: []byte{0xB5, 0x00, 0x10}},
+			{W: make([]byte, 128)},
+			// Page 7
+			{W: []byte{0xB6, 0x00, 0x10}},
+			{W: make([]byte, 128)},
+			// Page 8
+			{W: []byte{0xB7, 0x00, 0x10}},
+			{W: make([]byte, 128)},
 		},
+		DontPanic: true,
 	}
 	dev, err := NewSPI(&port, &gpiotest.Pin{N: "pin1", Num: 42}, &DefaultOpts)
 	if err != nil {
@@ -639,11 +633,9 @@ func TestSPI_4wire_Write_differential_fail(t *testing.T) {
 
 func TestSPI_4wire_gpio_fail(t *testing.T) {
 	port := spitest.Playback{
-		Playback: conntest.Playback{
-			Ops: []conntest.IO{
-				{W: []byte{0}, R: []byte{0x06}},
-				{W: getInitCmd(&Opts{W: 128, H: 64, MirrorVertical: false, MirrorHorizontal: false}, _SSD1306)},
-			},
+		Ops: []conntest.IO{
+			{W: []byte{0}, R: []byte{0x06}},
+			{W: getInitCmd(&Opts{W: 128, H: 64, MirrorVertical: false, MirrorHorizontal: false}, _SSD1306)},
 		},
 	}
 	pin := &failPin{fail: false}
@@ -728,16 +720,17 @@ type configFail struct {
 	spitest.Record
 }
 
-func (c *configFail) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, error) {
+func (c *configFail) Connect(_ physic.Frequency, _ spi.Mode, _ int) (spi.Conn, error) {
 	return nil, errors.New("injected error")
 }
 
 type failPin struct {
 	gpiotest.Pin
+
 	fail bool
 }
 
-func (f *failPin) Out(l gpio.Level) error {
+func (f *failPin) Out(_ gpio.Level) error {
 	if f.fail {
 		return errors.New("injected error")
 	}

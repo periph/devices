@@ -53,14 +53,14 @@ var BitModel = color.ModelFunc(convert)
 // pixels high with LSB first. So the first byte represents the following
 // pixels, with lowest bit being the top left pixel.
 //
-//	0 x x x x x x x
-//	1 x x x x x x x
-//	2 x x x x x x x
-//	3 x x x x x x x
-//	4 x x x x x x x
-//	5 x x x x x x x
-//	6 x x x x x x x
-//	7 x x x x x x x
+//	0 x
+//	1 x
+//	2 x
+//	3 x
+//	4 x
+//	5 x
+//	6 x
+//	7 x
 //
 // It is designed specifically to work with SSD1306 OLED display controller.
 type VerticalLSB struct {
@@ -125,7 +125,7 @@ func (i *VerticalLSB) PixOffset(x, y int) (int, byte) {
 	return offset, 1 << bit
 }
 
-// Set implements draw.Image
+// Set implements draw.Image.
 func (i *VerticalLSB) Set(x, y int, c color.Color) {
 	i.SetBit(x, y, convertBit(c))
 }
@@ -143,14 +143,14 @@ func (i *VerticalLSB) SetBit(x, y int, b Bit) {
 	}
 }
 
-// Draw a horizontal line from start to end at ypos
+// Draw a horizontal line from start to end at ypos.
 func (i *VerticalLSB) DrawHLine(start, end, ypos int, b Bit) {
 	for x := start; x < end; x++ {
 		i.SetBit(x, ypos, b)
 	}
 }
 
-// Draw a vertical line from start to end at xpos
+// Draw a vertical line from start to end at xpos.
 func (i *VerticalLSB) DrawVLine(start, end, xpos int, b Bit) {
 	for y := start; y < end; y++ {
 		i.SetBit(xpos, y, b)

@@ -21,7 +21,7 @@ func crc8(b0, b1 byte) byte {
 	crc := crcInit
 	for _, b := range [2]byte{b0, b1} {
 		crc ^= b
-		for i := 0; i < 8; i++ {
+		for range 8 {
 			if crc&0x80 != 0 {
 				crc = (crc << 1) ^ crcPolynomial
 			} else {

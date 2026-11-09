@@ -90,7 +90,7 @@ func TestInit_fail(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	for i := 0; i < len(data)-1; i++ {
+	for i := range len(data) - 1 {
 		ops = append(ops, data[i]...)
 		bus, d := getDev(ops)
 		bus.DontPanic = true

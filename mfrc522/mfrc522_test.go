@@ -32,10 +32,9 @@ func fromBitString(t *testing.T, s string) (res byte) {
 
 1 1 1 0 0 1 0 0
 1 0 1 1 1 0 0 1
-0 1 1 0 0 0 0 1
+0 1 1 0 0 0 0 1.
 */
 func TestBitCalc(t *testing.T) {
-
 	ba := BlocksAccess{
 		B3: KeyA_RN_WB_BITS_RAB_WN_KeyB_RN_WB, // 100
 		B2: RAB_WN_IN_DAB,                     // 001
@@ -89,7 +88,7 @@ func TestBitCalc(t *testing.T) {
 
 1 1 1 1 1 1 1 1
 0 0 0 0 0 1 1 1
-1 0 0 0 0 0 0 0
+1 0 0 0 0 0 0 0.
 */
 func TestByteArrayDecipher(t *testing.T) {
 	bitsData := [...]byte{

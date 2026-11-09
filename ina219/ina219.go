@@ -39,7 +39,6 @@ var DefaultOpts = Opts{
 
 // New opens a handle to an ina219 sensor.
 func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
-
 	i2cAddress := DefaultOpts.Address
 	if opts.Address != 0 {
 		if opts.Address < 0x40 || opts.Address > 0x4f {
@@ -108,7 +107,7 @@ func (d *Dev) Sense() (pm PowerMonitor, err error) {
 	shunt, err := d.m.ReadUint16(shuntVoltageRegister)
 	if err != nil {
 		err = errReadShunt
-		return
+		return pm, err
 	}
 	// Least significant bit is 10µV.
 	pm.Shunt = physic.ElectricPotential(int16(shunt)) * 10 * physic.MicroVolt
@@ -116,7 +115,7 @@ func (d *Dev) Sense() (pm PowerMonitor, err error) {
 	bus, err := d.m.ReadUint16(busVoltageRegister)
 	if err != nil {
 		err = errReadBus
-		return
+		return pm, err
 	}
 
 	// Least significant bit is 4mV.
@@ -125,24 +124,24 @@ func (d *Dev) Sense() (pm PowerMonitor, err error) {
 	// Check if bit zero is set, if set the ADC has overflowed.
 	if bus&1 > 0 {
 		err = errRegisterOverflow
-		return
+		return pm, err
 	}
 
 	current, err := d.m.ReadUint16(currentRegister)
 	if err != nil {
 		err = errReadCurrent
-		return
+		return pm, err
 	}
 	pm.Current = physic.ElectricCurrent(int16(current)) * d.currentLSB
 
 	power, err := d.m.ReadUint16(powerRegister)
 	if err != nil {
 		err = errReadPower
-		return
+		return pm, err
 	}
 	pm.Power = physic.Power(power) * d.powerLSB
 
-	return
+	return pm, err
 }
 
 // Since physic electrical is in nano units we need to scale taking care to not
@@ -183,7 +182,7 @@ type PowerMonitor struct {
 	Power   physic.Power
 }
 
-// String returns a PowerMonitor as string
+// String returns a PowerMonitor as string.
 func (p PowerMonitor) String() string {
 	return fmt.Sprintf("Bus: %s, Current: %s, Power: %s, Shunt: %s", p.Voltage, p.Current, p.Power, p.Shunt)
 }

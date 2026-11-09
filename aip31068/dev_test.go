@@ -18,7 +18,7 @@ import (
 	"periph.io/x/devices/v3/waveshare1602"
 )
 
-var pause time.Duration = 0
+var pause time.Duration
 var liveDevice bool
 
 func getDev(recordingName string) (*aip31068.Dev, error) {

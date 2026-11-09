@@ -8,7 +8,6 @@ package tmp102
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 
@@ -27,6 +26,17 @@ type Dev struct {
 	shutdown chan bool
 	mu       sync.Mutex
 	opts     *Opts
+}
+
+// NewI2C returns a new TMP102 sensor using the specified bus and address.
+// If opts is not supplied, the configuration of the sensor is set to the
+// default on startup.
+func NewI2C(b i2c.Bus, addr uint16, opts *Opts) (*Dev, error) {
+	if opts == nil {
+		opts = &Opts{SampleRate: RateFourHertz, AlertSetting: ModeComparator}
+	}
+	d := &Dev{d: &i2c.Dev{Bus: b, Addr: addr}, opts: opts, shutdown: nil}
+	return d, d.start()
 }
 
 const (
@@ -72,65 +82,6 @@ type Opts struct {
 	AlertHigh    physic.Temperature
 }
 
-func (dev *Dev) isShutdown() bool {
-	return dev.shutdown == nil
-}
-
-// start initializes the device to a known state and ensures its
-// not in shutdown mode.
-func (dev *Dev) start() error {
-	config := dev.ReadConfiguration()
-	mask := uint16(0xffff) ^ (uint16(1<<_SHUTDOWN_BIT) | uint16(1<<_THERMOSTAT_MODE))
-	config &= mask
-
-	config |= uint16(dev.opts.AlertSetting) << _THERMOSTAT_MODE
-
-	cr := ConversionRate((config >> _CONVERSION_RATE_POS) & 0x03)
-	if cr != dev.opts.SampleRate {
-		// Turn off the sample rate bits.
-		config &= 0xffff ^ uint16(0x03<<_CONVERSION_RATE_POS)
-		// Now set the new value.
-		config |= uint16(dev.opts.SampleRate) << _CONVERSION_RATE_POS
-	}
-
-	var bits []byte
-	w := make([]byte, 3)
-	w[0] = _REGISTER_CONFIGURATION
-	w[1] = byte(config>>8) & 0xff
-	w[2] = byte(config & 0xff)
-
-	err := dev.d.Tx(w, nil)
-	if err != nil {
-		return err
-	}
-	dev.shutdown = make(chan bool)
-	if dev.opts.AlertLow != 0 {
-		bits, err = temperatureToCount(dev.opts.AlertLow)
-		if err != nil {
-			return err
-		}
-		w[0] = _REGISTER_RANGE_LOW
-		w[1] = bits[0]
-		w[2] = bits[1]
-		err = dev.d.Tx(w, nil)
-		if err != nil {
-			return err
-		}
-	}
-
-	if dev.opts.AlertHigh != 0 {
-		bits, err = temperatureToCount(dev.opts.AlertHigh)
-		if err != nil {
-			return err
-		}
-		w[0] = _REGISTER_RANGE_HIGH
-		w[1] = bits[0]
-		w[2] = bits[1]
-		err = dev.d.Tx(w, nil)
-	}
-	return err
-}
-
 // temperatureToCount converts a temperature into the count that the device
 // uses. Required to set the Low/High Range registers for alerts.
 func temperatureToCount(temp physic.Temperature) ([]byte, error) {
@@ -145,12 +96,10 @@ func temperatureToCount(temp physic.Temperature) ([]byte, error) {
 		temp = physic.ZeroCelsius + physic.Temperature(-1*temp.Celsius())*physic.Kelvin
 		count = uint16((temp - physic.ZeroCelsius) / _DEGREES_RESOLUTION)
 		count = ((twosComplement(count) | (1 << 11)) + 1)
-
 	} else {
 		count = uint16((temp - physic.ZeroCelsius) / _DEGREES_RESOLUTION)
-
 	}
-	count = count << 4
+	count <<= 4
 	result[0] = byte(count >> 8 & 0xff)
 	result[1] = byte(count & 0xf0)
 	return result, nil
@@ -158,7 +107,7 @@ func temperatureToCount(temp physic.Temperature) ([]byte, error) {
 
 func twosComplement(value uint16) uint16 {
 	var result uint16
-	for iter := 0; iter < 11; iter++ {
+	for iter := range 11 {
 		bitVal := uint16(1 << iter)
 		if (value & bitVal) == 0 {
 			result |= bitVal
@@ -194,34 +143,6 @@ func (dev *Dev) ReadConfiguration() uint16 {
 	return result
 }
 
-// readTemperature returns the raw counts from the device temperature registers.
-func (dev *Dev) readTemperature() (physic.Temperature, error) {
-	var err error
-	if dev.isShutdown() {
-		err = dev.start()
-		if err != nil {
-			return MinimumTemperature, err
-		}
-	}
-	r := make([]byte, 2)
-	err = dev.d.Tx([]byte{_REGISTER_TEMPERATURE}, r)
-	if err != nil {
-		return MinimumTemperature, err
-	}
-	return countToTemperature(r), nil
-}
-
-// NewI2C returns a new TMP102 sensor using the specified bus and address.
-// If opts is not supplied, the configuration of the sensor is set to the
-// default on startup.
-func NewI2C(b i2c.Bus, addr uint16, opts *Opts) (*Dev, error) {
-	if opts == nil {
-		opts = &Opts{SampleRate: RateFourHertz, AlertSetting: ModeComparator}
-	}
-	d := &Dev{d: &i2c.Dev{Bus: b, Addr: addr}, opts: opts, shutdown: nil}
-	return d, d.start()
-}
-
 // GetAlertMode returns the current alert settings for the device.
 func (dev *Dev) GetAlertMode() (mode AlertMode, rangeLow, rangeHigh physic.Temperature, err error) {
 	dev.mu.Lock()
@@ -252,7 +173,7 @@ func (dev *Dev) GetAlertMode() (mode AlertMode, rangeLow, rangeHigh physic.Tempe
 }
 
 // Halt shuts down the device. If a SenseContinuous operation is in progress,
-// its aborted. Implements conn.Resource
+// its aborted. Implements conn.Resource.
 func (dev *Dev) Halt() error {
 	dev.mu.Lock()
 	defer dev.mu.Unlock()
@@ -384,8 +305,84 @@ func (dev *Dev) Precision(env *physic.Env) {
 }
 
 func (dev *Dev) String() string {
-	return fmt.Sprintf("tmp102: %s", dev.d.String())
+	return "tmp102: " + dev.d.String()
 }
 
 var _ conn.Resource = &Dev{}
 var _ physic.SenseEnv = &Dev{}
+
+func (dev *Dev) isShutdown() bool {
+	return dev.shutdown == nil
+}
+
+// start initializes the device to a known state and ensures its
+// not in shutdown mode.
+func (dev *Dev) start() error {
+	config := dev.ReadConfiguration()
+	mask := uint16(0xffff) ^ (uint16(1<<_SHUTDOWN_BIT) | uint16(1<<_THERMOSTAT_MODE))
+	config &= mask
+
+	config |= uint16(dev.opts.AlertSetting) << _THERMOSTAT_MODE
+
+	cr := ConversionRate((config >> _CONVERSION_RATE_POS) & 0x03)
+	if cr != dev.opts.SampleRate {
+		// Turn off the sample rate bits.
+		config &= 0xffff ^ uint16(0x03<<_CONVERSION_RATE_POS)
+		// Now set the new value.
+		config |= uint16(dev.opts.SampleRate) << _CONVERSION_RATE_POS
+	}
+
+	var bits []byte
+	w := make([]byte, 3)
+	w[0] = _REGISTER_CONFIGURATION
+	w[1] = byte(config>>8) & 0xff
+	w[2] = byte(config & 0xff)
+
+	err := dev.d.Tx(w, nil)
+	if err != nil {
+		return err
+	}
+	dev.shutdown = make(chan bool)
+	if dev.opts.AlertLow != 0 {
+		bits, err = temperatureToCount(dev.opts.AlertLow)
+		if err != nil {
+			return err
+		}
+		w[0] = _REGISTER_RANGE_LOW
+		w[1] = bits[0]
+		w[2] = bits[1]
+		err = dev.d.Tx(w, nil)
+		if err != nil {
+			return err
+		}
+	}
+
+	if dev.opts.AlertHigh != 0 {
+		bits, err = temperatureToCount(dev.opts.AlertHigh)
+		if err != nil {
+			return err
+		}
+		w[0] = _REGISTER_RANGE_HIGH
+		w[1] = bits[0]
+		w[2] = bits[1]
+		err = dev.d.Tx(w, nil)
+	}
+	return err
+}
+
+// readTemperature returns the raw counts from the device temperature registers.
+func (dev *Dev) readTemperature() (physic.Temperature, error) {
+	var err error
+	if dev.isShutdown() {
+		err = dev.start()
+		if err != nil {
+			return MinimumTemperature, err
+		}
+	}
+	r := make([]byte, 2)
+	err = dev.d.Tx([]byte{_REGISTER_TEMPERATURE}, r)
+	if err != nil {
+		return MinimumTemperature, err
+	}
+	return countToTemperature(r), nil
+}

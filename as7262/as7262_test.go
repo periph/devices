@@ -8,6 +8,7 @@ package as7262
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"testing"
 	"time"
@@ -22,18 +23,23 @@ import (
 var defaultSensorTimeOut = time.Millisecond * 200
 
 func TestDev_Sense(t *testing.T) {
+	type timefunc func(*testing.T, *Dev) func(time.Duration) <-chan time.Time
 
-	type timefunc func(*Dev) func(time.Duration) <-chan time.Time
-
-	haltit := func(dev *Dev) func(time.Duration) <-chan time.Time {
-		return func(d time.Duration) <-chan time.Time {
-			t := make(chan time.Time, 1)
-			go dev.Halt()
-			return t
+	haltit := func(t *testing.T, dev *Dev) func(time.Duration) <-chan time.Time {
+		return func(_ time.Duration) <-chan time.Time {
+			timer := make(chan time.Time, 1)
+			done := make(chan error, 1)
+			go func() { done <- dev.Halt() }()
+			t.Cleanup(func() {
+				if err := <-done; err != nil {
+					t.Error(err)
+				}
+			})
+			return timer
 		}
 	}
-	dontwait := func(dev *Dev) func(time.Duration) <-chan time.Time {
-		return func(d time.Duration) <-chan time.Time {
+	dontwait := func(_ *testing.T, _ *Dev) func(time.Duration) <-chan time.Time {
+		return func(_ time.Duration) <-chan time.Time {
 			t := make(chan time.Time, 1)
 			t <- time.Now()
 			sensorTimeout = time.Millisecond * 1
@@ -160,7 +166,6 @@ func TestDev_Sense(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
 			defer func() {
 				// cleanup
 				waitForSensor = time.After
@@ -174,7 +179,7 @@ func TestDev_Sense(t *testing.T) {
 
 			d, _ := New(bus, &tt.opts)
 
-			waitForSensor = tt.waiter(d)
+			waitForSensor = tt.waiter(t, d)
 
 			if d.interrupt != nil && tt.sendEdge {
 				intPin.EdgesChan <- gpio.High
@@ -182,14 +187,14 @@ func TestDev_Sense(t *testing.T) {
 
 			got, err := d.Sense(physic.MilliAmpere*100, time.Millisecond*3)
 
-			if _, ok := tt.wantErr.(*IOError); ok {
-				if _, ok := err.(*IOError); !ok {
+			if wantIO, ok := errors.AsType[*IOError](tt.wantErr); ok {
+				gotIO, ok := errors.AsType[*IOError](err)
+				if !ok {
 					t.Errorf("expected IOError but %T", err)
+				} else if gotIO.Op != wantIO.Op {
+					t.Errorf("expected %s, but got %s", wantIO.Op, gotIO.Op)
 				}
-				if err.(*IOError).Op != tt.wantErr.(*IOError).Op {
-					t.Errorf("expected %s, but got %s", tt.wantErr.(*IOError).Op, err.(*IOError).Op)
-				}
-			} else if err != tt.wantErr {
+			} else if !errors.Is(err, tt.wantErr) {
 				t.Errorf("expected error: %v but got: %v", tt.wantErr, got)
 			}
 			if !reflect.DeepEqual(got, tt.want) {
@@ -369,14 +374,14 @@ func TestDev_pollStatus(t *testing.T) {
 
 			got := d.pollStatus(ctx, tt.dir)
 
-			if _, ok := tt.wantErr.(*IOError); ok {
-				if _, ok := got.(*IOError); !ok {
+			if wantIO, ok := errors.AsType[*IOError](tt.wantErr); ok {
+				gotIO, ok := errors.AsType[*IOError](got)
+				if !ok {
 					t.Errorf("expected IOError but %T", got)
+				} else if gotIO.Op != wantIO.Op {
+					t.Errorf("expected %s, but got %s", wantIO.Op, gotIO.Op)
 				}
-				if got.(*IOError).Op != tt.wantErr.(*IOError).Op {
-					t.Errorf("expected %s, but got %s", tt.wantErr.(*IOError).Op, got.(*IOError).Op)
-				}
-			} else if got != tt.wantErr {
+			} else if !errors.Is(got, tt.wantErr) {
 				t.Errorf("expected error: %v but got: %v", tt.wantErr, got)
 			}
 		})
@@ -472,14 +477,14 @@ func TestDev_writeVirtualRegister(t *testing.T) {
 			}
 
 			got := d.writeVirtualRegister(ctx, 0x04, 0xFF)
-			if _, ok := tt.wantErr.(*IOError); ok {
-				if _, ok := got.(*IOError); !ok {
+			if wantIO, ok := errors.AsType[*IOError](tt.wantErr); ok {
+				gotIO, ok := errors.AsType[*IOError](got)
+				if !ok {
 					t.Errorf("expected IOError but %T", got)
+				} else if gotIO.Op != wantIO.Op {
+					t.Errorf("expected %s, but got %s", wantIO.Op, gotIO.Op)
 				}
-				if got.(*IOError).Op != tt.wantErr.(*IOError).Op {
-					t.Errorf("expected %s, but got %s", tt.wantErr.(*IOError).Op, got.(*IOError).Op)
-				}
-			} else if got != tt.wantErr {
+			} else if !errors.Is(got, tt.wantErr) {
 				t.Errorf("expected error: %v but got: %v", tt.wantErr, got)
 			}
 		})
@@ -614,14 +619,14 @@ func TestDev_readVirtualRegister(t *testing.T) {
 			}
 
 			got := d.readVirtualRegister(ctx, 0x04, tt.data)
-			if _, ok := tt.wantErr.(*IOError); ok {
-				if _, ok := got.(*IOError); !ok {
+			if wantIO, ok := errors.AsType[*IOError](tt.wantErr); ok {
+				gotIO, ok := errors.AsType[*IOError](got)
+				if !ok {
 					t.Errorf("expected IOError but %T", got)
+				} else if gotIO.Op != wantIO.Op {
+					t.Errorf("expected %s, but got %s", wantIO.Op, gotIO.Op)
 				}
-				if got.(*IOError).Op != tt.wantErr.(*IOError).Op {
-					t.Errorf("expected %s, but got %s", tt.wantErr.(*IOError).Op, got.(*IOError).Op)
-				}
-			} else if got != tt.wantErr {
+			} else if !errors.Is(got, tt.wantErr) {
 				t.Errorf("expected error: %v but got: %v", tt.wantErr, got)
 			}
 		})
@@ -777,14 +782,14 @@ func TestDev_pollDataReady(t *testing.T) {
 			}
 
 			got := d.pollDataReady(ctx)
-			if _, ok := tt.wantErr.(*IOError); ok {
-				if _, ok := got.(*IOError); !ok {
+			if wantIO, ok := errors.AsType[*IOError](tt.wantErr); ok {
+				gotIO, ok := errors.AsType[*IOError](got)
+				if !ok {
 					t.Errorf("expected IOError but %T", got)
+				} else if gotIO.Op != wantIO.Op {
+					t.Errorf("expected %s, but got %s", wantIO.Op, gotIO.Op)
 				}
-				if got.(*IOError).Op != tt.wantErr.(*IOError).Op {
-					t.Errorf("expected %s, but got %s", tt.wantErr.(*IOError).Op, got.(*IOError).Op)
-				}
-			} else if got != tt.wantErr {
+			} else if !errors.Is(got, tt.wantErr) {
 				t.Errorf("expected error: %v but got: %v", tt.wantErr, got)
 			}
 		})
@@ -792,7 +797,6 @@ func TestDev_pollDataReady(t *testing.T) {
 }
 
 func TestNew(t *testing.T) {
-
 	tests := []struct {
 		name    string
 		opts    Opts
@@ -808,7 +812,6 @@ func TestNew(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-
 		bus := &i2ctest.Playback{DontPanic: true}
 		d, err := New(bus, &tt.opts)
 		if err != nil != tt.wantErr {
@@ -875,14 +878,14 @@ func TestDev_Gain(t *testing.T) {
 		sensorTimeout = tt.timeout
 		got := d.Gain(tt.gain)
 
-		if _, ok := tt.wantErr.(*IOError); ok {
-			if _, ok := got.(*IOError); !ok {
+		if wantIO, ok := errors.AsType[*IOError](tt.wantErr); ok {
+			gotIO, ok := errors.AsType[*IOError](got)
+			if !ok {
 				t.Errorf("%s: expected IOError but %T", tt.name, got)
+			} else if gotIO.Op != wantIO.Op {
+				t.Errorf("%s: expected %s, but got %s", tt.name, wantIO.Op, gotIO.Op)
 			}
-			if got.(*IOError).Op != tt.wantErr.(*IOError).Op {
-				t.Errorf("%s: expected %s, but got %s", tt.name, tt.wantErr.(*IOError).Op, got.(*IOError).Op)
-			}
-		} else if got != tt.wantErr {
+		} else if !errors.Is(got, tt.wantErr) {
 			t.Errorf("%s: expected error: %v but got: %v", tt.name, tt.wantErr, got)
 		}
 	}
